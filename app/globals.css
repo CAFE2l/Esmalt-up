@@ -3,21 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --background: 255 250 252;
+  --foreground: 61 37 50;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --primary: 232 68 122;
+  --primary-dark: 178 30 86;
+  --primary-light: 244 123 161;
+
+  --blush-50: 253 242 247;
+  --blush-100: 252 231 239;
+  --blush-200: 250 215 228;
+  --blush-300: 246 185 207;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  font-family: var(--font-poppins), ui-rounded, "Segoe UI", system-ui, sans-serif;
 }
 
 @layer utilities {
