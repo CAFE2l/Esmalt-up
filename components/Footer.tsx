@@ -12,7 +12,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-blush-200/70 bg-blush-50/70">
+    <footer className="bg-rosa-claro">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 py-10 text-center sm:px-6">
         <Logo size="sm" />
         <p className="text-sm text-foreground/70">
@@ -23,7 +23,7 @@ export default function Footer() {
             <Link
               key={link.href}
               href={link.href}
-              className="transition-colors hover:text-primary"
+              className="transition-colors hover:text-rose-gold active:text-rosa-blush"
             >
               {link.label}
             </Link>

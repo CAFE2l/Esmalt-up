@@ -3,27 +3,30 @@
 @tailwind utilities;
 
 :root {
-  --background: 255 250 252;
-  --foreground: 61 37 50;
+  --bege-claro: 23 16 20;
+  --branco: 35 26 31;
+  --rosa-claro: 45 34 40;
+  --rosa-medio: 174 118 132;
+  --rosa-blush: 224 156 170;
+  --rose-gold: 211 150 160;
+  --cinza-suave: 60 48 54;
 
-  --primary: 232 68 122;
-  --primary-dark: 178 30 86;
-  --primary-light: 244 123 161;
-
-  --blush-50: 253 242 247;
-  --blush-100: 252 231 239;
-  --blush-200: 250 215 228;
-  --blush-300: 246 185 207;
+  --foreground: 247 241 243;
 }
 
 body {
   color: rgb(var(--foreground));
-  background: rgb(var(--background));
+  background: rgb(var(--bege-claro));
   font-family: var(--font-poppins), ui-rounded, "Segoe UI", system-ui, sans-serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .text-glow {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4))
+      drop-shadow(0 6px 16px rgba(224, 156, 170, 0.35));
   }
 }
