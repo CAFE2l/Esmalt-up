@@ -62,8 +62,7 @@ function useVideoPlayer(
     setProgress(0);
     setCurrentTime(0);
     setBuffered(0);
-    setShowSettings(false);
-    setShowSpeed(false);
+        setShowSettings(false);
     setWatchedFired(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
