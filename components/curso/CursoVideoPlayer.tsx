@@ -44,8 +44,7 @@ function useVideoPlayer(
   const [currentTime, setCurrentTime] = useState(0);
   const [ready, setReady] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showSpeed, setShowSpeed] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
+    const [playbackRate, setPlaybackRate] = useState(1);
   const [captionsOn, setCaptionsOn] = useState(true);
       const [watchedFired, setWatchedFired] = useState(false);
 
@@ -107,16 +106,7 @@ function useVideoPlayer(
     }
   };
 
-  const setVolumeSafe = (v: number) => {
-    const video = videoRef.current;
-    if (video) {
-      video.volume = v;
-      setVolume(v);
-      setMuted(v === 0);
-    }
-  };
-
-  const toggleMute = () => {
+    const toggleMute = () => {
     const v = videoRef.current;
     if (!v) return;
     v.muted = !muted;
@@ -127,8 +117,7 @@ function useVideoPlayer(
   const setSpeed = (rate: number) => {
     const v = videoRef.current;
     if (v) v.playbackRate = rate;
-    setPlaybackRate(rate);
-    setShowSpeed(false);
+        setPlaybackRate(rate);
     setShowSettings(false);
   };
 
@@ -142,8 +131,7 @@ function useVideoPlayer(
       duration,
       currentTime,
       ready,
-      showSettings,
-      showSpeed,
+            showSettings,
       playbackRate,
       captionsOn,
       watchedFired,
@@ -154,11 +142,9 @@ function useVideoPlayer(
       onProgress,
       togglePlay,
       toggleMute,
-      setVolumeSafe,
-      setSpeed,
+            setSpeed,
       setPlaying,
       setShowSettings,
-      setShowSpeed,
       setCaptionsOn,
     },
   };
@@ -432,7 +418,7 @@ function Slider({
   return (
     <div
       role="slider"
-      aria-valuomin={0}
+      aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
       aria-valuetext={`${Math.round(value * 100)}%`}
