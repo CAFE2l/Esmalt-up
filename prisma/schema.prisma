@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  uid              String   @id
+  name             String?
+  email            String?
+  avatarUrl        String?
+  level            String?
+  experienceYears  String?
+  favoriteBrands   String?
+  favoriteStyles   String?
+  equipment        String?
+  courseInProgress String?
+  city             String?
+  status           String?
+  interests        String[]
+  badges           String[]
+  youtube          String?
+  instagram        String?
+  tiktok           String?
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+
+  orders   Order[]
+  progress CourseProgress[]
+
+  @@map("user_profiles")
+}
+
+model Order {
+  id       String   @id @default(cuid())
+  userId   String
+  kitName  String
+  date     DateTime
+  status   String
+  user     UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model CourseProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  lessonTitle   String
+  dateCompleted DateTime @default(now())
+  status        String
+  user          UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("course_progress")
+}
