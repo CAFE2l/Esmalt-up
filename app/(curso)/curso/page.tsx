@@ -7,6 +7,11 @@ export const metadata: Metadata = {
     "Curso preparatório Esmalt'up: manicure do zero ao primeiro cliente. Aulas em vídeo com exercícios práticos.",
 };
 
+// The course page reads the `?aula=` query param and (on the client) the
+// user's saved progress, so it must render per-request instead of being
+// prerendered statically.
+export const dynamic = "force-dynamic";
+
 export default function CursoPage({
   searchParams,
 }: {

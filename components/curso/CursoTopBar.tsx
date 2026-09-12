@@ -41,18 +41,14 @@ function UserAvatar() {
       : "";
   return (
     <div className="flex items-center gap-2">
-      <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-xs font-bold text-white shadow`}
-      >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-xs font-bold text-white shadow">
         {user?.photoURL ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={user.photoURL}
-            alt={user.displayName ?? "Usuário"}
-            className="h-full w-full rounded-full object-cover"
+          <span
+            className="h-full w-full rounded-full bg-center bg-cover bg-no-repeat"
+            style={{ backgroundImage: `url("${user.photoURL}")` }}
           />
         ) : (
-          <span>{initials || "U"}</span>
+          initials || "U"
         )}
       </span>
       <span className="hidden text-sm font-medium text-foreground/80 sm:inline-block">
