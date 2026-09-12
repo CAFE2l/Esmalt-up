@@ -52,7 +52,133 @@ export interface CourseLesson {
 export const PLACEHOLDER_VIDEO =
   "https://media.w3.org/2010/05/sintel/trailer_hd.mp4";
 
-export const COURSE: Module[] = [];
+export const COURSE: Module[] = [
+  {
+    id: "mundo-1",
+    title: "MUNDO 1 — Fundamentos de Manicure",
+    lessons: [
+      {
+        id: "aula-1",
+        title: "Bem-vinda ao Esmalt'up!",
+        description:
+          "Apresentação do curso e do que você vai aprender para montar sua assistência de manicure do zero.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 320,
+        order: 0,
+      },
+      {
+        id: "aula-2",
+        title: "Equipamentos essenciais",
+        description:
+          "Conheça os instrumentos fundamentais: luz de LED, bisturis, lixas, toners e mais.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 410,
+        order: 1,
+      },
+      {
+        id: "aula-3",
+        title: "Higiene e segurança na bancada",
+        description:
+          "Regras de higiene, descarte de material e organização para atender com tranquilidade.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 540,
+        order: 2,
+      },
+    ],
+  },
+  {
+    id: "mundo-2",
+    title: "MUNDO 2 — Preparação da Unha",
+    lessons: [
+      {
+        id: "aula-4",
+        title: "Avaliação da unha e forma ideal",
+        description:
+          "Entenda como analisar o comprimento, a forma e a saúde da unha de cada cliente.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 370,
+        order: 3,
+      },
+      {
+        id: "aula-5",
+        title: "Lixa, esmalta e desinfecção",
+        description:
+          "Técnicas de preparação mecânica e a sequência correta de limpeza.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 480,
+        order: 4,
+      },
+      {
+        id: "aula-6",
+        title: "Corte e esmaltação correta",
+        description: "Como esculpir e nivelar a unha sem agredi-la.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 460,
+        order: 5,
+      },
+    ],
+  },
+    {
+    id: "mundo-3",
+    title: "MUNDO 3 — Base, Acabamento e Esmaltem",
+    lessons: [
+      {
+        id: "aula-7",
+        title: "Aplicação de base e selagem",
+        description: "A técnica perfeita de base para durar mais e não rachar.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 390,
+        order: 6,
+      },
+      {
+        id: "aula-8",
+        title: "Reforço com fibra de vidro",
+        description: "Como aplicar a fibra para unhas fortes e definidas.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 520,
+        order: 8,
+      },
+      {
+        id: "aula-9",
+        title: "Esmaltem clássico e detalhes",
+        description: "Pintura uniforme, limpeza de borda e a linha de corte.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 510,
+        order: 7,
+      },
+    ],
+  },
+  {
+    id: "mundo-4",
+    title: "MUNDO 4 — Esmaltamento Avançado",
+    lessons: [
+      {
+        id: "aula-10",
+        title: "Técnica do ombrelé e degradê",
+        description: "Crie transições suaves de cor com esponja e pincel técnico.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 600,
+        order: 9,
+      },
+      {
+        id: "aula-11",
+        title: "French moderno e brilho perfeito",
+        description: "Faixas elegantes e selagem esculpida com brilho espremido.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 560,
+        order: 10,
+      },
+      {
+        id: "aula-12",
+        title: "Acabamento e cuidados pós-atendimento",
+        description: "Finalizando a unha e orientando a cliente para a rotina em casa.",
+        videoUrl: PLACEHOLDER_VIDEO,
+        durationSec: 470,
+        order: 11,
+      },
+    ],
+  },
+];
 
 /** Flattened, globally-ordered lesson list with module context attached. */
 export function flattenCourse(course: Module[] = COURSE): CourseLesson[] {
