@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Logo from "./Logo";
+import { useAuth } from "@/lib/AuthContext";
 
 const navLinks = [
   { href: "/kits", label: "Kits" },
@@ -11,9 +12,15 @@ const navLinks = [
 ];
 
 export default function Header() {
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
 
   const closeMenu = () => setOpen(false);
+
+  const handleLogout = async () => {
+    await logout();
+    closeMenu();
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-branco shadow-header">
@@ -30,12 +37,22 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/login"
-            className="rounded-full border-2 border-rose-gold bg-branco px-5 py-2 text-sm font-semibold text-rose-gold shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:bg-rosa-blush hover:text-white hover:shadow-card-lg active:translate-y-0 active:shadow-pressed"
-          >
-            Login
-          </Link>
+          {user ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-full border-2 border-rose-gold bg-branco px-5 py-2 text-sm font-semibold text-rose-gold shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:bg-rosa-claro hover:shadow-card-lg active:translate-y-0 active:shadow-pressed"
+            >
+              Sair
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-full border-2 border-rose-gold bg-branco px-5 py-2 text-sm font-semibold text-rose-gold shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:bg-rosa-blush hover:text-white hover:shadow-card-lg active:translate-y-0 active:shadow-pressed"
+            >
+              Login
+            </Link>
+          )}
         </nav>
 
         <button
@@ -60,7 +77,7 @@ export default function Header() {
       {open && (
         <nav className="border-t border-cinza-suave bg-branco px-4 py-3 md:hidden">
           <div className="flex flex-col gap-1">
-            {[...navLinks, { href: "/login", label: "Login" }].map((link) => (
+            {[...navLinks, ...(user ? [] : [{ href: "/login", label: "Login" }])].map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -70,6 +87,15 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            {user && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-2xl px-4 py-3 text-left text-sm font-medium text-foreground/80 transition-colors hover:bg-rosa-claro/50 hover:text-rose-gold"
+              >
+                Sair
+              </button>
+            )}
           </div>
         </nav>
       )}
