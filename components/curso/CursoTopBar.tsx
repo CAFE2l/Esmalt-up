@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 import { outlineButton } from "@/components/buttonStyles";
 
@@ -46,7 +45,7 @@ function UserAvatar() {
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-xs font-bold text-white shadow`}
       >
         {user?.photoURL ? (
-          // eslint-disable-next-line @next/next/no-img-sr
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.photoURL}
             alt={user.displayName ?? "Usuário"}
@@ -85,15 +84,8 @@ export default function CursoTopBar({
           </span>
         </div>
 
-        {/* Lesson navigation */}
+                {/* Lesson navigation */}
         <div className="flex items-center gap-2">
-          <Link
-            href="/curso"
-            className={`${outlineButton} inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:px-4 sm:py-2`}
-          >
-            <ArrowLeft />
-            <span>Aula Anterior</span>
-          </Link>
           <button
             type="button"
             onClick={onPrev}
@@ -101,7 +93,7 @@ export default function CursoTopBar({
             className={`${outlineButton} inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-2`}
           >
             <ArrowLeft />
-            <span>Anterior</span>
+            <span>Aula Anterior</span>
           </button>
           <button
             type="button"

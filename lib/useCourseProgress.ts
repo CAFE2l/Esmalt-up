@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   COURSE_LESSONS,
-  CourseLesson,
   getLesson,
   getAdjacentLessons,
 } from "@/lib/courseData";
@@ -26,9 +25,17 @@ export interface ProgressSnapshot {
   completed: Record<string, boolean>;
   /** lessonId -> whether playback reached the 95% threshold at least once. */
   watched: Record<string, boolean>;
+  /** Last lesson the user was viewing (so reload resumes there). */
+  currentLessonId?: string;
 }
 
 const EMPTY: ProgressSnapshot = { completed: {}, watched: {} };
+
+/** First lesson with no stored `completed` flag (resume point); else last. */
+function defaultLessonId(completed: Record<string, boolean>): string | null {
+  const incomplete = COURSE_LESSONS.find((c) => !completed[c.lesson.id]);
+  return incomplete?.lesson.id ?? COURSE_LESSONS[COURSE_LESSONS.length - 1]?.lesson.id ?? null;
+}
 
 function loadProgress(): ProgressSnapshot {
   if (typeof window === "undefined") return EMPTY;
@@ -40,10 +47,11 @@ function loadProgress(): ProgressSnapshot {
       return {
         completed: parsed.completed ?? {},
         watched: parsed.watched ?? {},
+        currentLessonId: parsed.currentLessonId ?? undefined,
       };
     }
   } catch {
-    // corrupt entry — reset
+    /* corrupt entry — reset */
   }
   return EMPTY;
 }
@@ -58,22 +66,27 @@ function saveProgress(data: ProgressSnapshot) {
 }
 
 export function useCourseProgress(initialLessonId?: string) {
-  const [completed, setCompleted] = useState<Record<string, boolean>>(
-    () => loadProgress().completed,
-  );
-  const [watched, setWatched] = useState<Record<string, boolean>>(
-    () => loadProgress().watched,
-  );
+  // NOTE: we intentionally do NOT read localStorage in the useState
+  // initializers. The first render must be identical on server and client
+  // (SSR has no `window`); we hydrate from localStorage in a client-only
+  // effect below to avoid hydration mismatches.
+  const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [watched, setWatched] = useState<Record<string, boolean>>({});
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(
-    () => loadProgress().currentLessonId ?? initialLessonId ?? null,
+    initialLessonId ?? null,
   );
 
-  // Pick the first lesson if we have no current lesson yet.
+  // Client-only hydration + resume. First render matches SSR (empty state).
   useEffect(() => {
-    if (!currentLessonId && COURSE_LESSONS.length > 0) {
-      setCurrentLessonId(COURSE_LESSONS[0].lesson.id);
-    }
-  }, [currentLessonId]);
+    const data = loadProgress();
+    setCompleted(data.completed);
+    setWatched(data.watched);
+    setCurrentLessonId((cur) => {
+      if (cur) return cur; // explicit param / ?aula= wins
+      return data.currentLessonId ?? defaultLessonId(data.completed);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist everything on change (completed, watched, current lesson).
   useEffect(() => {
@@ -81,9 +94,9 @@ export function useCourseProgress(initialLessonId?: string) {
     saveProgress({ completed, watched, currentLessonId: current });
   }, [completed, watched, currentLessonId]);
 
-  const currentLesson = (currentLessonId
+  const currentLesson = currentLessonId
     ? getLesson(currentLessonId)
-    : COURSE_LESSONS[0]) as CourseLesson | undefined;
+    : undefined;
 
   const markWatched = useCallback((lessonId: string) => {
     setWatched((prev) =>
