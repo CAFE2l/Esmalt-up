@@ -26,9 +26,11 @@ export async function POST(req: Request) {
       ? await fetchMpPaymentStatus(String(paymentId))
       : null;
 
-    const updateData:
-      | { paymentStatus: string; status: string; gatewayStatus: string }
-      | Record<string, never> = {};
+    const updateData: {
+      paymentStatus?: string;
+      status?: string;
+      gatewayStatus?: string;
+    } = {};
 
     if (status) {
       const paid = status.status === "approved";

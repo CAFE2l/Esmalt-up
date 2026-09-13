@@ -69,9 +69,12 @@ export default function ReviewsSection({ productId }: { productId: string }) {
 
   const load = useCallback(
     async (sortKey: SortOption, pageNumber: number, append = false) => {
-      const url = `/api/reviews?productId=${encodeURIComponent(productId)}&sort=${sortKey}&page=${pageNumber}`;
+      const url = `/api/reviews?productId=${encodeURIComponent(productId)}&sort=${sortKey}&page=${pageNumber}&sessionId=${encodeURIComponent(sessionId ?? "")}`;
       try {
-        const response = await fetch(url);
+        const token = await user?.getIdToken().catch(() => null);
+        const response = await fetch(url, {
+          headers: token ? { authorization: `Bearer ${token}` } : undefined,
+        });
         if (!response.ok) return;
         const data = (await response.json()) as ReviewState;
         setState((current) =>
@@ -83,7 +86,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
         /* mantém estado atual */
       }
     },
-    [productId],
+    [productId, sessionId, user],
   );
 
   useEffect(() => {

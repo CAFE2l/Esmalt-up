@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateRequest, getBearerToken } from "@/lib/authUtils";
+import { authenticateRequest } from "@/lib/authUtils";
 import { getProduct } from "@/lib/catalogData";
 
 export const runtime = "nodejs";
@@ -27,6 +27,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get("productId");
     const sort = searchParams.get("sort") ?? "recent";
+    const sessionId = searchParams.get("sessionId");
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = 8;
 
@@ -36,6 +37,9 @@ export async function GET(req: Request) {
         { status: 400 },
       );
     }
+
+    // Identificação opcional para marcar "minha avaliação votada".
+    const auth = await authenticateRequest(req);
 
     const where = { productId, status: "approved" };
 
@@ -85,7 +89,11 @@ export async function GET(req: Request) {
         content: review.content,
         createdAt: review.createdAt,
         helpfulCount: review.helpfulCount,
-        myVote: review.votes.length > 0,
+        myVote: review.votes.some(
+          (vote) =>
+            (auth.ok && vote.userId === auth.uid) ||
+            (!auth.ok && vote.sessionId && vote.sessionId === sessionId),
+        ),
         media: review.media,
       })),
       hasMore: page * pageSize < total,
