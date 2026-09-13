@@ -567,11 +567,36 @@ export default function PerfilPage() {
   const completedCount = progress.filter((row) =>
     /conclu/i.test(row.status),
   ).length;
-  const filteredProgress = search.trim() ? progress.filter((row) => row.lessonTitle.toLowerCase().includes(search.trim().toLowerCase())) : progress;
-  const filteredOrders = search.trim() ? orders.filter((row) => row.kitName.toLowerCase().includes(search.trim().toLowerCase())) : orders;
-  const completionChecks: boolean[] = [profile.profilePhotoUrl.trim().length > 0, profile.bannerUrl.trim().length > 0, profile.city.trim().length > 0, profile.level.trim().length > 0, profile.experienceYears.trim().length > 0, profile.favoriteBrands.trim().length > 0, profile.favoriteStyles.trim().length > 0, profile.interests.length > 0, profile.youtube.trim().length > 0 || profile.instagram.trim().length > 0 || profile.tiktok.trim().length > 0];
-  if (profile.isEntrepreneur) { completionChecks.push(profile.services.length > 0, profile.pricing.trim().length > 0, profile.bookingLink.trim().length > 0); }
-  const completion = Math.round((completionChecks.filter(Boolean).length / completionChecks.length) * 100);
+  const query = search.trim().toLowerCase();
+  const filteredProgress = query
+    ? progress.filter((row) => row.lessonTitle.toLowerCase().includes(query))
+    : progress;
+  const filteredOrders = query
+    ? orders.filter((row) => row.kitName.toLowerCase().includes(query))
+    : orders;
+  const completionChecks: boolean[] = [
+    profile.profilePhotoUrl.trim().length > 0,
+    profile.bannerUrl.trim().length > 0,
+    profile.city.trim().length > 0,
+    profile.level.trim().length > 0,
+    profile.experienceYears.trim().length > 0,
+    profile.favoriteBrands.trim().length > 0,
+    profile.favoriteStyles.trim().length > 0,
+    profile.interests.length > 0,
+    profile.youtube.trim().length > 0 ||
+      profile.instagram.trim().length > 0 ||
+      profile.tiktok.trim().length > 0,
+  ];
+  if (profile.isEntrepreneur) {
+    completionChecks.push(
+      profile.services.length > 0,
+      profile.pricing.trim().length > 0,
+      profile.bookingLink.trim().length > 0,
+    );
+  }
+  const completion = Math.round(
+    (completionChecks.filter(Boolean).length / completionChecks.length) * 100,
+  );
 
   if (loading) {
     return (
