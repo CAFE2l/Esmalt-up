@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
+import CartButton from "./cart/CartButton";
 import { useAuth } from "@/lib/AuthContext";
 import { outlineButton, primaryButton } from "./buttonStyles";
 
@@ -63,6 +64,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <CartButton />
           <div className="flex items-center gap-2 lg:ml-4">
             {loading ? (
               <span
