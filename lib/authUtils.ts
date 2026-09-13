@@ -1,4 +1,5 @@
 import { verifyIdToken } from "./serverAuth";
+import { prisma } from "./prisma";
 
 export type AuthResult =
   | { ok: true; uid: string }
@@ -38,11 +39,9 @@ export async function isAdminRequest(
   ) {
     return true;
   }
-  const profile = await prismaAdmin().userProfile.findUnique({
+  const profile = await prisma.userProfile.findUnique({
     where: { uid },
     select: { isEntrepreneur: true },
   });
   return Boolean(profile?.isEntrepreneur);
 }
-
-import { prisma as prismaAdmin } from "./prisma";

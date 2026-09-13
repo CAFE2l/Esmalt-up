@@ -15,10 +15,7 @@ export async function POST(
 ) {
   try {
     const { answerId } = await params;
-    const auth = await authenticateRequest(req).catch(() => ({
-      ok: false,
-      error: "Não autorizado.",
-    }));
+    const auth = await authenticateRequest(req);
     const sessionId = (await req.json().catch(() => null))?.sessionId as
       | string
       | undefined;
@@ -30,12 +27,13 @@ export async function POST(
       );
     }
 
+    const identity = { userId: auth.ok ? auth.uid : null, sessionId: auth.ok ? (sessionId ?? null) : null };
+
     const existing = await prisma.answerHelpful.findUnique({
       where: {
         answerId_userId_sessionId: {
           answerId,
-          userId: auth.ok ? auth.uid : null,
-          sessionId: auth.ok ? null : sessionId,
+          ...identity,
         },
       },
     });
@@ -55,8 +53,7 @@ export async function POST(
       prisma.answerHelpful.create({
         data: {
           answerId,
-          userId: auth.ok ? auth.uid : null,
-          sessionId: auth.ok ? null : sessionId,
+          ...identity,
         },
       }),
       prisma.answer.update({

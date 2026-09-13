@@ -101,10 +101,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const auth = await authenticateRequest(req).catch(() => ({
-      ok: false,
-      error: "Não autorizado.",
-    }));
+    const auth = await authenticateRequest(req);
     const isAuth = auth.ok;
 
     const body = await req.json().catch(() => null);
