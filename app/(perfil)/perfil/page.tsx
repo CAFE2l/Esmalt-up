@@ -339,6 +339,60 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
+function BannerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-5 w-5"}
+    >
+      <rect x={3} y={3} width={18} height={18} rx={3} />
+      <path d="M3 15l5-5 3 3 5-5 5 5v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <circle cx={9} cy={9} r={1} />
+    </svg>
+  );
+}
+
+function LinkIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-4 w-4"}
+    >
+      <path d="M10 13a5 5 0 0 0 7.5-.5 1 1 0 0 1 1.7.7A7 7 0 0 1 5 18a7 7 0 0 1 0-14 7 7 0 0 1 10 5.5" />
+      <circle cx={4} cy={11} r={1} />
+      <path d="M17 6h.01" />
+    </svg>
+  );
+}
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-4 w-4"}
+    >
+      <path d="M12 19l7-7 2 5v3a2 2 0 01-2 2h-5l-2-2z" />
+      <path d="M9.5 6.5 15 2l5 5-5.5 5.5z" />
+      <path d="M14 2v5a2 2 0 002 2h5" />
+    </svg>
+  );
+}
+
 function SocialIcon({
   name,
   className = "h-6 w-6",
@@ -504,7 +558,7 @@ export default function PerfilPage() {
     await logout();
   };
 
-  // Prefer the custom uploaded photo, fall back to Firebase avatar, then initials.
+  // Prefer the custom uploaded photo; fall back to Firebase avatar.
   const effectivePhotoUrl =
     profile.profilePhotoUrl || user?.photoURL || null;
   const displayName = user?.displayName ?? "Usuária Esmalt'up";
@@ -560,42 +614,88 @@ export default function PerfilPage() {
         aria-hidden
         className="pointer-events-none absolute top-1/3 -right-28 h-96 w-96 rounded-full bg-rose-gold/20 blur-3xl"
       />
-      <div
+            <div
         aria-hidden
         className="pointer-events-none absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-rosa-medio/20 blur-3xl"
       />
 
+      {/* ─── BANNER + AVATAR ───────────────────────────── */}
       <div className="relative">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="relative w-full max-w-sm sm:max-w-xs">
-            <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-foreground/50">
-              <SearchIcon />
-            </span>
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar em sua área"
-              aria-label="Buscar"
-              className={`${inputClasses} pl-11`}
+        <div className="relative h-44 w-full overflow-hidden rounded-3xl sm:h-56 md:h-64">
+          {profile.bannerUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.bannerUrl}
+              alt="Banner do perfil"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-rosa-blush/40 via-rose-gold/25 to-rosa-medio/40 px-4 text-center">
+              <BannerIcon className="h-10 w-10 text-white/80 sm:h-14 sm:w-14" />
+              <p className="text-sm font-medium text-white/90">
+                Mostre seu studio — adicione uma capa
+              </p>
+              <p className="text-xs text-white/70">1200 x 400 • JPG, PNG ou WebP</p>
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent" aria-hidden />
+          <div className="absolute bottom-3 right-3">
+            <ImageUploader
+              mode="banner"
+              variant="overlay"
+              folder="banners"
+              alt="Banner do perfil"
+              value={profile.bannerUrl || null}
+              onUpload={(url) => set("bannerUrl", url)}
+              onRemove={() => set("bannerUrl", "")}
             />
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
+        {/* Avatar uploader — overlaps the bottom of the banner */}
+        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 sm:left-8 sm:translate-x-0">
+          <ImageUploader
+            mode="avatar"
+            variant="overlay"
+            folder="profiles"
+            alt={initialsOf(displayName)}
+            value={effectivePhotoUrl}
+            onUpload={(url) => set("profilePhotoUrl", url)}
+            onRemove={() => set("profilePhotoUrl", "")}
+          />
+        </div>
+      </div>
+
+      <div className="mt-14 flex flex-col items-center gap-4 pt-2 text-center sm:flex-row sm:justify-between sm:pt-0 sm:text-left">
+          <div className="flex w-full flex-col items-center gap-1 sm:ml-28 sm:items-start">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-gold">
+              Minha área
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
+                {displayName}
+              </span>
+            </h1>
+            <p className="text-sm text-foreground/60">{user.email}</p>
+            <span
+              className={`mt-2 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+                profile.isEntrepreneur
+                  ? "border-transparent bg-gradient-to-r from-rosa-blush to-rose-gold text-white"
+                  : "border-rose-gold/40 bg-rosa-claro/60 text-rose-gold"
+              }`}
+            >
+              {profile.isEntrepreneur ? "✦ Profissional ativa" : profile.status}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
               aria-label="Notificações"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-cinza-suave bg-branco text-foreground/70 shadow-card transition-colors hover:text-rose-gold"
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-cinza-suave bg-branco text-foreground/70 shadow-card"
             >
               <BellIcon />
-              <span className="absolute h-2 w-2 translate-x-4 translate-y-[-10px] rounded-full bg-rosa-blush" />
-            </button>
-            <button
-              type="button"
-              aria-label="Benefícios premium"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-white shadow-card transition-transform hover:-translate-y-0.5"
-            >
-              <SparkleIcon />
+              <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-rosa-blush" />
             </button>
 
             <div className="relative">
@@ -666,23 +766,27 @@ export default function PerfilPage() {
         </div>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-[320px_1fr]">
-          <aside className="flex flex-col items-center gap-4 rounded-3xl border border-cinza-suave/70 bg-branco p-8 text-center shadow-card">
-            <span className="inline-flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-3xl font-bold text-white shadow-card-lg">
-              {effectivePhotoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-          <img src={effectivePhotoUrl} alt={`Foto de ${displayName}`} className="h-full w-full object-cover" />
-              ) : (
-                initialsOf(displayName)
-              )}
-            </span>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{displayName}</h2>
+            <aside className="flex flex-col items-center gap-4 rounded-3xl border border-cinza-suave/70 bg-branco p-8 text-center shadow-card">
+            <div className="flex flex-col items-center justify-center">
+              <div className="relative mb-2 flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-xl font-bold text-white shadow-card-lg">
+                {profile.isEntrepreneur && (
+                  <span
+                    aria-label="Profissional manicure"
+                    className="absolute -top-2 -right-2 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-branco bg-rose-gold text-xs text-white">
+                    ✦
+                  </span>
+                )}
+                {initialsOf(displayName)}
+              </div>
+              <h2 className="text-xl font-bold tracking-tight">{displayName}</h2>
               <p className="mt-1 text-sm text-foreground/60">
                 {user.email}
               </p>
             </div>
-            <span className="inline-flex items-center rounded-full border border-rose-gold/50 bg-rosa-blush/15 px-4 py-1.5 text-xs font-semibold text-rose-gold">
-              {profile.status}
+            <span className={`inline-flex items-center rounded-full border border-rose-gold/50 bg-rosa-blush/15 px-4 py-1.5 text-xs font-semibold text-rose-gold ${profile.isEntrepreneur ? "border-rose-gold/80 bg-gradient-to-r from-rosa-blush to-rose-gold text-white" : ""}`}>
+              {profile.isEntrepreneur
+                ? "Profissional ativa"
+                : profile.status}
             </span>
 
             <div className="mt-2 flex w-full flex-col gap-2 border-t border-cinza-suave/70 pt-5 text-sm text-foreground/70">
@@ -846,6 +950,125 @@ export default function PerfilPage() {
                 )}
               </div>
             </section>
+
+            <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
+              <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight">
+                    <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
+                      Modo Profissional
+                    </span>
+                  </h2>
+                  <p className="mt-1 text-sm text-foreground/60">
+                    Você oferece serviços de manicure? Ative o modo profissional para destacar sua área de atuação, preços e disponibilidade.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set("isEntrepreneur", !profile.isEntrepreneur)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${profile.isEntrepreneur ? "bg-gradient-to-r from-rosa-blush to-rose-gold" : "bg-cinza-suave/50"}`}
+                  aria-label={profile.isEntrepreneur ? "Desativar modo profissional" : "Ativar modo profissional"}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${profile.isEntrepreneur ? "translate-x-5" : "translate-x-1"}`}
+                  />
+                </button>
+              </div>
+
+              {profile.isEntrepreneur && (
+                <div className="mt-6 animate-fadeIn space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground/80">
+                      Banner profissional
+                    </label>
+                    <ImageUploader
+                      mode="banner"
+                      folder="banners"
+                      alt={displayName}
+                      value={profile.bannerUrl}
+                      onUpload={(url) => set("bannerUrl", url)}
+                      onRemove={() => set("bannerUrl", "")}
+                    />
+                    <p className="text-xs text-foreground/50">
+                      Um banner atrativo ajuda você a se destacar e atrair mais clientes.
+                    </p>
+                                    </div>
+
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <Field label="Serviços Oferecidos" htmlFor="services">
+                      <input
+                        id="services"
+                        type="text"
+                        value={profile.services.join(", ")}
+                        onChange={(event) =>
+                          set(
+                            "services",
+                            event.target.value
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          )
+                        }
+                        placeholder="Ex.: Manicure clássico, Nail art"
+                        className={inputClasses}
+                      />
+                    </Field>
+
+                    <Field label="Preços / Valores" htmlFor="pricing">
+                      <input
+                        id="pricing"
+                        type="text"
+                        value={profile.pricing}
+                        onChange={(event) => set("pricing", event.target.value)}
+                        placeholder="Ex.: A partir de R$ 35"
+                        className={inputClasses}
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Disponibilidade" htmlFor="entreStatus">
+                    <select
+                      id="entreStatus"
+                      value={profile.status}
+                      onChange={(event) => set("status", event.target.value)}
+                      className={`${inputClasses} appearance-none`}
+                    >
+                      {statusOptions.map((option) => (
+                        <option key={option} value={option} className="bg-branco">
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Link para Agendamento" htmlFor="bookingLink">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-foreground/50">
+                        <LinkIcon className="h-4 w-4" />
+                      </span>
+                      <input
+                        id="bookingLink"
+                        type="url"
+                        value={profile.bookingLink}
+                        onChange={(event) => set("bookingLink", event.target.value)}
+                        placeholder="https://seusite.com/agendamento"
+                        className={`${inputClasses} pl-11`}
+                      />
+                    </div>
+                  </Field>
+
+                  <div className="rounded-xl border border-rose-gold/20 bg-rosa-blush/10 p-4 text-sm text-foreground/80">
+                    <strong className="text-rose-gold">Dica:</strong> Preencha todos os campos e salve para que seu perfil profissional apareça completo para os clientes.
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
+              <h2 className="text-xl font-bold tracking-tight">
+                <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
+                  Redes Sociais
+                </span>
 
             <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
               <h2 className="text-xl font-bold tracking-tight">

@@ -26,6 +26,9 @@ export interface Product {
   rating: number | null;
   reviewCount: number | null;
   level?: SkillLevel;
+  videoUrl?: string;
+  specs?: { label: string; value: string }[];
+  features?: string[];
 }
 
 export const LEVEL_LABELS: Record<SkillLevel, string> = {
@@ -64,6 +67,12 @@ export const PRODUCTS: Product[] = [
     rating: null,
     reviewCount: null,
     level: "iniciante",
+    features: [
+      "Lixas de corte e acabamento para os primeiros atendimentos",
+      "Primer para preparar a lâmina ungueal com segurança",
+      "Esmaltação com brilho e secagem uniforme",
+      "Kit de higienização e esterilização inclusos",
+    ],
   },
   {
     id: "kit-profissional",
@@ -79,6 +88,20 @@ export const PRODUCTS: Product[] = [
     rating: null,
     reviewCount: null,
     level: "profissional",
+    videoUrl: "https://cdn.sanity.io/files/5b2ef1ba/6f0e4f8e-f7f7-4ea9-9f8b-1c3b9e2c1e9d.mp4",
+    features: [
+      "Motor de lixadeira com controle de rotação",
+      "Jogo de brocas para cutícula, gel e refinamento",
+      "Tips e finalizadores de alta durabilidade",
+      "Caixa organizadora com compartimentos",
+    ],
+    specs: [
+      { label: "Modelo", value: "Esmalt'up Profissional Pro" },
+      { label: "Itens", value: "18 peças" },
+      { label: "Motor", value: "30.000 RPM com pedal" },
+      { label: "Garantia", value: "12 meses" },
+      { label: "Nível indicado", value: "Profissional" },
+    ],
   },
   {
     id: "kit-cabine-led",
@@ -109,6 +132,19 @@ export const PRODUCTS: Product[] = [
     rating: null,
     reviewCount: null,
     level: "profissional",
+    features: [
+      "Cabine LED, motor, alicates e lixas em um único conjunto",
+      "Bancada completa para atender em casa ou no salão",
+      "Preparadores e finalizadores incluídos",
+      "Caixa transporte resistente com alças",
+    ],
+    specs: [
+      { label: "Modelo", value: "Esmalt'up Studio Completo" },
+      { label: "Itens", value: "34 peças" },
+      { label: "Cabine", value: "LED 48W com timer" },
+      { label: "Garantia", value: "12 meses" },
+      { label: "Nível indicado", value: "Profissional" },
+    ],
   },
   {
     id: "kit-fibra",
@@ -153,6 +189,13 @@ export const PRODUCTS: Product[] = [
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    specs: [
+      { label: "Potência", value: "48W" },
+      { label: "Timer", value: "30 / 60 / 90 segundos" },
+      { label: "Detector automático", value: "Sensor de mão" },
+      { label: "Espelho interno", value: "Sim" },
+      { label: "Voltagem", value: "Bivolt" },
+    ],
   },
   {
     id: "peca-lixas",
@@ -291,4 +334,58 @@ export function getByKind(kind: ProductKind): Product[] {
 
 export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((product) => product.id === id);
+}
+
+export function getProductBySlug(slug: string): Product | undefined {
+  return getProduct(slug);
+}
+
+export function getRelatedProducts(product: Product, limit = 8): Product[] {
+  const sameCategory = PRODUCTS.filter(
+    (item) =>
+      item.id !== product.id &&
+      (item.category === product.category || item.kind === product.kind),
+  );
+  const ordered = [...sameCategory].sort((a, b) => {
+    const aSameKind = Number(a.kind === product.kind);
+    const bSameKind = Number(b.kind === product.kind);
+    return bSameKind - aSameKind || Number(b.featured) - Number(a.featured);
+  });
+  return ordered.slice(0, limit);
+}
+
+const MAX_INSTALLMENTS = 12;
+const MIN_INSTALLMENT_CENTS = 1000;
+
+export function getInstallments(priceCents: number): {
+  maxInstallments: number;
+  installmentCents: number;
+  totalCents: number;
+} {
+  let maxInstallments = 1;
+  for (let i = MAX_INSTALLMENTS; i >= 1; i -= 1) {
+    const installment = priceCents / i;
+    if (installment >= MIN_INSTALLMENT_CENTS) {
+      maxInstallments = i;
+      break;
+    }
+  }
+  const totalCents = maxInstallments > 1 ? priceCents : priceCents;
+  const installmentCents = Math.ceil(totalCents / maxInstallments);
+  return {
+    maxInstallments,
+    installmentCents,
+    totalCents,
+  };
+}
+
+export function formatInstallment(cents: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(cents / 100);
+}
+
+export function freeShippingThresholdCents(): number {
+  return 9900;
 }
