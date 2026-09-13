@@ -375,6 +375,24 @@ function LinkIcon({ className }: { className?: string }) {
   );
 }
 
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-4 w-4"}
+    >
+      <path d="M12 19l7-7 2 5v3a2 2 0 01-2 2h-5l-2-2z" />
+      <path d="M9.5 6.5 15 2l5 5-5.5 5.5z" />
+      <path d="M14 2v5a2 2 0 002 2h5" />
+    </svg>
+  );
+}
+
 function SocialIcon({
   name,
   className = "h-6 w-6",
@@ -545,7 +563,7 @@ export default function PerfilPage() {
     profile.profilePhotoUrl || user?.photoURL || null;
   const displayName = user?.displayName ?? "Usuária Esmalt'up";
   const completedCount = progress.filter((row) =>
-    /conclu/i.test(row.status),
+    /conclu/.test(row.status),
   ).length;
 
   if (loading) {
@@ -587,7 +605,7 @@ export default function PerfilPage() {
   }
 
   return (
-    <section className="relative mx-auto w-full max-w-6xl px-4 pb-24 pt-4 sm:px-6 sm:pt-8">
+    <section className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-rosa-medio/30 blur-3xl"
@@ -601,9 +619,9 @@ export default function PerfilPage() {
         className="pointer-events-none absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-rosa-medio/20 blur-3xl"
       />
 
-      {/* ─── COVER + AVATAR (mobile-first) ─── */}
-      <div className="relative">
-        <div className="relative h-44 w-full overflow-hidden rounded-b-[2rem] rounded-t-3xl sm:h-60 sm:rounded-3xl md:h-72">
+      {/* ─── BANNER + AVATAR ───────────────────────────── */}
+      <div className="relative -mx-4 mb-4 sm:-mx-6">
+                <div className="relative h-40 sm:h-56 md:h-64 w-full overflow-hidden rounded-3xl">
           {profile.bannerUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -612,36 +630,30 @@ export default function PerfilPage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-rosa-blush via-rose-gold/60 to-rosa-medio px-6 text-center">
-              <BannerIcon className="h-10 w-10 text-white/80" />
-              <p className="max-w-xs text-sm font-medium text-white">
-                Mostre seu estúdio: adicione uma capa que atraia clientes
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-rosa-blush/30 via-rose-gold/20 to-rosa-medio/30">
+              <BannerIcon className="h-14 w-14 text-foreground/30" />
+              <p className="text-center text-sm text-foreground/50">
+                Banner personalizado
               </p>
-              <p className="text-xs text-white/70">1200 × 400 • JPG, PNG ou WebP</p>
             </div>
           )}
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/40 to-transparent" aria-hidden />
-          <div className="absolute bottom-3 right-3">
-            <ImageUploader
-              mode="banner"
-              variant="overlay"
-              folder="banners"
-              alt={displayName}
-              value={profile.bannerUrl}
-              onUpload={(url) => set("bannerUrl", url)}
-              onRemove={() => set("bannerUrl", "")}
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setBannerUploadOpen(true)}
+            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-branco/70 bg-branco/90 px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-card transition-all hover:bg-rosa-blush hover:text-white"
+          >
+            <PencilIcon className="h-3 w-3" />
+            {profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}
+          </button>
         </div>
 
         {/* Avatar uploader — overlaps the bottom of the banner */}
-        <div className="absolute -bottom-10 left-4 sm:left-8">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:left-6 sm:translate-x-0 sm:translate-y-[-40%] cursor-pointer">
           <ImageUploader
             mode="avatar"
-            variant="overlay"
             folder="profiles"
             alt={initialsOf(displayName)}
-            value={effectivePhotoUrl}
+                        value={effectivePhotoUrl}
             onUpload={(url) => set("profilePhotoUrl", url)}
             onRemove={() => set("profilePhotoUrl", "")}
           />
