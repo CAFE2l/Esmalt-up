@@ -21,7 +21,7 @@ function demoQrSvg(code: string): string {
     const x = Math.sin(seed * 999) * 10000;
     return (x - Math.floor(x)) * 255;
   };
-  let seed = 7;
+  let seed = 7 + (code ? code.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) : 0);
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
       const finder =

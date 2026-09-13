@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/authUtils";
 
 export const runtime = "nodejs";
-
-const voteSchema = z.object({
-  sessionId: z.string().min(1).optional(),
-});
 
 export async function POST(
   req: Request,
@@ -27,14 +22,11 @@ export async function POST(
       );
     }
 
-    const identity = { userId: auth.ok ? auth.uid : null, sessionId: auth.ok ? (sessionId ?? null) : null };
-
-    const existing = await prisma.reviewVote.findUnique({
+    const existing = await prisma.reviewVote.findFirst({
       where: {
-        reviewId_userId_sessionId: {
-          reviewId,
-          ...identity,
-        },
+        reviewId,
+        userId: auth.ok ? auth.uid : undefined,
+        sessionId: auth.ok ? undefined : sessionId,
       },
     });
 
@@ -53,7 +45,8 @@ export async function POST(
       prisma.reviewVote.create({
         data: {
           reviewId,
-          ...identity,
+          userId: auth.ok ? auth.uid : null,
+          sessionId: auth.ok ? null : sessionId,
         },
       }),
       prisma.review.update({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   CATEGORY_LABELS,
   formatPrice,
@@ -78,8 +79,13 @@ export default function CatalogGrid({
         {filtered.map((product) => (
           <article
             key={product.id}
-            className="group flex flex-col overflow-hidden rounded-[1.75rem] border border-rose-gold/25 bg-branco shadow-card transition-shadow hover:shadow-card-lg"
+            className="group relative flex flex-col overflow-hidden rounded-[1.75rem] border border-rose-gold/25 bg-branco shadow-card transition-shadow hover:shadow-card-lg"
           >
+            <Link
+              href={`/produto/${product.id}`}
+              aria-label={`Ver ${product.name}`}
+              className="absolute inset-0 z-10"
+            />
             <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20">
               <div
                 aria-hidden
