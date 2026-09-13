@@ -14,6 +14,18 @@
   --foreground: 247 241 243;
 }
 
+:root[data-theme="light"] {
+  --bege-claro: 250 247 248;
+  --branco: 255 255 255;
+  --rosa-claro: 246 235 238;
+  --rosa-medio: 190 130 145;
+  --rosa-blush: 213 130 148;
+  --rose-gold: 189 113 129;
+  --cinza-suave: 228 210 215;
+
+  --foreground: 46 31 36;
+}
+
 body {
   color: rgb(var(--foreground));
   background: rgb(var(--bege-claro));
@@ -28,5 +40,72 @@ body {
   .text-glow {
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4))
       drop-shadow(0 6px 16px rgba(224, 156, 170, 0.35));
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.28s ease-out both;
+  }
+
+  .animate-logo-float {
+    animation: logo-float 3.5s ease-in-out infinite;
+  }
+
+  .animate-sparkle {
+    animation: sparkle-twinkle 3.5s ease-in-out infinite;
+  }
+
+  .animate-shadow-pulse {
+    animation: shadow-pulse 3.5s ease-in-out infinite;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes logo-float {
+  0%,
+  100% {
+    transform: translateY(calc(-1 * var(--float-amplitude, 4px)));
+  }
+  50% {
+    transform: translateY(var(--float-amplitude, 4px));
+  }
+}
+
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+@keyframes shadow-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-logo-float,
+  .animate-sparkle,
+  .animate-shadow-pulse {
+    animation: none;
   }
 }

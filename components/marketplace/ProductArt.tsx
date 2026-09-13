@@ -137,6 +137,8 @@ export default function ProductArt({
       <img
         src={product.imageUrl}
         alt=""
+        loading="lazy"
+        decoding="async"
         className={`h-full w-full object-cover ${className}`}
       />
     );

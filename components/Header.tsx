@@ -4,18 +4,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
+import UserMenu from "./UserMenu";
 import { useAuth } from "@/lib/AuthContext";
 import { outlineButton, primaryButton } from "./buttonStyles";
 
-const baseLinks = [
+const navLinks = [
   { href: "/kits", label: "Kits" },
   { href: "/pecas-avulsas", label: "Peças Avulsas" },
   { href: "/curso", label: "Curso" },
-];
-
-const navLinks = (isLoggedIn: boolean) => [
-  ...baseLinks,
-  ...(isLoggedIn ? [{ href: "/perfil", label: "Perfil" }] : []),
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -23,7 +19,7 @@ function isActivePath(pathname: string, href: string) {
 }
 
 export default function Header() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -33,19 +29,14 @@ export default function Header() {
 
   const closeMenu = () => setOpen(false);
 
-  const handleLogout = async () => {
-    await logout();
-    closeMenu();
-  };
-
-  const links = navLinks(Boolean(user));
+  const links = navLinks;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-cinza-suave/40 bg-branco/95 shadow-header backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-cinza-suave/40 bg-branco shadow-header">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Logo size="sm" />
 
-        <nav className="hidden items-center gap-1 md:flex lg:gap-2" aria-label="Principal">
+        <nav className="hidden h-10 items-center gap-1 md:flex lg:gap-2" aria-label="Principal">
           {links.map((link) => {
             const active = isActivePath(pathname, link.href);
             return (
@@ -69,58 +60,54 @@ export default function Header() {
               </Link>
             );
           })}
+        </nav>
 
-          <div className="ml-3 flex items-center gap-2 lg:ml-4">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 lg:ml-4">
             {loading ? (
               <span
                 aria-hidden
-                className="h-9 w-[5.5rem] animate-pulse rounded-full bg-rosa-claro"
+                className="h-10 w-10 animate-pulse rounded-full bg-rosa-claro"
               />
             ) : user ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className={`${outlineButton} px-5 py-2 text-sm hover:bg-rosa-blush hover:text-white`}
-              >
-                Sair
-              </button>
+              <UserMenu />
             ) : (
               <>
                 <Link
                   href="/login"
-                  className={`${outlineButton} px-5 py-2 text-sm hover:bg-rosa-blush hover:text-white`}
+                  className={`${outlineButton} hidden px-5 py-2 text-sm hover:bg-rosa-blush hover:text-white sm:inline-flex`}
                 >
                   Entrar
                 </Link>
                 <Link
                   href="/signup"
-                  className={`${primaryButton} px-5 py-2 text-sm`}
+                  className={`${primaryButton} hidden px-5 py-2 text-sm sm:inline-flex`}
                 >
                   Criar conta
                 </Link>
               </>
             )}
           </div>
-        </nav>
 
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          aria-label={open ? "Fechar menu" : "Abrir menu"}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-rosa-claro md:hidden"
-        >
-          {open ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-6 w-6">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-6 w-6">
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          )}
-        </button>
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? "Fechar menu" : "Abrir menu"}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-rosa-claro md:hidden"
+          >
+            {open ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-6 w-6">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-6 w-6">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -155,15 +142,7 @@ export default function Header() {
                   aria-hidden
                   className="h-11 w-full animate-pulse rounded-full bg-rosa-claro"
                 />
-              ) : user ? (
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className={`${outlineButton} w-full px-5 py-2.5 text-sm hover:bg-rosa-blush hover:text-white`}
-                >
-                  Sair
-                </button>
-              ) : (
+              ) : user ? null : (
                 <>
                   <Link
                     href="/login"

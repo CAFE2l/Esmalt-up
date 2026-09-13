@@ -9,6 +9,7 @@ import {
   type PointerEvent,
 } from "react";
 import type { CourseLesson } from "@/lib/courseData";
+import { isYouTubeEmbed } from "@/lib/courseData";
 
 export const COMPLETION_THRESHOLD = 0.95;
 
@@ -30,6 +31,335 @@ interface Props {
   onWatched: () => void;
 }
 
+/* ------------------------------------------------------------------ */
+/* YouTube IFrame Player API bridge (no external types dependency).    */
+/* ------------------------------------------------------------------ */
+
+type PlayerInstance = {
+  destroy: () => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  mute: () => void;
+  unMute: () => void;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+};
+
+type YTNamespace = {
+  Player: new (
+    element: HTMLElement,
+    options: {
+      videoId: string;
+      playerVars?: Record<string, string | number | boolean>;
+      events?: {
+        onReady?: (event: { target: PlayerInstance }) => void;
+        onStateChange?: (event: { target: PlayerInstance; data?: number }) => void;
+      };
+    },
+  ) => PlayerInstance;
+  PlayerState: { PLAYING: number };
+};
+
+declare global {
+  interface Window {
+    YT?: YTNamespace;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let youtubeApiPromise: Promise<void> | null = null;
+function ensureYouTubeApi(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.YT?.Player) return Promise.resolve();
+  if (!youtubeApiPromise) {
+    youtubeApiPromise = new Promise<void>((resolve) => {
+      window.onYouTubeIframeAPIReady = () => resolve();
+      if (!document.getElementById("esmaltup-yt-api")) {
+        const script = document.createElement("script");
+        script.id = "esmaltup-yt-api";
+        script.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(script);
+      }
+    });
+  }
+  return youtubeApiPromise;
+}
+
+function extractYouTubeVideoId(url: string): string {
+  const match = url.match(/\/embed\/([\w-]{11})/);
+  return match?.[1] ?? "";
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared completion pill + lesson meta (both players use these).      */
+/* ------------------------------------------------------------------ */
+
+function CompletionPill({ isComplete }: { isComplete: boolean }) {
+  return isComplete ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-rosa-claro/40 px-3 py-1 text-xs font-semibold text-rose-gold">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
+        <circle cx="12" cy="7.5" r="4.5" />
+        <path d="M2 18.5c3-4 6-6 10-6s7 2 10 6" fill="none" stroke="currentColor" strokeWidth="2" />
+      </svg>
+      Assistido — você pode concluir a aula
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-cinza-suave/30 px-3 py-1 text-xs text-foreground/60">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+      Assista até o fim para concluir
+    </span>
+  );
+}
+
+function LessonMeta({ courseLesson }: { courseLesson: CourseLesson }) {
+  return (
+    <div className="px-1">
+      <h3 className="font-semibold text-foreground">
+        {courseLesson.lesson.title}
+      </h3>
+      <p className="mt-1 text-sm text-foreground/70">
+        {courseLesson.lesson.description}
+      </p>
+      {courseLesson.lesson.channel && (
+        <p className="mt-1 text-xs text-foreground/50">
+          vídeo por{" "}
+          <span className="font-medium text-rose-gold">
+            {courseLesson.lesson.channel}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* YouTube player — iframe via IFrame Player API so the 95% watch      */
+/* gate still applies (polled getCurrentTime/getDuration).             */
+/* ------------------------------------------------------------------ */
+
+function YouTubeLessonPlayer({ lesson, watched, onWatched }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const holderRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<PlayerInstance | null>(null);
+  const firedRef = useRef(false);
+  const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [progress, setProgress] = useState(0); // 0..1
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    firedRef.current = watched;
+  }, [watched]);
+
+  // Create / destroy the player whenever the lesson changes.
+  useEffect(() => {
+    let cancelled = false;
+    let player: PlayerInstance | null = null;
+    firedRef.current = false;
+    setReady(false);
+    setPlaying(false);
+    setMuted(false);
+    setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+
+    ensureYouTubeApi().then(() => {
+      if (cancelled || !holderRef.current || !window.YT) return;
+      const yt = window.YT;
+      player = new yt.Player(holderRef.current, {
+        videoId: extractYouTubeVideoId(lesson.lesson.videoUrl),
+        playerVars: { playsinline: 1, rel: 0 },
+        events: {
+          onReady: (event) => {
+            playerRef.current = event.target;
+            setReady(true);
+            const d = event.target.getDuration();
+            if (d) setDuration(d);
+          },
+          onStateChange: (event) => {
+            setPlaying(
+              event.data !== undefined && event.data === yt.PlayerState.PLAYING,
+            );
+          },
+        },
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      try {
+        player?.destroy();
+      } catch {
+        /* noop */
+      }
+      playerRef.current = null;
+    };
+  }, [lesson.lesson.videoUrl]);
+
+  // Poll playback so the completion gate fires at 95% of real duration.
+  useEffect(() => {
+    if (!ready) return;
+    const id = window.setInterval(() => {
+      const p = playerRef.current;
+      if (!p) return;
+      const d = p.getDuration();
+      const t = p.getCurrentTime();
+      if (d > 0) {
+        setDuration(d);
+        setCurrentTime(t);
+        const ratio = t / d;
+        setProgress(Math.min(1, Math.max(0, ratio)));
+        if (!firedRef.current && ratio >= COMPLETION_THRESHOLD) {
+          firedRef.current = true;
+          onWatched();
+        }
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, lesson.lesson.videoUrl]);
+
+  const togglePlay = () => {
+    const p = playerRef.current;
+    if (!p) return;
+    if (playing) p.pauseVideo();
+    else p.playVideo();
+  };
+
+  const toggleMute = () => {
+    const p = playerRef.current;
+    if (!p) return;
+    if (muted) p.unMute();
+    else p.mute();
+    setMuted(!muted);
+  };
+
+  const handleSeek = (pct: number) => {
+    const p = playerRef.current;
+    if (p && ready && duration) p.seekTo(pct * duration, true);
+  };
+
+  const handleFullscreen = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen();
+  };
+
+  const isComplete = watched || firedRef.current;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {!ready && (
+        <p className="text-sm text-foreground/60">
+          Carregando vídeo…
+        </p>
+      )}
+      <div
+        ref={containerRef}
+        className="group relative isolate overflow-hidden rounded-2xl border border-cinza-suave/50 bg-[#0a0709] shadow-card"
+      >
+        <div className="relative aspect-video bg-[#0a0709]">
+          <div ref={holderRef} className="h-full w-full" />
+
+          {/* Play overlay when paused (pointer-events pass through so the
+              iframe's own controls remain reachable). */}
+          {!playing && ready && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent">
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-label="Reproduzir"
+                className="pointer-events-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-white shadow-card-lg ring-2 ring-white/20 transition-transform hover:scale-105"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7">
+                  <polygon points="9 6 9 18 18 12z" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Bottom control bar — reveals on hover */}
+          <div className="absolute bottom-0 left-0 right-0 flex items-center gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-1 pt-6 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={togglePlay}
+              aria-label={playing ? "Pausar" : "Reproduzir"}
+              className="flex h-6 w-6 items-center justify-center rounded-full text-white/90 transition-colors hover:text-rose-gold"
+            >
+              {playing ? (
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                  <rect x="6" y="5" width="4" height="14" rx="1" />
+                  <rect x="14" y="5" width="4" height="14" rx="1" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                  <polygon points="10 6 10 18 18 12z" />
+                </svg>
+              )}
+            </button>
+
+            <Slider value={progress} buffered={0} ready={ready} onSeek={handleSeek} />
+
+            <span className="tabular-nums text-xs text-foreground/80">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleMute}
+                aria-label={muted ? "Desmutar" : "Mutar"}
+                className="flex h-6 w-6 items-center justify-center rounded-full text-white/90 transition-colors hover:text-rose-gold"
+              >
+                {muted ? (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                    <path d="M16.5 12c0-1.77-.73-3.37-1.91-4.5l1.42-1.42A8.955 8.955 0 0 1 18 12c0 1.93-.7 3.68-1.88 5l1.42 1.42A8.993 8.993 0 0 1 16.5 12z" />
+                    <path d="M4.22 3.72L3 4.94l4.5 4.5C7.17 10.87 7 11.42 7 12c0 1.06.23 2.05.65 2.92l1.66 1.66A4.91 4.91 0 0 0 4.22 3.72z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                    <path d="M3 9v6h4l5 5V4L7 9H3z" />
+                    <path d="M16.5 12c0-1.1.3-2.13.82-3l-1.17.74.15.19A4.97 4.97 0 0 1 15 12c0 .83-.15 1.55-.4 2.13l1.17 1.17c.5-.25 1.03-.68 1.57-1.23l.16.16z" />
+                  </svg>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFullscreen}
+                aria-label="Tela cheia"
+                className="flex h-6 w-6 items-center justify-center rounded-full text-white/90 transition-colors hover:text-rose-gold"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m0 0V5a2 2 0 0 1 2-2h3m0 0L3 3" />
+                  <path d="M16 3h3a2 2 0 0 1 2 2v3m0 0V5a2 2 0 0 0-2-2h-3m0 0L21 3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-2 py-2">
+          <CompletionPill isComplete={isComplete} />
+        </div>
+      </div>
+
+      <LessonMeta courseLesson={lesson} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Native HTML5 player (used for the intro MP4 lesson).                */
+/* ------------------------------------------------------------------ */
+
 function useVideoPlayer(
   videoRef: RefObject<HTMLVideoElement>,
   onWatched: () => void,
@@ -44,9 +374,9 @@ function useVideoPlayer(
   const [currentTime, setCurrentTime] = useState(0);
   const [ready, setReady] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-    const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [captionsOn, setCaptionsOn] = useState(true);
-      const [watchedFired, setWatchedFired] = useState(false);
+  const [watchedFired, setWatchedFired] = useState(false);
 
   // Reset transient playback state whenever the lesson changes, so the
   // completion gate applies to the CURRENT lesson only and onWatched can
@@ -62,7 +392,7 @@ function useVideoPlayer(
     setProgress(0);
     setCurrentTime(0);
     setBuffered(0);
-        setShowSettings(false);
+    setShowSettings(false);
     setWatchedFired(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
@@ -105,7 +435,7 @@ function useVideoPlayer(
     }
   };
 
-    const toggleMute = () => {
+  const toggleMute = () => {
     const v = videoRef.current;
     if (!v) return;
     v.muted = !muted;
@@ -116,7 +446,7 @@ function useVideoPlayer(
   const setSpeed = (rate: number) => {
     const v = videoRef.current;
     if (v) v.playbackRate = rate;
-        setPlaybackRate(rate);
+    setPlaybackRate(rate);
     setShowSettings(false);
   };
 
@@ -130,7 +460,7 @@ function useVideoPlayer(
       duration,
       currentTime,
       ready,
-            showSettings,
+      showSettings,
       playbackRate,
       captionsOn,
       watchedFired,
@@ -141,7 +471,7 @@ function useVideoPlayer(
       onProgress,
       togglePlay,
       toggleMute,
-            setSpeed,
+      setSpeed,
       setPlaying,
       setShowSettings,
       setCaptionsOn,
@@ -149,11 +479,7 @@ function useVideoPlayer(
   };
 }
 
-export default function CursoVideoPlayer({
-  lesson,
-  watched,
-  onWatched,
-}: Props) {
+function NativeLessonPlayer({ lesson, watched, onWatched }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const p = useVideoPlayer(videoRef, onWatched, lesson.lesson.id);
@@ -186,9 +512,9 @@ export default function CursoVideoPlayer({
     }
   };
 
-      const isComplete = watched || s.watchedFired;
+  const isComplete = watched || s.watchedFired;
 
-      return (
+  return (
     <div className="flex flex-col gap-4">
       <div
         ref={containerRef}
@@ -241,33 +567,20 @@ export default function CursoVideoPlayer({
               className="flex h-6 w-6 items-center justify-center rounded-full text-white/90 transition-colors hover:text-rose-gold"
             >
               {s.playing ? (
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
                   <rect x="6" y="5" width="4" height="14" rx="1" />
                   <rect x="14" y="5" width="4" height="14" rx="1" />
                 </svg>
               ) : (
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
                   <polygon points="10 6 10 18 18 12z" />
                 </svg>
               )}
             </button>
 
-            <Slider
-              value={s.progress}
-              buffered={s.buffered}
-              ready={s.ready}
-              onSeek={handleSeek}
-            />
+            <Slider value={s.progress} buffered={s.buffered} ready={s.ready} onSeek={handleSeek} />
 
-                        {/* Time */}
+            {/* Time */}
             <span className="tabular-nums text-xs text-foreground/80">
               {formatTime(s.currentTime)} / {formatTime(s.duration)}
             </span>
@@ -310,7 +623,7 @@ export default function CursoVideoPlayer({
                   <rect x="8" y="17" width="8" height="2" rx="1" />
                 </svg>
               </button>
-                            {/* Settings: playback speed */}
+              {/* Settings: playback speed */}
               <div className="relative">
                 <button
                   type="button"
@@ -355,7 +668,7 @@ export default function CursoVideoPlayer({
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
                   <path d="M8 3H5a2 2 0 0 0-2 2v3m0 0V5a2 2 0 0 1 2-2h3m0 0L3 3" />
-                  <path d="M16 3h3a2 2 0 0 1 2 2v3m0 0V5a2 2 0 0 1-2-2h-3m0 0L21 3" />
+                  <path d="M16 3h3a2 2 0 0 1 2 2v3m0 0V5a2 2 0 0 0-2-2h-3m0 0L21 3" />
                 </svg>
               </button>
             </div>
@@ -364,36 +677,26 @@ export default function CursoVideoPlayer({
 
         {/* Completion-gate signal */}
         <div className="px-2 py-2">
-          {isComplete ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-rosa-claro/40 px-3 py-1 text-xs font-semibold text-rose-gold">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
-                <circle cx="12" cy="7.5" r="4.5" />
-                <path d="M2 18.5c3-4 6-6 10-6s7 2 10 6" fill="none" stroke="currentColor" strokeWidth="2" />
-              </svg>
-              Assistido — você pode concluir a aula
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cinza-suave/30 px-3 py-1 text-xs text-foreground/60">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-              Assista até o fim para concluir
-            </span>
-          )}
+          <CompletionPill isComplete={isComplete} />
         </div>
       </div>
 
       {/* Lesson meta */}
-      <div className="px-1">
-        <h3 className="font-semibold text-foreground">{lesson.lesson.title}</h3>
-        <p className="mt-1 text-sm text-foreground/70">
-          {lesson.lesson.description}
-        </p>
-      </div>
+      <LessonMeta courseLesson={lesson} />
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+
+export default function CursoVideoPlayer({ lesson, watched, onWatched }: Props) {
+  return isYouTubeEmbed(lesson.lesson.videoUrl) ? (
+    <YouTubeLessonPlayer lesson={lesson} watched={watched} onWatched={onWatched} />
+  ) : (
+    <NativeLessonPlayer lesson={lesson} watched={watched} onWatched={onWatched} />
+  );
+}
+
 /** Glossy scrub slider: click to seek, drag to scrub. */
 function Slider({
   value,
@@ -407,7 +710,7 @@ function Slider({
   onSeek: (pct: number) => void;
 }) {
   const [active, setActive] = useState(false);
-    const track = (e: PointerEvent<HTMLDivElement>) => {
+  const track = (e: PointerEvent<HTMLDivElement>) => {
     if (!ready) return;
     const el = e.currentTarget;
     const pct = Math.max(0, Math.min(1, (e.clientX - el.getBoundingClientRect().left) / el.offsetWidth));
@@ -446,5 +749,3 @@ function Slider({
     </div>
   );
 }
-
-

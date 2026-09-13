@@ -12,6 +12,12 @@ model UserProfile {
   name             String?
   email            String?
   avatarUrl        String?
+  profilePhotoUrl  String?
+  bannerUrl        String?
+  isEntrepreneur   Boolean  @default(false)
+  services         String[] @default([])
+  pricing          String?
+  bookingLink      String?
   level            String?
   experienceYears  String?
   favoriteBrands   String?
