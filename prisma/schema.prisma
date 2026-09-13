@@ -36,21 +36,180 @@ model UserProfile {
 
   orders   Order[]
   progress CourseProgress[]
+  reviews  Review[]
+  questions Question[]
+  answers  Answer[]
+  cart     Cart?
 
   @@map("user_profiles")
 }
 
 model Order {
-  id       String   @id @default(cuid())
-  userId   String
-  kitName  String
-  date     DateTime
-  status   String
-  user     UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String?
+  sessionId      String?
+  customerName   String?
+  email          String?
+  kitName        String
+  date           DateTime @default(now())
+  status         String
+  user           UserProfile? @relation(fields: [userId], references: [uid], onDelete: Cascade)
+
+  subtotalCents  Int      @default(0)
+  shippingCents  Int      @default(0)
+  discountCents  Int      @default(0)
+  totalCents     Int      @default(0)
+  couponCode     String?
+  cep            String?
+  address        String?
+  city           String?
+  state          String?
+  neighborhood   String?
+
+  paymentMethod  String?
+  paymentStatus  String   @default("pending")
+  gatewayPaymentId String?
+  gatewayStatus  String?
+  paymentExtra   String?
+
+  items          OrderItem[]
+  createdAt      DateTime @default(now())
 
   @@index([userId])
+  @@index([sessionId])
   @@map("orders")
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String
+  priceCents  Int
+  quantity    Int
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?    @unique
+  sessionId String?    @unique
+  user      UserProfile? @relation(fields: [userId], references: [uid], onDelete: Cascade)
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+  createdAt DateTime   @default(now())
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int    @default(1)
+  cart      Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Coupon {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  type      String
+  value     Int
+  active    Boolean   @default(true)
+  minPriceCents Int?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("coupons")
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  productId    String
+  userId       String?
+  userName     String
+  rating       Int
+  title        String?
+  content      String
+  status       String   @default("pending")
+  helpfulCount Int      @default(0)
+  user         UserProfile? @relation(fields: [userId], references: [uid], onDelete: SetNull)
+  media        ReviewMedia[]
+  votes        ReviewVote[]
+  createdAt    DateTime @default(now())
+
+  @@index([productId, status])
+  @@map("reviews")
+}
+
+model ReviewMedia {
+  id        String   @id @default(cuid())
+  reviewId  String
+  kind      String
+  url       String
+  sortOrder Int      @default(0)
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_media")
+}
+
+model ReviewVote {
+  id        String   @id @default(cuid())
+  reviewId  String
+  userId    String?
+  sessionId String?
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId, sessionId])
+  @@map("review_votes")
+}
+
+model Question {
+  id        String    @id @default(cuid())
+  productId String
+  userId    String?
+  userName  String
+  email     String?
+  content   String
+  status    String    @default("answered")
+  user      UserProfile? @relation(fields: [userId], references: [uid], onDelete: SetNull)
+  answers   Answer[]
+  createdAt DateTime  @default(now())
+
+  @@index([productId])
+  @@map("questions")
+}
+
+model Answer {
+  id           String   @id @default(cuid())
+  questionId   String
+  userId       String?
+  userName     String
+  content      String
+  isVendor     Boolean  @default(false)
+  helpfulCount Int      @default(0)
+  user         UserProfile? @relation(fields: [userId], references: [uid], onDelete: SetNull)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  helpful      AnswerHelpful[]
+  createdAt    DateTime @default(now())
+
+  @@map("answers")
+}
+
+model AnswerHelpful {
+  id       String   @id @default(cuid())
+  answerId String
+  userId   String?
+  sessionId String?
+  answer   Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, userId, sessionId])
+  @@map("answer_helpful")
 }
 
 model CourseProgress {

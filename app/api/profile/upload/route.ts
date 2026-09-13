@@ -111,12 +111,13 @@ export async function POST(req: Request) {
 
     const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(uniqueName)}?alt=media`;
 
-    // Atualiza o perfil com a nova URL
+    // Atualiza o perfil com a nova URL (upsert para não falhar no primeiro upload)
     const updateField = folder === "banners" ? "bannerUrl" : "profilePhotoUrl";
 
-    await prisma.userProfile.update({
+    await prisma.userProfile.upsert({
       where: { uid: auth.uid },
-      data: { [updateField]: publicUrl },
+      update: { [updateField]: publicUrl },
+      create: { uid: auth.uid, [updateField]: publicUrl },
     });
 
     return NextResponse.json({

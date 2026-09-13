@@ -119,11 +119,11 @@ export default function HeroCarousel({
         others.length > 0 &&
         products.length >= SUGGEST_EVERY + 1
       ) {
-        const othersIndex = productIndex / SUGGEST_EVERY;
+        const block = Math.floor(productIndex / SUGGEST_EVERY);
         list.push({
           type: "suggestion",
           suggestion: {
-            product: others[othersIndex % others.length],
+            product: others[block % others.length],
             label: kind === "peca" ? "Combine com" : "Complete com",
             href: kind === "peca" ? "/kits" : "/pecas-avulsas",
           },
@@ -339,6 +339,8 @@ export default function HeroCarousel({
               if (info.offset.x < -72 || info.velocity.x < -480) go(1);
               else if (info.offset.x > 72 || info.velocity.x > 480) go(-1);
             }}
+            onTouchStart={() => setHoverPaused(true)}
+            onTouchEnd={() => setHoverPaused(false)}
           >
             {slides.map((slide, slideIndex) => {
               const slot = slotFor(slideIndex, index, length);
@@ -371,7 +373,7 @@ export default function HeroCarousel({
                       className={`relative flex h-[24rem] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border border-rose-gold/25 bg-branco shadow-card-lg sm:h-[26rem] sm:flex-row ${
                         isCurrent
                           ? "pointer-events-auto"
-                          : "transition-transform duration-300 hover:scale-[1.03] hover:brightness-105"
+                          : "pointer-events-none transition-transform duration-300 hover:scale-[1.03] hover:brightness-105 sm:pointer-events-auto"
                       }`}
                     >
                       <div className="relative h-44 overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20 sm:h-auto sm:w-[46%]">
@@ -445,7 +447,7 @@ export default function HeroCarousel({
                     className={`relative flex h-[24rem] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border-2 border-dashed border-rose-gold/40 bg-gradient-to-br from-rosa-claro/70 via-branco to-rosa-blush/20 shadow-card-lg sm:h-[26rem] sm:flex-row ${
                       isCurrent
                         ? "pointer-events-auto"
-                        : "transition-transform duration-300 hover:scale-[1.03] hover:brightness-105"
+                        : "pointer-events-none transition-transform duration-300 hover:scale-[1.03] hover:brightness-105 sm:pointer-events-auto"
                     }`}
                   >
                     <div className="relative h-44 overflow-hidden bg-branco/60 sm:h-auto sm:w-[46%]">

@@ -363,7 +363,7 @@ export default function UserMenu() {
           <>
             Essa ação é <strong className="text-foreground">permanente</strong> e
             não pode ser desfeita. Seu perfil, pedidos e progresso no curso
-            serão apagados do Esmalt'up.
+            serão apagados do Esmalt&apos;up.
             <span className="mt-2 block text-sm text-foreground/70">
               Considere exportar seus dados antes de continuar.
             </span>
