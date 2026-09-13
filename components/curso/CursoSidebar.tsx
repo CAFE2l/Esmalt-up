@@ -28,6 +28,11 @@ const CheckIcon = ({ className = "h-3 w-3" }: { className?: string }) => (
     <path d="M9 16.2L4.8 12l-.8.8L9 18 21 6l-.8-.8z" />
   </svg>
 );
+const PlayIcon = ({ className = "h-2.5 w-2.5" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M8 5v14l11-7z" />
+  </svg>
+);
 
 interface LessonCtx {
   lesson: { id: string; title: string; description: string };
@@ -42,8 +47,17 @@ function lessonIndicator(ctx: LessonCtx, completed: boolean, current: boolean) {
         <CheckIcon />
       </div>
     );
-  if (current) return <div className="h-5 w-5 rounded-full bg-rosa-blush shadow" />;
-  return <div className="h-5 w-5 rounded-full border-2 border-cinza-suave/50" />;
+  if (current)
+    return (
+      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-rosa-blush text-white shadow">
+        <PlayIcon />
+      </div>
+    );
+  return (
+    <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-cinza-suave/50 text-rose-gold/70">
+      <PlayIcon />
+    </div>
+  );
 }
 
 export default function CursoSidebar({

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" role="img" aria-labelledby="title">
+  <title id="title">Motor de Lixadeira</title>
+  
+<path d="M18 22l1.2 3.8L23 27l-3.8 1.2L18 32l-1.2-3.8L13 27l3.8-1.2z" fill="#C98991"/>
+<path d="M168 36l1.1 3.4L173 41l-3.9 1.2L168 46l-1.1-3.8L163 41l3.9-1.2z" fill="#E599A8" opacity="0.9"/>
+<circle cx="150" cy="24" r="2.6" fill="#F3B6C7"/>
+
+  
+<g>
+  <rect x="70" y="36" width="60" height="88" rx="22" fill="#f3b6c7"/>
+  <rect x="86" y="124" width="28" height="40" rx="10" fill="#c98991"/>
+  <circle cx="100" cy="70" r="16" fill="#fad0e6"/>
+  <rect x="94" y="160" width="12" height="22" rx="4" fill="#e599a8"/>
+</g>
+  <text x="100" y="190" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#a36b74">Motor de Lixadeira</text>
+</svg>

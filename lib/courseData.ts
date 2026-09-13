@@ -38,6 +38,20 @@ export interface Module {
   /** "MUNDO 1", "MUNDO 2", etc. — shown as the expandable module header. */
   title: string;
   lessons: Lesson[];
+  /** Free supplementary YouTube classes + playlists for this module. */
+  youtubeResources?: YouTubeResource[];
+}
+
+export interface YouTubeResource {
+  id: string;
+  /** Video or playlist title. */
+  title: string;
+  /** Channel / creator name. */
+  channel: string;
+  /** YouTube embed URL (`/embed/...` or `/embed/videoseries?list=...`). */
+  embedUrl: string;
+  /** True when this is a playlist embed instead of a single video. */
+  isPlaylist?: boolean;
 }
 
 /** Flattened lesson with module context attached. */
@@ -51,6 +65,50 @@ export interface CourseLesson {
 /** Public placeholder video used for every lesson until real videos ship. */
 export const PLACEHOLDER_VIDEO =
   "https://media.w3.org/2010/05/sintel/trailer_hd.mp4";
+
+/** Free complete playlists (whole-course) shown beside every module. */
+export const YOUTUBE_COURSE_PLAYLISTS: YouTubeResource[] = [
+  {
+    id: "playlist-manicure-pedicure",
+    title: "Manicure e Pedicure (curso gratuito)",
+    channel: "Wanessa Guedes",
+    embedUrl:
+      "https://www.youtube.com/embed/videoseries?list=PLWnolLl7b64JfWbmnUcfOD7qwXNBgUgvd",
+    isPlaylist: true,
+  },
+  {
+    id: "playlist-fibra-de-vidro",
+    title: "Alongamento em unha fibra de vidro e F1",
+    channel: "Wanessa Guedes",
+    embedUrl:
+      "https://www.youtube.com/embed/videoseries?list=PLWnolLl7b64K__1DrW3DO7o4bzwHUtqVH",
+    isPlaylist: true,
+  },
+  {
+    id: "playlist-esmaltacao-gel",
+    title: "Esmaltação em gel e semi definitiva",
+    channel: "Wanessa Guedes",
+    embedUrl:
+      "https://www.youtube.com/embed/videoseries?list=PLWnolLl7b64IjEY4lh8QivLQVHa3Y-5Eg",
+    isPlaylist: true,
+  },
+  {
+    id: "playlist-blindagem",
+    title: "Blindagem de unhas",
+    channel: "Wanessa Guedes",
+    embedUrl:
+      "https://www.youtube.com/embed/videoseries?list=PLWnolLl7b64JAG1JR1Az6kUeUwBAjoTsw",
+    isPlaylist: true,
+  },
+  {
+    id: "playlist-plastica-dos-pes",
+    title: "Plástica dos pés",
+    channel: "Wanessa Guedes",
+    embedUrl:
+      "https://www.youtube.com/embed/videoseries?list=PLWnolLl7b64IGewR30aV4zlZ41Yzh-zmX",
+    isPlaylist: true,
+  },
+];
 
 export const COURSE: Module[] = [
   {
@@ -85,6 +143,32 @@ export const COURSE: Module[] = [
         order: 2,
       },
     ],
+    youtubeResources: [
+      {
+        id: "yt-estilizacao-autoclave",
+        title: "Esterilização segura sem autoclave",
+        channel: "Michelli Specht",
+        embedUrl: "https://www.youtube.com/embed/qvWC-BGs45k",
+      },
+      {
+        id: "yt-limpeza-perfeita",
+        title: "O Segredo da Limpeza Perfeita",
+        channel: "Canal Manicure Profissional",
+        embedUrl: "https://www.youtube.com/embed/paM5oSYuW-w",
+      },
+      {
+        id: "yt-esterilizacao-estufa",
+        title: "Passo a passo de como esterilizar na estufa",
+        channel: "Trix Nail Designer",
+        embedUrl: "https://www.youtube.com/embed/3XALkCGKdGk",
+      },
+      {
+        id: "yt-estudo-teorico",
+        title: "Estudo teórico completo – ebook manicure e pedicure (Aula 7)",
+        channel: "Wanessa Guedes",
+        embedUrl: "https://www.youtube.com/embed/XiIR7022fYg",
+      },
+    ],
   },
   {
     id: "mundo-2",
@@ -117,6 +201,32 @@ export const COURSE: Module[] = [
         order: 5,
       },
     ],
+    youtubeResources: [
+      {
+        id: "yt-remocao-cuticula",
+        title: "Aula 05 — Remoção da Cutícula",
+        channel: "Profissionaliza Mais",
+        embedUrl: "https://www.youtube.com/embed/65FwAng3B3Y",
+      },
+      {
+        id: "yt-cuticula-fina",
+        title: "Como fazer cutícula fina na mão da cliente",
+        channel: "Faby Cardoso",
+        embedUrl: "https://www.youtube.com/embed/JL-fXvap2mQ",
+      },
+      {
+        id: "yt-unhas-do-zero",
+        title: "Fazendo as unhas comigo do zero",
+        channel: "Unhas Luz e Ação",
+        embedUrl: "https://www.youtube.com/embed/v2tCBYkHbQ8",
+      },
+      {
+        id: "yt-manicure-tradicional",
+        title: "Manicure tradicional, fácil de fazer",
+        channel: "Aura Esmalteria",
+        embedUrl: "https://www.youtube.com/embed/Ul9GIBWtd6Y",
+      },
+    ],
   },
     {
     id: "mundo-3",
@@ -147,6 +257,34 @@ export const COURSE: Module[] = [
         order: 7,
       },
     ],
+    youtubeResources: [
+      {
+        id: "yt-aulao-fibra-vidro",
+        title: "Aulão completo de alongamento em unha fibra de vidro (Aula 4)",
+        channel: "Wanessa Guedes",
+        embedUrl: "https://www.youtube.com/embed/tBPN7-lCgqA",
+      },
+      {
+        id: "yt-esmaltacao-tradicional",
+        title: "Esmaltação tradicional feita por manicure brasileira",
+        channel: "Canal Gringa",
+        embedUrl: "https://www.youtube.com/embed/a9fHoSYvyFQ",
+      },
+      {
+        id: "yt-curso-cutilagem",
+        title: "Curso completo de cutilagem, esmaltação, unhas artísticas",
+        channel: "Wanessa Guedes",
+        embedUrl: "https://www.youtube.com/embed/5aOkQJtimp0",
+      },
+      {
+        id: "yt-blindagem-completa",
+        title: "Blindagem de unhas (Playlist)",
+        channel: "Wanessa Guedes",
+        embedUrl:
+          "https://www.youtube.com/embed/videoseries?list=PLWnolLl7b64JAG1JR1Az6kUeUwBAjoTsw",
+        isPlaylist: true,
+      },
+    ],
   },
   {
     id: "mundo-4",
@@ -175,6 +313,35 @@ export const COURSE: Module[] = [
         videoUrl: PLACEHOLDER_VIDEO,
         durationSec: 470,
         order: 11,
+      },
+    ],
+    youtubeResources: [
+      {
+        id: "yt-francesinhas-coloridas",
+        title:
+          "Tendência do momento: esmaltes coloridos são o segredo para atualizar as francesinhas",
+        channel: "Tia do Esmalte",
+        embedUrl: "https://www.youtube.com/embed/v7BP0js-3LA",
+      },
+      {
+        id: "yt-francesinha-pes",
+        title: "Pés com francesinha fininha e delicada",
+        channel: "Faby Ana Molinari",
+        embedUrl: "https://www.youtube.com/embed/gJiwtmbczl0",
+      },
+      {
+        id: "yt-clean-rosa",
+        title: "Misturinha clean com fundo rosa transparente e com francesinha",
+        channel: "Faby Ana Molinari",
+        embedUrl: "https://www.youtube.com/embed/UihLjX95yYI",
+      },
+      {
+        id: "yt-esmaltacao-gel",
+        title: "Esmaltação em gel e semi definitiva (Playlist)",
+        channel: "Wanessa Guedes",
+        embedUrl:
+          "https://www.youtube.com/embed/videoseries?list=PLWnolLl7b64IjEY4lh8QivLQVHa3Y-5Eg",
+        isPlaylist: true,
       },
     ],
   },

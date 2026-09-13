@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import semBackground from "@/images/icons/sem_background.png";
 
 export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const textClass =
@@ -18,7 +17,7 @@ export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
       className={`inline-flex items-center ${textClass} font-bold tracking-tight`}
     >
       <Image
-        src={semBackground}
+        src="/designs/icons/sem_background.png"
         alt="Logo Esmalt'up"
         width={524}
         height={476}

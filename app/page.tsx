@@ -1,134 +1,48 @@
+import Image from "next/image";
 import Link from "next/link";
 import { primaryButton, outlineButton } from "@/components/buttonStyles";
 
 function NailPolishIllustration() {
   return (
-    <svg
-      viewBox="0 0 200 290"
-      role="img"
-      aria-label="Esmalte Esmalt'up"
-      className="w-60 sm:w-72"
-    >
-      <defs>
-        <linearGradient id="capGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f3b6c7" />
-          <stop offset="100%" stopColor="#c98991" />
-        </linearGradient>
-        <linearGradient id="bodyGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fad0e6" />
-          <stop offset="45%" stopColor="#f3b6c7" />
-          <stop offset="100%" stopColor="#e599a8" />
-        </linearGradient>
-        <linearGradient id="bottomShade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#8A5A63" stopOpacity="0" />
-          <stop offset="100%" stopColor="#8A5A63" stopOpacity="0.45" />
-        </linearGradient>
-        <radialGradient id="groundShadow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor="#C98991" stopOpacity="0.5" />
-          <stop offset="70%" stopColor="#E599A8" stopOpacity="0.22" />
-          <stop offset="100%" stopColor="#F3B6C7" stopOpacity="0" />
-        </radialGradient>
-        <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="6" />
-        </filter>
-        <clipPath id="bottleClip">
-          <path
-            d="M80 66
-               C74 66 69 71 69 78
-               C69 90 58 98 44 118
-               C26 144 24 186 38 210
-               C58 244 142 244 162 210
-               C176 186 174 144 156 118
-               C142 98 131 90 131 78
-               C131 71 126 66 120 66
-               Z"
-          />
-        </clipPath>
-      </defs>
+    <div className="relative w-60 sm:w-72">
+      <svg viewBox="0 0 200 290" aria-hidden className="h-auto w-full">
+        <defs>
+          <radialGradient id="groundShadow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stopColor="#C98991" stopOpacity="0.5" />
+            <stop offset="70%" stopColor="#E599A8" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#F3B6C7" stopOpacity="0" />
+          </radialGradient>
+          <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" />
+          </filter>
+        </defs>
 
-      <ellipse
-        cx="100"
-        cy="262"
-        rx="80"
-        ry="14"
-        fill="url(#groundShadow)"
-        filter="url(#softGlow)"
-      />
-      <ellipse cx="100" cy="260" rx="46" ry="8" fill="#C98991" opacity="0.35" />
-      <ellipse cx="100" cy="259" rx="24" ry="5" fill="#8A5A63" opacity="0.4" />
-
-      <rect x="66" y="12" width="68" height="46" rx="18" fill="url(#capGradient)" />
-      <rect x="75" y="19" width="18" height="32" rx="9" fill="#ffffff" opacity="0.3" />
-
-      <rect x="80" y="52" width="40" height="18" rx="6" fill="#f3b6c7" />
-
-      <path
-        d="M80 66
-           C74 66 69 71 69 78
-           C69 90 58 98 44 118
-           C26 144 24 186 38 210
-           C58 244 142 244 162 210
-           C176 186 174 144 156 118
-           C142 98 131 90 131 78
-           C131 71 126 66 120 66
-           Z"
-        fill="url(#bodyGradient)"
-      />
-
-      <g clipPath="url(#bottleClip)">
         <ellipse
           cx="100"
-          cy="214"
-          rx="90"
-          ry="54"
-          fill="url(#bottomShade)"
-        />
-        <rect x="0" y="212" width="200" height="60" fill="url(#bottomShade)" opacity="0.7" />
-        <ellipse
-          cx="100"
-          cy="72"
-          rx="64"
+          cy="262"
+          rx="80"
           ry="14"
-          fill="#ffffff"
-          opacity="0.18"
+          fill="url(#groundShadow)"
+          filter="url(#softGlow)"
         />
-      </g>
+        <ellipse cx="100" cy="260" rx="46" ry="8" fill="#C98991" opacity="0.35" />
+        <ellipse cx="100" cy="259" rx="24" ry="5" fill="#8A5A63" opacity="0.4" />
 
-      <ellipse
-        cx="76"
-        cy="150"
-        rx="12"
-        ry="40"
-        fill="#ffffff"
-        opacity="0.35"
-        transform="rotate(-15 76 150)"
-      />
-      <ellipse
-        cx="92"
-        cy="162"
-        rx="5"
-        ry="22"
-        fill="#ffffff"
-        opacity="0.25"
-        transform="rotate(-15 92 162)"
-      />
+        <circle cx="150" cy="44" r="3.4" fill="#F3B6C7" />
+      </svg>
 
-      <rect x="52" y="196" width="96" height="26" rx="13" fill="#ffffff" opacity="0.9" />
-      <text
-        x="100"
-        y="214.5"
-        textAnchor="middle"
-        fontSize="11.5"
-        fontWeight="700"
-        fill="#8A5A63"
-      >
-        Esmalt&apos;up
-      </text>
-
-      <path d="M16 40l2.4 7.6L26 50l-7.6 2.4L16 60l-2.4-7.6L6 50l7.6-2.4z" fill="#C98991" />
-      <path d="M180 92l1.8 5.7L188 100l-6.2 2.3L180 108l-1.8-5.7L172 100l6.2-2.3z" fill="#E599A8" opacity="0.85" />
-      <circle cx="150" cy="44" r="3.4" fill="#F3B6C7" />
-    </svg>
+      <div className="absolute inset-x-0 bottom-[13%] flex justify-center">
+        <Image
+          src="/designs/icons/sem_background.png"
+          alt="Esmalte Esmalt'up"
+          width={524}
+          height={476}
+          sizes="(min-width: 640px) 230px, 192px"
+          priority
+          className="h-auto w-[80%] object-contain"
+        />
+      </div>
+    </div>
   );
 }
 
