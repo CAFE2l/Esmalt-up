@@ -441,6 +441,8 @@ export default function PerfilPage() {
   const [flash, setFlash] = useState<Flash>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"perfil" | "negocio" | "atividade">("perfil");
+  const [bannerUploadOpen, setBannerUploadOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -563,8 +565,13 @@ export default function PerfilPage() {
     profile.profilePhotoUrl || user?.photoURL || null;
   const displayName = user?.displayName ?? "Usuária Esmalt'up";
   const completedCount = progress.filter((row) =>
-    /conclu/.test(row.status),
+    /conclu/i.test(row.status),
   ).length;
+  const filteredProgress = search.trim() ? progress.filter((row) => row.lessonTitle.toLowerCase().includes(search.trim().toLowerCase())) : progress;
+  const filteredOrders = search.trim() ? orders.filter((row) => row.kitName.toLowerCase().includes(search.trim().toLowerCase())) : orders;
+  const completionChecks: boolean[] = [profile.profilePhotoUrl.trim().length > 0, profile.bannerUrl.trim().length > 0, profile.city.trim().length > 0, profile.level.trim().length > 0, profile.experienceYears.trim().length > 0, profile.favoriteBrands.trim().length > 0, profile.favoriteStyles.trim().length > 0, profile.interests.length > 0, profile.youtube.trim().length > 0 || profile.instagram.trim().length > 0 || profile.tiktok.trim().length > 0];
+  if (profile.isEntrepreneur) { completionChecks.push(profile.services.length > 0, profile.pricing.trim().length > 0, profile.bookingLink.trim().length > 0); }
+  const completion = Math.round((completionChecks.filter(Boolean).length / completionChecks.length) * 100);
 
   if (loading) {
     return (
@@ -620,8 +627,8 @@ export default function PerfilPage() {
       />
 
       {/* ─── BANNER + AVATAR ───────────────────────────── */}
-      <div className="relative">
-        <div className="relative h-44 w-full overflow-hidden rounded-3xl sm:h-56 md:h-64">
+      <div className="relative -mx-4 mb-4 sm:-mx-6">
+                <div className="relative h-40 sm:h-56 md:h-64 w-full overflow-hidden rounded-3xl">
           {profile.bannerUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -630,72 +637,67 @@ export default function PerfilPage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-rosa-blush/40 via-rose-gold/25 to-rosa-medio/40 px-4 text-center">
-              <BannerIcon className="h-10 w-10 text-white/80 sm:h-14 sm:w-14" />
-              <p className="text-sm font-medium text-white/90">
-                Mostre seu studio — adicione uma capa
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-rosa-blush/30 via-rose-gold/20 to-rosa-medio/30">
+              <BannerIcon className="h-14 w-14 text-foreground/30" />
+              <p className="text-center text-sm text-foreground/50">
+                Banner personalizado
               </p>
-              <p className="text-xs text-white/70">1200 x 400 • JPG, PNG ou WebP</p>
             </div>
           )}
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent" aria-hidden />
-          <div className="absolute bottom-3 right-3">
-            <ImageUploader
-              mode="banner"
-              variant="overlay"
-              folder="banners"
-              alt="Banner do perfil"
-              value={profile.bannerUrl || null}
-              onUpload={(url) => set("bannerUrl", url)}
-              onRemove={() => set("bannerUrl", "")}
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setBannerUploadOpen(true)}
+            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-branco/70 bg-branco/90 px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-card transition-all hover:bg-rosa-blush hover:text-white"
+          >
+            <PencilIcon className="h-3 w-3" />
+            {profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}
+          </button>
         </div>
 
         {/* Avatar uploader — overlaps the bottom of the banner */}
-        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 sm:left-8 sm:translate-x-0">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:left-6 sm:translate-x-0 sm:translate-y-[-40%] cursor-pointer">
           <ImageUploader
             mode="avatar"
-            variant="overlay"
             folder="profiles"
             alt={initialsOf(displayName)}
-            value={effectivePhotoUrl}
+                        value={effectivePhotoUrl}
             onUpload={(url) => set("profilePhotoUrl", url)}
             onRemove={() => set("profilePhotoUrl", "")}
           />
         </div>
       </div>
 
-      <div className="mt-14 flex flex-col items-center gap-4 pt-2 text-center sm:flex-row sm:justify-between sm:pt-0 sm:text-left">
-          <div className="flex w-full flex-col items-center gap-1 sm:ml-28 sm:items-start">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-gold">
-              Minha área
-            </p>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
-                {displayName}
-              </span>
-            </h1>
-            <p className="text-sm text-foreground/60">{user.email}</p>
-            <span
-              className={`mt-2 inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
-                profile.isEntrepreneur
-                  ? "border-transparent bg-gradient-to-r from-rosa-blush to-rose-gold text-white"
-                  : "border-rose-gold/40 bg-rosa-claro/60 text-rose-gold"
-              }`}
-            >
-              {profile.isEntrepreneur ? "✦ Profissional ativa" : profile.status}
+      <div className="mt-6 relative">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="relative w-full max-w-sm sm:max-w-xs">
+            <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-foreground/50">
+              <SearchIcon />
             </span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar em sua área"
+              aria-label="Buscar"
+              className={`${inputClasses} pl-11`}
+            />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               aria-label="Notificações"
-              className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-cinza-suave bg-branco text-foreground/70 shadow-card"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-cinza-suave bg-branco text-foreground/70 shadow-card transition-colors hover:text-rose-gold"
             >
               <BellIcon />
-              <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-rosa-blush" />
+              <span className="absolute h-2 w-2 translate-x-4 translate-y-[-10px] rounded-full bg-rosa-blush" />
+            </button>
+            <button
+              type="button"
+              aria-label="Benefícios premium"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-white shadow-card transition-transform hover:-translate-y-0.5"
+            >
+              <SparkleIcon />
             </button>
 
             <div className="relative">
@@ -1063,12 +1065,6 @@ export default function PerfilPage() {
                 </div>
               )}
             </section>
-
-            <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
-              <h2 className="text-xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
-                  Redes Sociais
-                </span>
 
             <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
               <h2 className="text-xl font-bold tracking-tight">
