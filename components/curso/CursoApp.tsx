@@ -7,6 +7,7 @@ import { useCourseProgress } from "@/lib/useCourseProgress";
 import CursoSidebar from "@/components/curso/CursoSidebar";
 import CursoTopBar from "@/components/curso/CursoTopBar";
 import CursoVideoPlayer from "@/components/curso/CursoVideoPlayer";
+import CursoYouTubeResources from "@/components/curso/CursoYouTubeResources";
 import { primaryButton, outlineButton } from "@/components/buttonStyles";
 
 /** Returns the module id that contains the given lesson, if any. */
@@ -121,6 +122,11 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
             lesson={currentLesson}
             watched={isWatched}
             onWatched={() => markWatched(lessonId)}
+          />
+
+          {/* Free YouTube classes for the current module */}
+          <CursoYouTubeResources
+            moduleResources={currentLesson.module.youtubeResources}
           />
 
           {/* Below-player navigation + conclude action */}

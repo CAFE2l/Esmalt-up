@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import CursoApp from "@/components/curso/CursoApp";
+import { RequireAuth } from "@/components/RequireAuth";
 
 export const metadata: Metadata = {
   title: "Curso Preparatório",
@@ -17,5 +18,9 @@ export default function CursoPage({
 }: {
   searchParams: { aula?: string };
 }) {
-  return <CursoApp initialLessonId={searchParams?.aula} />;
+  return (
+    <RequireAuth>
+      <CursoApp initialLessonId={searchParams?.aula} />
+    </RequireAuth>
+  );
 }

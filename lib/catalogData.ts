@@ -11,6 +11,7 @@
 
 export type ProductKind = "kit" | "peca";
 export type StockStatus = "in_stock" | "out_of_stock";
+export type SkillLevel = "iniciante" | "medio" | "profissional";
 
 export interface Product {
   id: string;
@@ -24,7 +25,14 @@ export interface Product {
   stockStatus: StockStatus;
   rating: number | null;
   reviewCount: number | null;
+  level?: SkillLevel;
 }
+
+export const LEVEL_LABELS: Record<SkillLevel, string> = {
+  iniciante: "Iniciante",
+  medio: "Médio",
+  profissional: "Profissional",
+};
 
 export const CATEGORY_LABELS: Record<string, string> = {
   iniciante: "Iniciante",
@@ -48,13 +56,14 @@ export const PRODUCTS: Product[] = [
     name: "Kit Iniciante",
     description:
       "Tudo para os primeiros atendimentos: lixas, primer, esmaltação e higiene em um só conjunto.",
-    imageUrl: "",
+    imageUrl: "/produtos/kits/kit_iniciante.jpg",
     priceCents: 18990,
     category: "iniciante",
     featured: true,
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    level: "iniciante",
   },
   {
     id: "kit-profissional",
@@ -62,13 +71,14 @@ export const PRODUCTS: Product[] = [
     name: "Kit Profissional",
     description:
       "Seleção completa para quem já atende: motor, brocas, tips e finalizadores de alta durabilidade.",
-    imageUrl: "",
+    imageUrl: "/produtos/kits/kit_profissional.svg",
     priceCents: 34990,
     category: "profissional",
     featured: true,
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    level: "profissional",
   },
   {
     id: "kit-cabine-led",
@@ -76,13 +86,14 @@ export const PRODUCTS: Product[] = [
     name: "Kit Cabine LED",
     description:
       "Cabine 48W com o kit de gel e top coat para cura rápida e brilho uniforme.",
-    imageUrl: "",
+    imageUrl: "/produtos/kits/kit_cabine.jpg",
     priceCents: 42990,
     category: "completo",
     featured: true,
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    level: "medio",
   },
   {
     id: "kit-completo",
@@ -90,13 +101,14 @@ export const PRODUCTS: Product[] = [
     name: "Kit Completo Assistência",
     description:
       "O conjunto para montar a bancada: cabine, motor, alicates, lixas e preparadores.",
-    imageUrl: "",
+    imageUrl: "/produtos/kits/kit_completo.jpg",
     priceCents: 59990,
     category: "completo",
     featured: true,
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    level: "profissional",
   },
   {
     id: "kit-fibra",
@@ -104,13 +116,14 @@ export const PRODUCTS: Product[] = [
     name: "Kit Fibra de Vidro",
     description:
       "Fibra, resina e pincéis para alongamento estruturado com acabamento limpo.",
-    imageUrl: "",
+    imageUrl: "/produtos/kits/kit_fibra.svg",
     priceCents: 25990,
     category: "alongamento",
     featured: false,
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    level: "medio",
   },
   {
     id: "kit-alongamento",
@@ -118,13 +131,14 @@ export const PRODUCTS: Product[] = [
     name: "Kit Alongamento",
     description:
       "Tips, cola, lixas e molde para construir o comprimento com segurança.",
-    imageUrl: "",
+    imageUrl: "/produtos/kits/kit_alongamento.svg",
     priceCents: 28990,
     category: "alongamento",
     featured: false,
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    level: "medio",
   },
   {
     id: "peca-cabine-led",
@@ -132,7 +146,7 @@ export const PRODUCTS: Product[] = [
     name: "Cabine LED 48W",
     description:
       "Cura gel e esmalte em segundos, com timer e espelho interno.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/cabine_led.jpg",
     priceCents: 17990,
     category: "cabine",
     featured: true,
@@ -145,7 +159,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Lixas Banana 100/180",
     description: "Pacote com 50 unidades para modelar e refinar a superfície.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/lixa_banana.jpg",
     priceCents: 2490,
     category: "lixas",
     featured: true,
@@ -159,7 +173,7 @@ export const PRODUCTS: Product[] = [
     name: "Jogo de Brocas",
     description:
       "Cinco brocas de cerâmica e metal para cutícula, gel e refinamento.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/jogo_de_broca.jpg",
     priceCents: 4990,
     category: "brocas",
     featured: true,
@@ -172,7 +186,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Tips Almond 500 un",
     description: "Curvatura almond em 10 tamanhos, prontas para alongamento.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/tips_almond.svg",
     priceCents: 3290,
     category: "tips",
     featured: false,
@@ -185,7 +199,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Fibra de Vidro",
     description: "Fita de fibra para reforço e alongamento estruturado.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/fibra_de_vidro.svg",
     priceCents: 2890,
     category: "alongamento",
     featured: false,
@@ -198,7 +212,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Primer 10ml",
     description: "Preparador para aderência da esmaltação e do gel.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/primer.svg",
     priceCents: 1990,
     category: "preparadores",
     featured: false,
@@ -211,7 +225,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Top Coat Extra Brilho",
     description: "Selagem de alto brilho, sem residual, para o acabamento final.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/top_coat.jpg",
     priceCents: 2290,
     category: "finalizadores",
     featured: true,
@@ -224,7 +238,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Alicate de Cutícula",
     description: "Corte preciso, inox, para a finalização da cutícula.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/alicate_de_cuticula.svg",
     priceCents: 3990,
     category: "alicates",
     featured: false,
@@ -237,7 +251,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Motor de Lixadeira",
     description: "Motor compacto com controle de rotação para a bancada.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/motor_de_lixadeira.svg",
     priceCents: 15990,
     category: "motor",
     featured: false,
@@ -250,7 +264,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Toner Preparador",
     description: "Limpa e desidrata a lâmina antes da esmaltação.",
-    imageUrl: "",
+    imageUrl: "/produtos/produtos_separados/toner_preparador.svg",
     priceCents: 1890,
     category: "preparadores",
     featured: false,
