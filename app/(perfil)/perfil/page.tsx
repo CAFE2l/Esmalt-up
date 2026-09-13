@@ -2,11 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { LogOut, Settings, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { getLesson, COURSE_LESSONS } from "@/lib/courseData";
 import { primaryButton } from "@/components/buttonStyles";
+import ImageUploader from "@/components/perfil/ImageUploader";
 
 type ProfileForm = {
+  profilePhotoUrl: string;
+  bannerUrl: string;
+  isEntrepreneur: boolean;
+  services: string[];
+  pricing: string;
+  bookingLink: string;
   level: string;
   experienceYears: string;
   favoriteBrands: string;
@@ -39,7 +47,13 @@ type ProgressRow = {
 type Flash = { kind: "ok" | "error"; text: string } | null;
 
 const emptyProfile: ProfileForm = {
-  level: "",
+  profilePhotoUrl: "",
+  bannerUrl: "",
+  isEntrepreneur: false,
+  services: [],
+  pricing: "",
+  bookingLink: "",
+    level: "",
   experienceYears: "",
   favoriteBrands: "",
   favoriteStyles: "",
@@ -389,8 +403,14 @@ export default function PerfilPage() {
         if (!response.ok) {
           setFlash({ kind: "error", text: data.error });
           return;
-        }
+                }
         const profileData = {
+          profilePhotoUrl: data.profile.profilePhotoUrl ?? "",
+          bannerUrl: data.profile.bannerUrl ?? "",
+          isEntrepreneur: data.profile.isEntrepreneur ?? false,
+          services: data.profile.services ?? [],
+          pricing: data.profile.pricing ?? "",
+          bookingLink: data.profile.bookingLink ?? "",
           level: data.profile.level ?? "",
           experienceYears: data.profile.experienceYears ?? "",
           favoriteBrands: data.profile.favoriteBrands ?? "",
@@ -484,7 +504,9 @@ export default function PerfilPage() {
     await logout();
   };
 
-  const avatarUrl = user?.photoURL ?? null;
+  // Prefer the custom uploaded photo, fall back to Firebase avatar, then initials.
+  const effectivePhotoUrl =
+    profile.profilePhotoUrl || user?.photoURL || null;
   const displayName = user?.displayName ?? "Usuária Esmalt'up";
   const completedCount = progress.filter((row) =>
     /conclu/.test(row.status),
@@ -584,9 +606,9 @@ export default function PerfilPage() {
                 className="flex items-center gap-3 rounded-full border border-cinza-suave/70 bg-branco p-1.5 pr-3 shadow-card transition-colors hover:border-rose-gold/60"
               >
                 <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-sm font-bold text-white">
-                  {avatarUrl ? (
+                  {effectivePhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+          <img src={effectivePhotoUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     initialsOf(displayName)
                   )}
@@ -603,19 +625,30 @@ export default function PerfilPage() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-cinza-suave/70 bg-branco p-2 shadow-card-lg">
+                <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-cinza-suave/70 bg-branco/90 p-2 shadow-card-lg backdrop-blur-xl">
                   <Link
                     href="/perfil"
                     onClick={() => setDropdownOpen(false)}
-                    className="block rounded-xl px-4 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-rosa-claro/60 hover:text-rose-gold"
+                    className="flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-rosa-claro/60 hover:text-rose-gold"
                   >
-                    Meu perfil
+                    <UserRound size={16} />
+                    Meu Perfil
                   </Link>
+                  <Link
+                    href="/configuracoes"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-rosa-claro/60 hover:text-rose-gold"
+                  >
+                    <Settings size={16} />
+                    Configurações
+                  </Link>
+                  <div className="my-2 h-px bg-cinza-suave/70" role="separator" />
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-foreground/80 transition-colors hover:bg-rosa-claro/60 hover:text-rose-gold"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-4 py-2.5 text-left text-sm font-medium text-rose-gold/90 transition-colors hover:bg-rosa-claro/60 hover:text-white"
                   >
+                    <LogOut size={16} />
                     Sair
                   </button>
                 </div>
@@ -635,9 +668,9 @@ export default function PerfilPage() {
         <div className="mt-12 grid gap-6 lg:grid-cols-[320px_1fr]">
           <aside className="flex flex-col items-center gap-4 rounded-3xl border border-cinza-suave/70 bg-branco p-8 text-center shadow-card">
             <span className="inline-flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-3xl font-bold text-white shadow-card-lg">
-              {avatarUrl ? (
+              {effectivePhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt={`Foto de ${displayName}`} className="h-full w-full object-cover" />
+          <img src={effectivePhotoUrl} alt={`Foto de ${displayName}`} className="h-full w-full object-cover" />
               ) : (
                 initialsOf(displayName)
               )}

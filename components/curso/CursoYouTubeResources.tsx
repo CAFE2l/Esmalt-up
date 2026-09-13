@@ -67,13 +67,12 @@ export default function CursoYouTubeResources({
     <section className="mt-8 rounded-3xl border border-cinza-suave/40 bg-branco p-5 shadow-card sm:p-6">
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold uppercase tracking-widest text-rose-gold">
-          Aulas no YouTube
+          Aulas Bônus e Recursos
         </span>
         <span className="h-px flex-1 bg-cinza-suave/40" />
       </div>
       <p className="mt-1.5 text-sm text-foreground/70">
-        Conteúdo gratuito dos melhores canais para complementar o curso. Assista no
-        YouTube abrindo cada aula em uma janela.
+        Conteúdo gratuito dos melhores canais para aprofundar cada módulo do curso.
       </p>
 
       {moduleResources && moduleResources.length > 0 && (
@@ -92,7 +91,7 @@ export default function CursoYouTubeResources({
       {YOUTUBE_COURSE_PLAYLISTS.length > 0 && (
         <div className="mt-5">
           <h4 className="mb-3 text-sm font-semibold text-foreground">
-            Playlists completas (curso inteiro)
+            Recursos Extras — Playlists completas
           </h4>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {YOUTUBE_COURSE_PLAYLISTS.map((r) => (

@@ -28,6 +28,12 @@ async function authenticate(req: Request): Promise<AuthResult> {
 }
 
 const editableFields = [
+  "profilePhotoUrl",
+  "bannerUrl",
+  "isEntrepreneur",
+  "services",
+  "pricing",
+  "bookingLink",
   "level",
   "experienceYears",
   "favoriteBrands",

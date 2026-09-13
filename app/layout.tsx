@@ -28,6 +28,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${poppins.variable} font-sans antialiased`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(localStorage.getItem("esmaltup-theme")==="light"){document.documentElement.setAttribute("data-theme","light");}}catch(e){}})();`,
+          }}
+        />
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
             <Header />

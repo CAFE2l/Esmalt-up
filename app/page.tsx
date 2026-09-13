@@ -25,22 +25,40 @@ function NailPolishIllustration() {
           fill="url(#groundShadow)"
           filter="url(#softGlow)"
         />
-        <ellipse cx="100" cy="260" rx="46" ry="8" fill="#C98991" opacity="0.35" />
+        <ellipse
+          cx="100"
+          cy="260"
+          rx="46"
+          ry="8"
+          fill="#C98991"
+          opacity="0.35"
+          className="animate-shadow-pulse"
+        />
         <ellipse cx="100" cy="259" rx="24" ry="5" fill="#8A5A63" opacity="0.4" />
 
-        <circle cx="150" cy="44" r="3.4" fill="#F3B6C7" />
       </svg>
 
       <div className="absolute inset-x-0 bottom-[13%] flex justify-center">
-        <Image
-          src="/designs/icons/sem_background.png"
-          alt="Esmalte Esmalt'up"
-          width={524}
-          height={476}
-          sizes="(min-width: 640px) 230px, 192px"
-          priority
-          className="h-auto w-[80%] object-contain"
-        />
+        <div className="relative w-full animate-logo-float">
+          <Image
+            src="/designs/icons/sem_background.png"
+            alt="Esmalte Esmalt'up"
+            width={524}
+            height={476}
+            sizes="(min-width: 640px) 288px, 240px"
+            priority
+            className="h-auto w-full object-contain"
+          />
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 animate-sparkle text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.85)]"
+            style={{ left: "76%", top: "24%", width: "8%", height: "8%" }}
+          >
+            <path d="M12 0c0 6.6 5.4 12 12 12-6.6 0-12 5.4-12 12 0-6.6-5.4-12-12-12 6.6 0 12-5.4 12-12z" />
+          </svg>
+        </div>
       </div>
     </div>
   );
