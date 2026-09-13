@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { getLesson, COURSE_LESSONS } from "@/lib/courseData";
