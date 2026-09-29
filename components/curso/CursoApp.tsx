@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { COURSE_LESSONS } from "@/lib/courseData";
 import { useCourseProgress } from "@/lib/useCourseProgress";
+import { useAuth } from "@/lib/AuthContext";
 import CursoSidebar from "@/components/curso/CursoSidebar";
 import CursoTopBar from "@/components/curso/CursoTopBar";
 import CursoVideoPlayer from "@/components/curso/CursoVideoPlayer";
@@ -28,8 +29,14 @@ const ArrowRight = () => (
 
 export default function CursoApp({ initialLessonId }: { initialLessonId?: string }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+
+  const getToken = useCallback(
+    () => user?.getIdToken() ?? Promise.resolve(""),
+    [user],
+  );
 
   const {
     completed,
@@ -44,7 +51,7 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
     markWatched,
     markCompleted,
     setLessonId,
-  } = useCourseProgress(initialLessonId);
+  } = useCourseProgress(initialLessonId, user ? getToken : undefined);
 
   // Auto-open the module that contains the current lesson.
   useEffect(() => {

@@ -34,14 +34,98 @@ model UserProfile {
   updatedAt        DateTime @updatedAt
   createdAt        DateTime @default(now())
 
-  orders   Order[]
-  progress CourseProgress[]
-  reviews  Review[]
-  questions Question[]
-  answers  Answer[]
-  cart     Cart?
+  orders           Order[]
+  progress         CourseProgress[]
+  reviews          Review[]
+  questions        Question[]
+  answers          Answer[]
+  cart             Cart?
+  notifications    Notification[]
+  badgesEarned     UserBadge[]
+  lessonProgress   LessonProgress[]
 
   @@map("user_profiles")
+}
+
+model Notification {
+  id        String       @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime     @default(now())
+  user      UserProfile  @relation(fields: [userId], references: [uid], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model UserBadge {
+  id        String      @id @default(cuid())
+  userId    String
+  badgeKey  String
+  awardedAt DateTime    @default(now())
+  user      UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
+
+  @@unique([userId, badgeKey])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+model CourseModule {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String   @default("")
+  orderIndex  Int
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("course_modules")
+}
+
+model Lesson {
+  id                String           @id @default(cuid())
+  moduleId          String
+  slug              String           @unique
+  title             String
+  description       String           @default("")
+  youtubeVideoId    String?
+  youtubePlaylistId String?
+  channel           String?
+  durationSec       Int?
+  orderIndex        Int
+  thumbnailUrl      String?
+  embeddable        Boolean          @default(true)
+  embedError        String?
+  module            CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress          LessonProgress[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([moduleId, orderIndex])
+  @@index([youtubeVideoId])
+  @@map("lessons")
+}
+
+model LessonProgress {
+  id                  String      @id @default(cuid())
+  userId              String
+  lessonId            String
+  completedAt         DateTime?
+  lastPositionSeconds Int         @default(0)
+  user                UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
+  lesson              Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("lesson_progress")
 }
 
 model Order {

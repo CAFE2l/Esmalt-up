@@ -5,7 +5,31 @@ import {
   COURSE_LESSONS,
   getLesson,
   getAdjacentLessons,
+  isYouTubeEmbed,
 } from "@/lib/courseData";
+
+/** Derive the DB lesson slug from a courseData lesson. */
+function dbSlugOf(videoUrl: string): string | null {
+  if (!isYouTubeEmbed(videoUrl)) return null;
+  const match = videoUrl.match(/\/embed\/([\w-]{11})/);
+  return match ? `yt-${match[1]}` : null;
+}
+
+async function syncProgressToDB(
+  token: string,
+  lessonSlug: string,
+  completedAt: string | null,
+) {
+  try {
+    await fetch("/api/course/progress", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ lessonSlug, completedAt }),
+    });
+  } catch {
+    /* fire-and-forget — localStorage is the source of truth */
+  }
+}
 
 /**
  * Watch-completion threshold: a lesson counts as "watched to the end" once
@@ -65,7 +89,10 @@ function saveProgress(data: ProgressSnapshot) {
   }
 }
 
-export function useCourseProgress(initialLessonId?: string) {
+export function useCourseProgress(
+  initialLessonId?: string,
+  getToken?: () => Promise<string>,
+) {
   // NOTE: we intentionally do NOT read localStorage in the useState
   // initializers. The first render must be identical on server and client
   // (SSR has no `window`); we hydrate from localStorage in a client-only
@@ -107,7 +134,29 @@ export function useCourseProgress(initialLessonId?: string) {
   const markCompleted = useCallback((lessonId: string) => {
     setCompleted((prev) => ({ ...prev, [lessonId]: true }));
     markWatched(lessonId);
-  }, [markWatched]);
+    if (getToken) {
+      const lesson = getLesson(lessonId);
+      if (lesson) {
+        const slug = dbSlugOf(lesson.lesson.videoUrl);
+        if (slug) {
+          getToken().then((token) => syncProgressToDB(token, slug, new Date().toISOString()));
+        }
+      }
+    }
+  }, [markWatched, getToken]);
+
+  const markWatchedWithSync = useCallback((lessonId: string) => {
+    markWatched(lessonId);
+    if (getToken) {
+      const lesson = getLesson(lessonId);
+      if (lesson) {
+        const slug = dbSlugOf(lesson.lesson.videoUrl);
+        if (slug) {
+          getToken().then((token) => syncProgressToDB(token, slug, null));
+        }
+      }
+    }
+  }, [markWatched, getToken]);
 
   const unmarkCompleted = useCallback((lessonId: string) => {
     setCompleted((prev) => {
@@ -143,7 +192,7 @@ export function useCourseProgress(initialLessonId?: string) {
     prevLesson: nav.prev,
     nextLesson: nav.next,
     // mutations
-    markWatched,
+    markWatched: markWatchedWithSync,
     markCompleted,
     unmarkCompleted,
     setLessonId: setCurrentLessonId,

@@ -441,6 +441,7 @@ export default function PerfilPage() {
   const [flash, setFlash] = useState<Flash>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [bannerUploadOpen, setBannerUploadOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -480,6 +481,20 @@ export default function PerfilPage() {
           tiktok: data.profile.tiktok ?? "",
         };
 
+        // Fetch DB lesson progress
+        const lpRes = await fetch("/api/course/progress", {
+          headers: { authorization: `Bearer ${token}` },
+        });
+        const lpData = lpRes.ok ? await lpRes.json() : { progress: [] };
+        const dbLessonRows: ProgressRow[] = (lpData.progress ?? []).map(
+          (row: { id: string; lesson: { title: string }; completedAt: string | null }) => ({
+            id: row.id,
+            lessonTitle: row.lesson.title,
+            dateCompleted: row.completedAt ?? "",
+            status: row.completedAt ? "Concluído" : "Em andamento",
+          }),
+        );
+
         const local = loadLocalCourseProgress();
         const localRows: ProgressRow[] = Object.keys(local.completed)
           .filter((id) => local.completed[id])
@@ -501,7 +516,11 @@ export default function PerfilPage() {
           courseInProgress: profileData.courseInProgress || currentModule || "",
         });
         setOrders(data.orders ?? []);
-        setProgress(mergeProgress(data.progress ?? [], localRows));
+        // DB lesson progress takes priority; fall back to legacy + local
+        const merged = dbLessonRows.length > 0
+          ? dbLessonRows
+          : mergeProgress(data.progress ?? [], localRows);
+        setProgress(merged);
       } catch {
         if (active) {
           setFlash({
