@@ -309,13 +309,13 @@ export function AmbientOrb({
   const positionClass = orbPositions[position];
   const colorClass = orbColors[color];
   const blurClass = orbBlur[size];
-  const motion = orbMotion[position];
+  const orbAnim = orbMotion[position];
 
   return (
     <motion.div
       aria-hidden
       className={`pointer-events-none absolute ${positionClass} ${sizeClass.width} ${sizeClass.height} rounded-full ${colorClass} ${blurClass} ${className}`}
-      animate={shouldAnimate ? motion : {}}
+      animate={shouldAnimate ? orbAnim : {}}
       transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       style={{
         willChange: shouldAnimate ? 'transform' : 'auto',

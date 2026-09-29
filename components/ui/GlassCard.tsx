@@ -42,11 +42,6 @@ const paddingMap = {
   lg: 'p-8',
 };
 
-const ledColors = {
-  pink: 'rgba(232, 160, 180, 0.5)',
-  rose: 'rgba(214, 122, 148, 0.5)',
-  violet: 'rgba(184, 61, 82, 0.5)',
-};
 
 const ledGlowMap = {
   pink: '0 0 25px rgba(232, 160, 180, 0.4), 0 0 50px rgba(232, 160, 180, 0.2)',
