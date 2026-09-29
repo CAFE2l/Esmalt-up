@@ -36,6 +36,10 @@ next-env.d.ts
 # prisma
 /prisma/migrations/dev
 
+# service accounts / secrets
+*firebase-adminsdk*.json
+*.serviceaccount.json
+
 # Firebase service account keys
 firebase/*.json
 *firebase-adminsdk*.json
