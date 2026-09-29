@@ -102,6 +102,7 @@ model Lesson {
   thumbnailUrl      String?
   embeddable        Boolean          @default(true)
   embedError        String?
+  isActive          Boolean          @default(true)
   module            CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress          LessonProgress[]
   createdAt         DateTime         @default(now())

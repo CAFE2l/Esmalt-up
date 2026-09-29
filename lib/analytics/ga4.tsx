@@ -10,7 +10,7 @@
 import Script from 'next/script';
 import { useEffect, useState, useCallback, useContext, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m as motion, AnimatePresence } from 'framer-motion';
 
 // ============================================
 // TYPES
@@ -415,7 +415,7 @@ export function ConsentBanner() {
   if (!visible || !isGAConfigured() || !mounted) return null;
 
   return (
-    <motion.div
+    <m.div
       className="fixed bottom-6 left-6 right-6 z-[1000] mx-auto max-w-4xl"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -446,7 +446,7 @@ export function ConsentBanner() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

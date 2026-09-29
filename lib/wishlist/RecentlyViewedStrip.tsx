@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Pedestal, LightSweep } from "@/components/ui/LED";
 import ProductArt from "@/components/marketplace/ProductArt";
@@ -96,7 +96,7 @@ export function RecentlyViewedStrip({
           </Link>
         </div>
 
-        <motion.div
+        <m.div
           className="relative"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -111,7 +111,7 @@ export function RecentlyViewedStrip({
             }}
           >
             {products.map((product, index) => (
-              <motion.div
+              <m.div
                 key={product.id}
                 className="flex-shrink-0 w-48"
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -154,7 +154,7 @@ export function RecentlyViewedStrip({
                     </div>
                   </GlassCard>
                 </Link>
-              </motion.div>
+              </m.div>
             ))}
           </div>
 
@@ -171,7 +171,7 @@ export function RecentlyViewedStrip({
               background: 'linear-gradient(to left, rgb(var(--bege-claro)), transparent)',
             }}
           />
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

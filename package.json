@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:curriculum": "ts-node --project tsconfig.json prisma/seed/curriculum.ts"
+    "seed:curriculum": "npx tsx prisma/seed/curriculum.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

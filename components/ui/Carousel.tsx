@@ -7,7 +7,7 @@ import {
   useRef, 
   useState 
 } from "react";
-import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { m as motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import { LEDBorder, AmbientOrb } from "./LED";
 import { zIndex } from "./tokens";
 
@@ -379,7 +379,7 @@ export function Carousel<T extends CarouselItem>({
       >
         {/* LED glow on active dot */}
         {active && (
-          <motion.div
+          <m.div
             className="absolute inset-0 rounded-full"
             style={{
               boxShadow: '0 0 15px rgba(232, 160, 180, 0.5)',
@@ -456,7 +456,7 @@ export function Carousel<T extends CarouselItem>({
         />
 
         {/* Items container */}
-        <motion.div
+        <m.div
           className="relative flex"
           style={{
             x: xSpring,
@@ -487,7 +487,7 @@ export function Carousel<T extends CarouselItem>({
             const itemStyle = getItemStyle(distanceFromCenter);
 
             return (
-              <motion.div
+              <m.div
                 key={`${item.id}-${visibleIndex}`}
                 className={`relative flex-shrink-0 ${itemClassName}`}
                 style={{
@@ -518,10 +518,10 @@ export function Carousel<T extends CarouselItem>({
 
                 {/* Render item content */}
                 {renderItem(item, itemIndex, isActive, distanceFromCenter)}
-              </motion.div>
+              </m.div>
             );
           })}
-        </motion.div>
+        </m.div>
 
         {/* Arrows */}
         {showArrows && length > 1 && (

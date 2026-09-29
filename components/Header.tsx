@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { motion, useScroll, useMotionValue, useSpring } from "framer-motion";
+import { m as motion, useScroll, useMotionValue, useSpring } from "framer-motion";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import CartButton from "./cart/CartButton";
@@ -74,7 +74,7 @@ export default function Header() {
       }}
     >
       {/* Scroll progress bar */}
-      <motion.div
+      <m.div
         className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rosa-blush to-rose-gold"
         style={{
           scaleX: scrollProgress,
@@ -101,14 +101,14 @@ export default function Header() {
               >
                 {link.label}
                 {active && (
-                  <motion.div
+                  <m.div
                     className="absolute inset-x-3 -bottom-0.5 h-0.5"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ duration: 0.3 }}
                   >
                     <LEDUnderline active={true} color="pink" animated={false} />
-                  </motion.div>
+                  </m.div>
                 )}
               </Link>
             );

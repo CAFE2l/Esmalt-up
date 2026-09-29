@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion, LayoutGroup } from "framer-motion";
+import { m as motion, useReducedMotion, LayoutGroup } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Pedestal, LEDUnderline } from "@/components/ui/LED";
 import { PrimaryButton } from "@/components/ui/Button";
@@ -220,7 +220,7 @@ export default function CatalogGrid({
 
       {/* Clear filters button */}
       {(level !== "todos" || category !== "todos" || sortBy !== "relevancia") && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 flex justify-end"
@@ -240,12 +240,12 @@ export default function CatalogGrid({
             </svg>
             Limpar filtros
           </button>
-        </motion.div>
+        </m.div>
       )}
 
       {/* No results state */}
       {filtered.length === 0 && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center justify-center py-20 text-center"
@@ -271,12 +271,12 @@ export default function CatalogGrid({
           >
             Ver todos os produtos
           </PrimaryButton>
-        </motion.div>
+        </m.div>
       )}
 
       {/* Product grid */}
       <LayoutGroup>
-        <motion.div
+        <m.div
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
           variants={reduceMotion ? {} : container}
           initial="hidden"
@@ -361,7 +361,7 @@ export default function CatalogGrid({
               </GlassCard>
             </motion.article>
           ))}
-        </motion.div>
+        </m.div>
       </LayoutGroup>
     </section>
   );

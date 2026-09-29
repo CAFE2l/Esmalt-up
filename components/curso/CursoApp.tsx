@@ -7,11 +7,9 @@ import { useCourseProgress } from "@/lib/useCourseProgress";
 import { useAuth } from "@/lib/AuthContext";
 import CursoSidebar from "@/components/curso/CursoSidebar";
 import CursoTopBar from "@/components/curso/CursoTopBar";
-import CursoVideoPlayer from "@/components/curso/CursoVideoPlayer";
-import CursoYouTubeResources from "@/components/curso/CursoYouTubeResources";
+import CursoVideoPlayer, { AutoAdvanceCountdown } from "@/components/curso/CursoVideoPlayer";
 import { primaryButton, outlineButton } from "@/components/buttonStyles";
 
-/** Returns the module id that contains the given lesson, if any. */
 function moduleOfLessonId(id: string): string | undefined {
   return COURSE_LESSONS.find((c) => c.lesson.id === id)?.module.id;
 }
@@ -31,7 +29,9 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
   const router = useRouter();
   const { user } = useAuth();
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
+  /** Mobile: drawer open. Desktop: unused (sidebar always visible). */
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
 
   const getToken = useCallback(
     () => user?.getIdToken() ?? Promise.resolve(""),
@@ -41,6 +41,7 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
   const {
     completed,
     watched,
+    positions,
     currentLessonId,
     currentLesson,
     totalLessons,
@@ -50,6 +51,8 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
     nextLesson,
     markWatched,
     markCompleted,
+    unmarkCompleted,
+    savePosition,
     setLessonId,
   } = useCourseProgress(initialLessonId, user ? getToken : undefined);
 
@@ -60,32 +63,29 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
     }
   }, [currentLessonId]);
 
-  // Select a lesson: update internal state AND keep the URL in sync for
-  // deep-linking / back-button support.
   const handleSelectLesson = (id: string) => {
+    setShowCountdown(false);
     setLessonId(id);
     router.replace(`?aula=${id}`);
   };
 
-  const handlePrev = () => {
-    if (prevLesson) handleSelectLesson(prevLesson.lesson.id);
-  };
-  const handleNext = () => {
-    if (nextLesson) handleSelectLesson(nextLesson.lesson.id);
-  };
+  const handlePrev = () => { if (prevLesson) handleSelectLesson(prevLesson.lesson.id); };
+  const handleNext = () => { if (nextLesson) handleSelectLesson(nextLesson.lesson.id); };
 
   const handleConcluir = () => {
-    if (currentLessonId) markCompleted(currentLessonId);
+    if (!currentLessonId) return;
+    const isConcluded = !!completed[currentLessonId];
+    if (isConcluded) {
+      unmarkCompleted(currentLessonId);
+    } else {
+      markCompleted(currentLessonId);
+    }
   };
 
-  const handleVoltarParaModulo = () => {
-    setCollapsed(false);
-    if (currentLessonId) setExpandedModule(moduleOfLessonId(currentLessonId) ?? null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const handleVideoEnded = useCallback(() => {
+    if (nextLesson) setShowCountdown(true);
+  }, [nextLesson]);
 
-  // While the client-only hydration effect resolves the current lesson, show a
-  // neutral placeholder (identical to the SSR first paint → no mismatch).
   if (!currentLesson) {
     return (
       <div className="p-6">
@@ -97,6 +97,7 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
   const lessonId = currentLesson.lesson.id;
   const isWatched = !!watched[lessonId];
   const isConcluded = !!completed[lessonId];
+  const resumePos = positions[lessonId];
 
   return (
     <div className="flex min-h-[calc(100vh-6rem)] bg-bege">
@@ -105,23 +106,19 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
         completed={completed}
         watched={watched}
         expandedModule={expandedModule}
-        collapsed={collapsed}
+        collapsed={drawerOpen}
         onSelectLesson={handleSelectLesson}
         onToggleModule={(id) =>
           setExpandedModule((prev) => (prev === id ? null : id))
         }
-        onToggleCollapse={() => setCollapsed((c) => !c)}
+        onToggleCollapse={() => setDrawerOpen((o) => !o)}
       />
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <CursoTopBar
           progressPercent={progressPercent}
           completedCount={completedCount}
           totalLessons={totalLessons}
-          hasPrev={!!prevLesson}
-          hasNext={!!nextLesson}
-          onPrev={handlePrev}
-          onNext={handleNext}
         />
 
         <div className="p-4 sm:p-6">
@@ -129,47 +126,48 @@ export default function CursoApp({ initialLessonId }: { initialLessonId?: string
             lesson={currentLesson}
             watched={isWatched}
             onWatched={() => markWatched(lessonId)}
+            resumePosition={resumePos}
+            onPositionChange={(secs) => savePosition(lessonId, secs)}
+            onEnded={handleVideoEnded}
           />
 
-          {/* Free YouTube classes for the current module */}
-          <CursoYouTubeResources
-            moduleResources={currentLesson.module.youtubeResources}
-          />
-
-          {/* Below-player navigation + conclude action */}
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cinza-suave/40 bg-branco p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={handlePrev}
-                disabled={!prevLesson}
-                className={`${outlineButton} inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40`}
-              >
-                <ArrowLeft /> Aula Anterior
-              </button>
-              <button
-                type="button"
-                onClick={handleVoltarParaModulo}
-                className={`${outlineButton} inline-flex items-center gap-1.5 px-4 py-2 text-sm`}
-              >
-                Voltar para Módulo
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={!nextLesson}
-                className={`${outlineButton} inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40`}
-              >
-                Próxima Aula <ArrowRight />
-              </button>
+          {/* 5-second auto-advance countdown */}
+          {showCountdown && nextLesson && (
+            <div className="mt-4">
+              <AutoAdvanceCountdown
+                onGo={handleNext}
+                onCancel={() => setShowCountdown(false)}
+              />
             </div>
+          )}
+
+          {/* Single control bar */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cinza-suave/40 bg-branco p-4">
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={!prevLesson}
+              className={`${outlineButton} inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              <ArrowLeft /> Aula anterior
+            </button>
+
             <button
               type="button"
               onClick={handleConcluir}
-              disabled={!isWatched}
+              disabled={!isWatched && !isConcluded}
               className={`${primaryButton} px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40`}
             >
-              {isConcluded ? "Aula Concluída" : "Concluir aula"}
+              {isConcluded ? "Aula concluída ✓" : "Concluir aula"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!nextLesson}
+              className={`${outlineButton} inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              Próxima aula <ArrowRight />
             </button>
           </div>
         </div>

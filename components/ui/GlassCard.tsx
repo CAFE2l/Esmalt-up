@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { forwardRef } from "react";
 import { glassCardStyle, shadows } from "./tokens";
 
@@ -80,7 +80,7 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
       'backdropFilter' in document.body.style;
 
     return (
-      <motion.div
+      <m.div
         ref={ref}
         className={`relative ${pad} ${className}`}
         style={baseStyle}
@@ -98,7 +98,7 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
 
         {/* Optional LED border effect */}
         {withLed && (
-          <motion.div
+          <m.div
             className="pointer-events-none absolute inset-0"
             style={{
               borderRadius: br,
@@ -127,18 +127,18 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
         )}
 
         {/* Content */}
-        <motion.div
+        <m.div
           className="relative z-10 h-full w-full"
           style={{
             borderRadius: br,
           }}
         >
           {children}
-        </motion.div>
+        </m.div>
 
         {/* Hover effects */}
         {isHoverable && (
-          <motion.div
+          <m.div
             className="pointer-events-none absolute inset-0"
             style={{
               borderRadius: br,
@@ -168,7 +168,7 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
             }}
           />
         )}
-      </motion.div>
+      </m.div>
     );
   }
 );

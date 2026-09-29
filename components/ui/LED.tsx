@@ -1,10 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import { colors } from "./tokens";
-
-// Ensure motion is properly initialized (fixes undefined motion.div in some Next.js configs)
-const MotionDiv = motion.div;
 
 /**
  * LED Effects Component
@@ -36,7 +33,7 @@ export function LEDBorder({
   const shouldAnimate = !reduceMotion && !disabled;
 
   return (
-    <motion.div
+    <m.div
       className={`relative ${className}`}
       style={{
         borderRadius: 'inherit',
@@ -44,7 +41,7 @@ export function LEDBorder({
       }}
     >
       {/* LED Ring */}
-      <motion.div
+      <m.div
         className="pointer-events-none absolute inset-0"
         style={{
           padding: '1px',
@@ -72,7 +69,7 @@ export function LEDBorder({
       />
 
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -117,7 +114,7 @@ export function NeonGlow({
   const glow = glowColors[color][intensity];
 
   return (
-    <motion.div
+    <m.div
       className={className}
       style={{
         boxShadow: disabled ? 'none' : glow,
@@ -131,7 +128,7 @@ export function NeonGlow({
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -166,7 +163,7 @@ export function LEDUnderline({
   if (!active) return null;
 
   return (
-    <motion.div
+    <m.div
       className={className}
       style={{
         height: '2px',
@@ -224,7 +221,7 @@ export function LightSweep({
   };
 
   return (
-    <motion.div
+    <m.div
       className={`relative overflow-hidden ${className}`}
     >
       {/* Children */}
@@ -232,7 +229,7 @@ export function LightSweep({
 
       {/* Light sweep overlay */}
       {shouldAnimate && (
-        <motion.div
+        <m.div
           className="pointer-events-none absolute inset-0"
           style={{
             background: getGradient(),
@@ -249,7 +246,7 @@ export function LightSweep({
           }}
         />
       )}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -315,7 +312,7 @@ export function AmbientOrb({
   const orbAnim = orbMotion[position];
 
   return (
-    <motion.div
+    <m.div
       aria-hidden
       className={`pointer-events-none absolute ${positionClass} ${sizeClass.width} ${sizeClass.height} rounded-full ${colorClass} ${blurClass} ${className}`}
       animate={shouldAnimate ? orbAnim : {}}
@@ -347,7 +344,7 @@ export function Pedestal({
   const reduceMotion = useReducedMotion();
 
   return (
-    <motion.div
+    <m.div
       className={`relative overflow-hidden rounded-2xl ${className}`}
       style={{
         aspectRatio: aspectRatio,
@@ -379,7 +376,7 @@ export function Pedestal({
       />
 
       {/* Content */}
-      <motion.div
+      <m.div
         className="relative h-full w-full"
         whileHover={!reduceMotion && !disabled ? {
           scale: 1.05,
@@ -391,8 +388,8 @@ export function Pedestal({
         }}
       >
         {children}
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }
 

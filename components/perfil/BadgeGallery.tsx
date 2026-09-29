@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { BADGE_DEFINITIONS } from "@/lib/badges";
 import { COURSE_LESSONS } from "@/lib/courseData";
 
@@ -51,7 +51,7 @@ export default function BadgeGallery({ earnedBadges, completedLessonIds }: Props
         const prog = !earned ? badgeProgress(def.key, completedLessonIds) : null;
 
         return (
-          <motion.div
+          <m.div
             key={def.key}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -80,7 +80,7 @@ export default function BadgeGallery({ earnedBadges, completedLessonIds }: Props
             {!earned && prog && (
               <div className="w-full">
                 <div className="h-1 w-full overflow-hidden rounded-full bg-cinza-suave/40">
-                  <motion.div
+                  <m.div
                     className="h-full rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold"
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.round((prog.current / prog.total) * 100)}%` }}
@@ -90,7 +90,7 @@ export default function BadgeGallery({ earnedBadges, completedLessonIds }: Props
                 <p className="mt-1 text-[10px] text-foreground/40">{prog.current}/{prog.total}</p>
               </div>
             )}
-          </motion.div>
+          </m.div>
         );
       })}
     </div>

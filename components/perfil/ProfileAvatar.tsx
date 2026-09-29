@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/lib/AuthContext";
 import { useProfilePhoto } from "@/lib/profile/ProfileContext";
 

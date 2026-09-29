@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, type PointerEvent } from "react";
+import { useRef, useState, useEffect, useCallback, type PointerEvent } from "react";
 import type { CourseLesson } from "@/lib/courseData";
 
 export const COMPLETION_THRESHOLD = 0.95;
@@ -39,7 +39,7 @@ declare global {
           onError?: (e: { data: number }) => void;
         };
       }) => YTPlayer;
-      PlayerState: { PLAYING: number; ENDED: number };
+      PlayerState: { PLAYING: number; PAUSED: number; ENDED: number };
     };
     onYouTubeIframeAPIReady?: () => void;
   }
@@ -69,7 +69,7 @@ function extractVideoId(url: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Shared sub-components                                               */
+/* Sub-components                                                       */
 /* ------------------------------------------------------------------ */
 
 function CompletionPill({ isComplete, pct }: { isComplete: boolean; pct: number }) {
@@ -155,6 +155,41 @@ function Slider({ value, ready, onSeek }: { value: number; ready: boolean; onSee
 }
 
 /* ------------------------------------------------------------------ */
+/* 5-second auto-advance countdown                                     */
+/* ------------------------------------------------------------------ */
+
+function AutoAdvanceCountdown({ onGo, onCancel }: { onGo: () => void; onCancel: () => void }) {
+  const [secs, setSecs] = useState(5);
+  useEffect(() => {
+    if (secs <= 0) { onGo(); return; }
+    const t = setTimeout(() => setSecs((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [secs, onGo]);
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-cinza-suave/40 bg-branco px-4 py-3 shadow-card">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 shrink-0 text-rose-gold"><path d="M8 5v14l11-7z" /></svg>
+      <span className="flex-1 text-sm text-foreground">
+        Próxima aula em <span className="font-bold text-rose-gold">{secs}s</span>…
+      </span>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="rounded-full border border-cinza-suave/50 px-3 py-1 text-xs text-foreground/70 hover:bg-rosa-claro/20"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        onClick={onGo}
+        className="rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-3 py-1 text-xs font-semibold text-white"
+      >
+        Ir agora
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Text-only intro lesson                                              */
 /* ------------------------------------------------------------------ */
 
@@ -198,13 +233,20 @@ interface Props {
   lesson: CourseLesson;
   watched: boolean;
   onWatched: () => void;
+  /** Resume position in seconds (from saved progress). */
+  resumePosition?: number;
+  /** Called every ~10s and on pause with the current position. */
+  onPositionChange?: (seconds: number) => void;
+  /** Called when the video ends and the user should advance. */
+  onEnded?: () => void;
 }
 
-function YouTubePlayer({ lesson, watched, onWatched }: Props) {
+function YouTubePlayer({ lesson, watched, onWatched, resumePosition, onPositionChange, onEnded }: Props) {
   const holderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const firedRef = useRef(false);
+  const lastSavedRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -221,6 +263,7 @@ function YouTubePlayer({ lesson, watched, onWatched }: Props) {
     let cancelled = false;
     let player: YTPlayer | null = null;
     firedRef.current = false;
+    lastSavedRef.current = 0;
     setReady(false); setPlaying(false); setMuted(false);
     setProgress(0); setCurrentTime(0); setDuration(0); setError(false);
 
@@ -236,13 +279,25 @@ function YouTubePlayer({ lesson, watched, onWatched }: Props) {
             setReady(true);
             const d = e.target.getDuration();
             if (d) setDuration(d);
+            // Resume from saved position.
+            if (resumePosition && resumePosition > 5) {
+              e.target.seekTo(resumePosition, true);
+            }
           },
           onStateChange: (e) => {
             if (!window.YT) return;
-            setPlaying(e.data === yt.PlayerState.PLAYING);
+            const isPlaying = e.data === yt.PlayerState.PLAYING;
+            setPlaying(isPlaying);
+            // Save position on pause.
+            if (e.data === yt.PlayerState.PAUSED) {
+              const t = e.target.getCurrentTime();
+              onPositionChange?.(t);
+              lastSavedRef.current = t;
+            }
             if (e.data === yt.PlayerState.ENDED && !firedRef.current) {
               firedRef.current = true;
               onWatched();
+              onEnded?.();
             }
           },
           onError: () => setError(true),
@@ -258,6 +313,7 @@ function YouTubePlayer({ lesson, watched, onWatched }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
+  // Poll at 500ms: update progress bar + auto-complete + save position every 10s.
   useEffect(() => {
     if (!ready) return;
     const id = window.setInterval(() => {
@@ -272,6 +328,11 @@ function YouTubePlayer({ lesson, watched, onWatched }: Props) {
         if (!firedRef.current && ratio >= COMPLETION_THRESHOLD) {
           firedRef.current = true;
           onWatched();
+        }
+        // Save position every ~10s.
+        if (t - lastSavedRef.current >= 10) {
+          lastSavedRef.current = t;
+          onPositionChange?.(t);
         }
       }
     }, 500);
@@ -306,10 +367,10 @@ function YouTubePlayer({ lesson, watched, onWatched }: Props) {
   if (error) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex aspect-video flex-col items-center justify-center gap-4 rounded-2xl border border-cinza-suave/50 bg-[#0a0709]">
+        <div className="relative flex aspect-video flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-cinza-suave/50 bg-[#0a0709]">
           {lesson.lesson.thumbnailUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={lesson.lesson.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full rounded-2xl object-cover opacity-30" />
+            <img src={lesson.lesson.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-30" />
           )}
           <p className="relative text-sm text-foreground/60">Este vídeo não pode ser incorporado.</p>
           <a
@@ -320,6 +381,15 @@ function YouTubePlayer({ lesson, watched, onWatched }: Props) {
           >
             Assistir no YouTube ↗
           </a>
+          {!isComplete && (
+            <button
+              type="button"
+              onClick={onWatched}
+              className="relative rounded-full border border-rose-gold/50 px-4 py-1.5 text-xs text-rose-gold hover:bg-rosa-claro/20"
+            >
+              Marcar como concluída
+            </button>
+          )}
         </div>
         <LessonMeta cl={lesson} videoId={videoId} />
       </div>
@@ -384,10 +454,28 @@ function YouTubePlayer({ lesson, watched, onWatched }: Props) {
 /* Public export                                                       */
 /* ------------------------------------------------------------------ */
 
-export default function CursoVideoPlayer({ lesson, watched, onWatched }: Props) {
+export default function CursoVideoPlayer({
+  lesson,
+  watched,
+  onWatched,
+  resumePosition,
+  onPositionChange,
+  onEnded,
+}: Props) {
   const isText = (lesson.lesson as { kind?: string }).kind === "text";
   if (isText) {
     return <TextLesson cl={lesson} onComplete={onWatched} />;
   }
-  return <YouTubePlayer lesson={lesson} watched={watched} onWatched={onWatched} />;
+  return (
+    <YouTubePlayer
+      lesson={lesson}
+      watched={watched}
+      onWatched={onWatched}
+      resumePosition={resumePosition}
+      onPositionChange={onPositionChange}
+      onEnded={onEnded}
+    />
+  );
 }
+
+export { AutoAdvanceCountdown };

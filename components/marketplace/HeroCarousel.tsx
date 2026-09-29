@@ -292,7 +292,7 @@ export default function HeroCarousel({
               : `${currentSlide.suggestion.label} ${currentSlide.suggestion.product.name}`}
           </p>
 
-          <motion.div
+          <m.div
             className="relative mx-auto h-[28rem] max-w-4xl cursor-grab active:cursor-grabbing sm:h-[30rem]"
             drag={length > 1 ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
@@ -478,7 +478,7 @@ export default function HeroCarousel({
                 </motion.article>
               );
             })}
-          </motion.div>
+          </m.div>
 
           {length > 1 && (
             <>
@@ -535,7 +535,7 @@ export default function HeroCarousel({
                       }`}
                     >
                       {active && !reduceMotion && (
-                        <motion.div
+                        <m.div
                           className="absolute inset-0 rounded-full"
                           style={{
                             boxShadow: '0 0 15px rgba(232, 160, 180, 0.5)',
@@ -587,7 +587,7 @@ export default function HeroCarousel({
       <AnimatePresence>
         {quickView && (
           <>
-            <motion.div
+            <m.div
               key="quickview-backdrop"
               aria-hidden
               className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm"

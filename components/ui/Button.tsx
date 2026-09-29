@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { forwardRef } from "react";
 import { LEDBorder } from "./LED";
 
@@ -169,7 +169,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonBaseProps>(
 
         {/* Neon Glow Background (for primary variant) */}
         {variant === 'primary' && glowOnHover && !reduceMotion && (
-          <motion.div
+          <m.div
             className="absolute inset-0"
             style={{
               background: 'radial-gradient(circle at center, rgba(232, 160, 180, 0.2), transparent 70%)',
@@ -186,7 +186,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonBaseProps>(
 
         {/* Loading spinner */}
         {isLoading && (
-          <motion.div
+          <m.div
             className="absolute inset-0 flex items-center justify-center"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -200,7 +200,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonBaseProps>(
             >
               <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
             </svg>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Content */}
@@ -211,7 +211,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonBaseProps>(
         </span>
 
         {/* Focus ring */}
-        <motion.div
+        <m.div
           className="pointer-events-none absolute inset-0 rounded-full"
           style={{
             border: '2px solid transparent',
