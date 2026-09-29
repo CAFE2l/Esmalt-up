@@ -3,9 +3,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { colors } from "./tokens";
 
-// Ensure motion is properly initialized (fixes undefined motion.div in some Next.js configs)
-const MotionDiv = motion.div;
-
 /**
  * LED Effects Component
  * 

@@ -1,7 +1,8 @@
 "use client";
 
-// Re-export useFavorites from FavoritesContext to avoid duplication
-export { useFavorites } from "./FavoritesContext";
+import { useFavorites } from "./FavoritesContext";
+
+export { useFavorites };
 
 /**
  * Hook to check if a product is favorited and toggle it
