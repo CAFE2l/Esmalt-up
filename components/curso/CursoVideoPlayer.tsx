@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback, type PointerEvent } from "react";
+import { useRef, useState, useEffect, type PointerEvent } from "react";
 import type { CourseLesson } from "@/lib/courseData";
 
 export const COMPLETION_THRESHOLD = 0.95;

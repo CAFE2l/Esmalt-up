@@ -10,7 +10,7 @@
 import Script from 'next/script';
 import { useEffect, useState, useCallback, useContext, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { m as motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 
 // ============================================
 // TYPES

@@ -1,6 +1,6 @@
 "use client";
 
-import { m as motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import { BADGE_DEFINITIONS } from "@/lib/badges";
 import { COURSE_LESSONS } from "@/lib/courseData";
 

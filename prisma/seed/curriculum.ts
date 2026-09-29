@@ -23,7 +23,7 @@ async function main() {
 
   // Soft-delete any DB lessons no longer in the curriculum.
   await prisma.lesson.updateMany({
-    where: { slug: { notIn: [...activeSlugs] } },
+    where: { slug: { notIn: Array.from(activeSlugs) } },
     data: { isActive: false },
   });
 

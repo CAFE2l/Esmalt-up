@@ -77,7 +77,7 @@ function SidebarContent({
   onClose,
 }: Omit<Props, "collapsed" | "onToggleCollapse"> & { onClose?: () => void }) {
   const modules = COURSE_LESSONS.reduce<Record<string, Module>>((acc, c) => {
-    if (!acc[c.module.id]) acc[c.module.id] = c.module;
+    if (!acc[c.module.slug]) acc[c.module.slug] = c.module;
     return acc;
   }, {});
   const moduleList = Object.values(modules);
@@ -85,14 +85,14 @@ function SidebarContent({
   // Build a global lesson index map for numbering (moduleIndex.lessonIndex).
   const lessonNumbers: Record<string, string> = {};
   moduleList.forEach((mod, mi) => {
-    const lessons = mod.lessons.slice().sort((a, b) => a.order - b.order);
+    const lessons = mod.lessons.slice().sort((a, b) => a.orderIndex - b.orderIndex);
     lessons.forEach((l, li) => {
-      lessonNumbers[l.id] = `${mi + 1}.${li + 1}`;
+      lessonNumbers[l.slug] = `${mi + 1}.${li + 1}`;
     });
   });
 
-  const moduleCompleted = (m: Module) => m.lessons.every((l) => !!completed[l.id]);
-  const moduleCompletedCount = (m: Module) => m.lessons.filter((l) => !!completed[l.id]).length;
+  const moduleCompleted = (m: Module) => m.lessons.every((l) => !!completed[l.slug]);
+  const moduleCompletedCount = (m: Module) => m.lessons.filter((l) => !!completed[l.slug]).length;
 
   return (
     <div className="flex h-full flex-col">
@@ -114,15 +114,15 @@ function SidebarContent({
       {/* Module list */}
       <nav className="flex flex-col gap-2 overflow-y-auto p-4">
         {moduleList.map((module) => {
-          const isOpen = expandedModule === module.id;
-          const lessons = module.lessons.slice().sort((a, b) => a.order - b.order);
+          const isOpen = expandedModule === module.slug;
+          const lessons = module.lessons.slice().sort((a, b) => a.orderIndex - b.orderIndex);
           const done = moduleCompleted(module);
           const doneCount = moduleCompletedCount(module);
           return (
-            <div key={module.id} className="flex flex-col gap-1">
+            <div key={module.slug} className="flex flex-col gap-1">
               <button
                 type="button"
-                onClick={() => onToggleModule(module.id)}
+                onClick={() => onToggleModule(module.slug)}
                 className="flex items-center justify-between rounded-lg px-1 py-1 text-left hover:bg-rosa-claro/10"
                 aria-expanded={isOpen}
               >
@@ -141,16 +141,16 @@ function SidebarContent({
               {isOpen && (
                 <div className="flex flex-col gap-0.5 pl-1">
                   {lessons.map((l) => {
-                    const isCurrent = l.id === currentLessonId;
-                    const isDone = !!completed[l.id];
-                    const isWatched = !!watched[l.id];
-                    const num = lessonNumbers[l.id] ?? "";
+                    const isCurrent = l.slug === currentLessonId;
+                    const isDone = !!completed[l.slug];
+                    const isWatched = !!watched[l.slug];
+                    const num = lessonNumbers[l.slug] ?? "";
                     const dur = formatDuration(l.durationSec ?? undefined);
                     return (
                       <button
-                        key={l.id}
+                        key={l.slug}
                         type="button"
-                        onClick={() => { onSelectLesson(l.id); onClose?.(); }}
+                        onClick={() => { onSelectLesson(l.slug); onClose?.(); }}
                         title={l.title}
                         className={`flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors ${
                           isCurrent ? "bg-rosa-claro/30" : "hover:bg-rosa-claro/20"

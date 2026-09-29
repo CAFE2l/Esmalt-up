@@ -11,7 +11,7 @@ import CursoVideoPlayer, { AutoAdvanceCountdown } from "@/components/curso/Curso
 import { primaryButton, outlineButton } from "@/components/buttonStyles";
 
 function moduleOfLessonId(id: string): string | undefined {
-  return COURSE_LESSONS.find((c) => c.lesson.id === id)?.module.id;
+  return COURSE_LESSONS.find((c) => c.lesson.id === id)?.module.slug;
 }
 
 const ArrowLeft = () => (

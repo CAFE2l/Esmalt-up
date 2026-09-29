@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { m, AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LEDBorder, LightSweep, Pedestal, AmbientOrb } from "@/components/ui/LED";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/Button";
 import {
@@ -98,7 +98,7 @@ export default function HeroCarousel({
   }, [length, title, products]);
 
   // Track carousel interactions
-  const trackInteraction = useCallback((action: 'next' | 'prev' | 'drag' | 'dot', slideIndex?: number) => {
+  const trackInteraction = useCallback((action: 'next' | 'prev' | 'drag' | 'dot' | 'autoplay_stop', slideIndex?: number) => {
     trackCarouselInteract('hero_carousel', action, slideIndex);
   }, []);
 

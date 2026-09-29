@@ -1,6 +1,6 @@
 "use client";
 
-import { m as motion, useReducedMotion } from "framer-motion";
+import { m, m as motion, useReducedMotion } from "framer-motion";
 import { forwardRef } from "react";
 import { LEDBorder } from "./LED";
 

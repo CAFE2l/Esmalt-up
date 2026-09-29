@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { m as motion, useScroll, useMotionValue, useSpring } from "framer-motion";
+import { m, m as motion, useScroll, useMotionValue, useSpring } from "framer-motion";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import CartButton from "./cart/CartButton";

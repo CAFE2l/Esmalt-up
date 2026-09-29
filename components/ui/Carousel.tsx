@@ -7,7 +7,7 @@ import {
   useRef, 
   useState 
 } from "react";
-import { m as motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { m, m as motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import { LEDBorder, AmbientOrb } from "./LED";
 import { zIndex } from "./tokens";
 

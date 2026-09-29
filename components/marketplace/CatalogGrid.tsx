@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { m as motion, useReducedMotion, LayoutGroup } from "framer-motion";
+import { m, m as motion, useReducedMotion, LayoutGroup } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Pedestal, LEDUnderline } from "@/components/ui/LED";
 import { PrimaryButton } from "@/components/ui/Button";
@@ -17,7 +17,9 @@ import {
 import ProductArt from "./ProductArt";
 import { trackSelectItem, trackViewItemList, trackFilterApply } from "@/lib/analytics";
 
-const container = {
+import type { Variants } from "framer-motion";
+
+const container: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -27,14 +29,13 @@ const container = {
   },
 };
 
-const item = {
-  hidden: { opacity: 0, y: 20, blur: 4 },
+const item: Variants = {
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
-    blur: 0,
     transition: {
-      type: 'spring',
+      type: "spring" as const,
       stiffness: 250,
       damping: 30,
     },
