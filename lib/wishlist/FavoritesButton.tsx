@@ -186,9 +186,4 @@ export function FloatingHeartButton({
   );
 }
 
-// Exports
-export {
-  FavoritesButton as default,
-  HeartIconButton,
-  FloatingHeartButton,
-};
+

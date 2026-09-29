@@ -395,15 +395,4 @@ export function Pedestal({
   );
 }
 
-// ============================================
-// EXPORTS
-// ============================================
 
-export {
-  LEDBorder as default,
-  NeonGlow,
-  LEDUnderline,
-  LightSweep,
-  AmbientOrb,
-  Pedestal,
-};

@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Google Analytics 4 Tracking for Esmalt'up
  * 
@@ -530,50 +532,7 @@ export const CUSTOM_DIMENSIONS = [
   { parameter: 'filter_type', displayName: 'Filter Type', scope: 'event', description: 'Type of filter applied' },
 ];
 
-// ============================================
-// EXPORTS
-// ============================================
-
-export {
-  sendGA4Event as default,
-  initializeGA4,
-  updateConsent,
-  trackPageView,
-  trackViewItemList,
-  trackSelectItem,
-  trackViewItem,
-  trackAddToWishlist,
-  trackSearch,
-  trackFilterApply,
-  trackCarouselInteract,
-  trackScrollDepth,
-  trackCTAClick,
-  trackSignUp,
-  trackLogin,
-  trackQuickViewOpen,
-  trackEvent,
-  GA4Script,
-  TrackRouteChanges,
-  useTrackRouteChanges,
-  ScrollDepthTracker,
-  useTrackScrollDepth,
-  getConsentState,
-  saveConsentState,
-  grantAnalyticsConsent,
-  denyConsent,
-  useConsent,
-  ConsentProvider,
-  useConsentContext,
-  ConsentBanner,
-  ConsentBannerWrapper,
-  getGAID,
-  isGAConfigured,
-  DEFAULT_CONSENT,
-  ANALYTICS_EVENTS,
-  CUSTOM_DIMENSIONS,
-};
-
-export type { GA4EventParams, ConsentState };
+export { sendGA4Event as default };
 
 // Initialize on module load if consent already granted
 if (typeof window !== 'undefined') {
