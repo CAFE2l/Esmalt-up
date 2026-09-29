@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { LEDBorder, NeonGlow, LightSweep, Pedestal, AmbientOrb } from "@/components/ui/LED";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/Button";
 import {
   CATEGORY_LABELS,
   LEVEL_LABELS,
@@ -10,8 +13,9 @@ import {
   type Product,
 } from "@/lib/catalogData";
 import ProductArt from "./ProductArt";
+import { trackCarouselInteract, trackSelectItem, trackViewItemList, trackQuickViewOpen, trackCTAClick } from "@/lib/analytics";
 
-const AUTOPLAY_MS = 5000;
+const AUTOPLAY_MS = 6000;
 const SUGGEST_EVERY = 3;
 
 type Slot = "prev" | "current" | "next" | "hidden";
@@ -39,55 +43,6 @@ function slideKey(slide: Slide) {
   return slide.type === "product"
     ? slide.product.id
     : `sugestao-${slide.suggestion.product.id}`;
-}
-
-function Arrow({ dir }: { dir: "prev" | "next" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="h-5 w-5"
-    >
-      {dir === "prev" ? (
-        <path d="M15 5l-7 7 7 7" />
-      ) : (
-        <path d="M9 5l7 7-7 7" />
-      )}
-    </svg>
-  );
-}
-
-function PlayPause({ playing }: { playing: boolean }) {
-  if (!playing) {
-    return (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-        <path d="M8 5v14l11-7z" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-      <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-    </svg>
-  );
-}
-
-function Close() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="h-5 w-5"
-    >
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
 }
 
 export default function HeroCarousel({
@@ -135,6 +90,19 @@ export default function HeroCarousel({
 
   const length = slides.length;
 
+  // Track view_item_list event
+  useEffect(() => {
+    if (length > 0 && typeof window !== 'undefined') {
+      const listName = title.toLowerCase().replace(/\s+/g, '_');
+      trackViewItemList(listName, products);
+    }
+  }, [length, title, products]);
+
+  // Track carousel interactions
+  const trackInteraction = useCallback((action: 'next' | 'prev' | 'drag' | 'dot', slideIndex?: number) => {
+    trackCarouselInteract('hero_carousel', action, slideIndex);
+  }, []);
+
   useEffect(() => {
     const element = sectionRef.current;
     if (!element || typeof IntersectionObserver === "undefined") return;
@@ -149,9 +117,13 @@ export default function HeroCarousel({
   const go = useCallback(
     (delta: number) => {
       if (length < 2) return;
-      setIndex((current) => wrap(current + delta, length));
+      setIndex((current) => {
+        const newIndex = wrap(current + delta, length);
+        trackInteraction(delta > 0 ? 'next' : 'prev', newIndex);
+        return newIndex;
+      });
     },
-    [length],
+    [length, trackInteraction],
   );
 
   const autoplayOn =
@@ -164,9 +136,12 @@ export default function HeroCarousel({
 
   useEffect(() => {
     if (!autoplayOn) return;
-    const id = window.setInterval(() => go(1), AUTOPLAY_MS);
+    const id = window.setInterval(() => {
+      go(1);
+      trackInteraction('autoplay_stop');
+    }, AUTOPLAY_MS);
     return () => window.clearInterval(id);
-  }, [autoplayOn, index, go]);
+  }, [autoplayOn, index, go, trackInteraction]);
 
   useEffect(() => {
     if (!quickView) return;
@@ -264,22 +239,17 @@ export default function HeroCarousel({
         }
       }}
     >
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-rosa-medio/30 blur-3xl"
-        animate={reduceMotion ? undefined : { x: [0, 24, 0], y: [0, 16, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute top-1/3 -right-28 h-96 w-96 rounded-full bg-rose-gold/20 blur-3xl"
-        animate={reduceMotion ? undefined : { x: [0, -20, 0], y: [0, 24, 0] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-rosa-medio/20 blur-3xl"
-      />
+      {/* Ambient background orbs */}
+      {!reduceMotion && (
+        <>
+          <AmbientOrb position="top-left" color="pink" size="md" />
+          <AmbientOrb position="top-right" color="rose" size="lg" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-rosa-medio/20 blur-3xl"
+          />
+        </>
+      )}
 
       <div className="relative mx-auto max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14">
         <div className="flex items-end justify-between gap-4">
@@ -296,6 +266,7 @@ export default function HeroCarousel({
           <a
             href={catalogHref}
             className="shrink-0 text-sm font-semibold text-rose-gold transition-colors hover:text-rosa-blush"
+            onClick={() => trackCTAClick('view_all_link', 'hero_carousel')}
           >
             Ver todos
           </a>
@@ -332,12 +303,16 @@ export default function HeroCarousel({
             onDragStart={() => {
               dragging.current = true;
               setHoverPaused(true);
+              trackInteraction('drag');
             }}
             onDragEnd={(_, info) => {
               dragging.current = false;
               setHoverPaused(false);
-              if (info.offset.x < -72 || info.velocity.x < -480) go(1);
-              else if (info.offset.x > 72 || info.velocity.x > 480) go(-1);
+              if (info.offset.x < -72 || info.velocity.x < -480) {
+                go(1);
+              } else if (info.offset.x > 72 || info.velocity.x > 480) {
+                go(-1);
+              }
             }}
             onTouchStart={() => setHoverPaused(true)}
             onTouchEnd={() => setHoverPaused(false)}
@@ -370,27 +345,27 @@ export default function HeroCarousel({
                 return (
                   <motion.article {...articleProps} key={slideKey(slide)}>
                     <div
-                      className={`relative flex h-[24rem] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border border-rose-gold/25 bg-branco shadow-card-lg sm:h-[26rem] sm:flex-row ${
+                      className={`relative flex h-[24rem] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border border-rose-gold/25 bg-branco/90 shadow-card-lg backdrop-blur-xl sm:h-[26rem] sm:flex-row ${
                         isCurrent
                           ? "pointer-events-auto"
                           : "pointer-events-none transition-transform duration-300 hover:scale-[1.03] hover:brightness-105 sm:pointer-events-auto"
                       }`}
                     >
+                      {/* LED Border for active card */}
+                      {isCurrent && !reduceMotion && (
+                        <LEDBorder>
+                          <div className="absolute inset-0" />
+                        </LEDBorder>
+                      )}
+
                       <div className="relative h-44 overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20 sm:h-auto sm:w-[46%]">
-                        <ProductArt product={product} className="absolute inset-0 h-full w-full" />
+                        <Pedestal aspectRatio="1 / 1">
+                          <ProductArt product={product} className="absolute inset-0 h-full w-full" />
+                        </Pedestal>
                         {isCurrent && !reduceMotion && (
-                          <motion.span
-                            aria-hidden
-                            className="pointer-events-none absolute inset-y-0 w-1/4 bg-gradient-to-r from-transparent via-white/15 to-transparent"
-                            initial={{ x: "-140%", skewX: -18 }}
-                            animate={{ x: "340%" }}
-                            transition={{
-                              duration: 2.6,
-                              repeat: Infinity,
-                              repeatDelay: 3.2,
-                              ease: "easeInOut",
-                            }}
-                          />
+                          <LightSweep disabled={!isCurrent}>
+                            <div className="absolute inset-0" />
+                          </LightSweep>
                         )}
                       </div>
 
@@ -406,33 +381,40 @@ export default function HeroCarousel({
                         </p>
                         <motion.p
                           className="mt-4 text-2xl font-semibold text-rose-gold"
-                          animate={
-                            isCurrent && !reduceMotion
-                              ? {
-                                  textShadow: [
-                                    "0 0 0px rgba(229,153,168,0)",
-                                    "0 0 14px rgba(229,153,168,0.5)",
-                                    "0 0 0px rgba(229,153,168,0)",
-                                  ],
-                                  scale: [1, 1.02, 1],
-                                }
-                              : { textShadow: "0 0 0px rgba(229,153,168,0)", scale: 1 }
-                          }
+                          animate={isCurrent && !reduceMotion ? {
+                            textShadow: [
+                              "0 0 0px rgba(229,153,168,0)",
+                              "0 0 14px rgba(229,153,168,0.5)",
+                              "0 0 0px rgba(229,153,168,0)",
+                            ],
+                            scale: [1, 1.02, 1],
+                          } : { textShadow: "0 0 0px rgba(229,153,168,0)", scale: 1 }}
                           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                         >
                           {formatPrice(product.priceCents)}
                         </motion.p>
                         {isCurrent && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setQuickView(product);
-                            }}
-                            className="mt-4 w-fit rounded text-sm font-semibold text-rosa-blush transition-colors hover:text-rose-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
-                          >
-                            Ver no catálogo
-                          </button>
+                          <div className="mt-4 flex gap-3">
+                            <PrimaryButton
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                trackSelectItem(product, title, slideIndex);
+                              }}
+                            >
+                              Ver detalhes
+                            </PrimaryButton>
+                            <SecondaryButton
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setQuickView(product);
+                                trackQuickViewOpen(product);
+                              }}
+                            >
+                              Visualizar
+                            </SecondaryButton>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -444,30 +426,23 @@ export default function HeroCarousel({
               return (
                 <motion.article {...articleProps} key={slideKey(slide)}>
                   <div
-                    className={`relative flex h-[24rem] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border-2 border-dashed border-rose-gold/40 bg-gradient-to-br from-rosa-claro/70 via-branco to-rosa-blush/20 shadow-card-lg sm:h-[26rem] sm:flex-row ${
+                    className={`relative flex h-[24rem] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border-2 border-dashed border-rose-gold/40 bg-gradient-to-br from-rosa-claro/70 via-branco to-rosa-blush/20 shadow-card-lg backdrop-blur-xl sm:h-[26rem] sm:flex-row ${
                       isCurrent
                         ? "pointer-events-auto"
                         : "pointer-events-none transition-transform duration-300 hover:scale-[1.03] hover:brightness-105 sm:pointer-events-auto"
                     }`}
                   >
                     <div className="relative h-44 overflow-hidden bg-branco/60 sm:h-auto sm:w-[46%]">
-                      <ProductArt
-                        product={suggestion.product}
-                        className="absolute inset-0 h-full w-full"
-                      />
-                      {isCurrent && !reduceMotion && (
-                        <motion.span
-                          aria-hidden
-                          className="pointer-events-none absolute inset-y-0 w-1/4 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                          initial={{ x: "-140%", skewX: -18 }}
-                          animate={{ x: "340%" }}
-                          transition={{
-                            duration: 2.6,
-                            repeat: Infinity,
-                            repeatDelay: 3.2,
-                            ease: "easeInOut",
-                          }}
+                      <Pedestal aspectRatio="1 / 1">
+                        <ProductArt
+                          product={suggestion.product}
+                          className="absolute inset-0 h-full w-full"
                         />
+                      </Pedestal>
+                      {isCurrent && !reduceMotion && (
+                        <LightSweep disabled={!isCurrent}>
+                          <div className="absolute inset-0" />
+                        </LightSweep>
                       )}
                     </div>
 
@@ -487,10 +462,16 @@ export default function HeroCarousel({
                       {isCurrent && (
                         <a
                           href={suggestion.href}
-                          onClick={(event) => event.stopPropagation()}
-                          className="mt-4 w-fit rounded text-sm font-semibold text-rosa-blush transition-colors hover:text-rose-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            trackCTAClick('cross_sell_link', 'hero_carousel');
+                          }}
+                          className="mt-4 inline-flex items-center gap-2 w-fit rounded text-sm font-semibold text-rosa-blush transition-colors hover:text-rose-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
                         >
-                          Ver {suggestion.product.kind === "kit" ? "kit" : "peça"} →
+                          Ver {suggestion.product.kind === "kit" ? "kit" : "peça"}
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4">
+                            <path d="M5 12h14M13 6l6 6-6 6" />
+                          </svg>
                         </a>
                       )}
                     </div>
@@ -505,18 +486,26 @@ export default function HeroCarousel({
               <button
                 type="button"
                 aria-label="Anterior"
-                onClick={() => go(-1)}
+                onClick={() => {
+                  go(-1);
+                }}
                 className="absolute left-8 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-rose-gold/40 bg-branco/90 text-rose-gold shadow-card backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-rosa-blush hover:text-white hover:shadow-card-lg active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold focus-visible:ring-offset-2 sm:inline-flex"
               >
-                <Arrow dir="prev" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5">
+                  <path d="M15 5l-7 7 7 7" />
+                </svg>
               </button>
               <button
                 type="button"
                 aria-label="Próximo"
-                onClick={() => go(1)}
+                onClick={() => {
+                  go(1);
+                }}
                 className="absolute right-8 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-rose-gold/40 bg-branco/90 text-rose-gold shadow-card backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-rosa-blush hover:text-white hover:shadow-card-lg active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold focus-visible:ring-offset-2 sm:inline-flex"
               >
-                <Arrow dir="next" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5">
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             </>
           )}
@@ -536,23 +525,60 @@ export default function HeroCarousel({
                       type="button"
                       aria-label={label}
                       aria-current={active ? "true" : undefined}
-                      onClick={() => setIndex(slideIndex)}
-                      className={`h-2.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold ${
+                      onClick={() => {
+                        setIndex(slideIndex);
+                        trackInteraction('dot', slideIndex);
+                      }}
+                      className={`relative h-2.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold ${
                         active
                           ? "w-8 bg-gradient-to-r from-rosa-blush to-rose-gold shadow-card"
                           : "w-2.5 bg-cinza-suave hover:scale-125 hover:bg-rosa-medio"
                       }`}
-                    />
+                    >
+                      {active && !reduceMotion && (
+                        <motion.div
+                          className="absolute inset-0 rounded-full"
+                          style={{
+                            boxShadow: '0 0 15px rgba(232, 160, 180, 0.5)',
+                          }}
+                          animate={{
+                            boxShadow: [
+                              '0 0 15px rgba(232, 160, 180, 0.3)',
+                              '0 0 25px rgba(232, 160, 180, 0.6)',
+                              '0 0 15px rgba(232, 160, 180, 0.3)',
+                            ],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                          }}
+                        />
+                      )}
+                    </button>
                   );
                 })}
               </div>
               <button
                 type="button"
                 aria-label={effectivelyPlaying ? "Pausar apresentação" : "Reproduzir apresentação"}
-                onClick={() => setUserAutoplay((value) => !value)}
+                onClick={() => {
+                  setUserAutoplay((value) => !value);
+                  if (userAutoplay) {
+                    trackInteraction('autoplay_stop');
+                  }
+                }}
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-rose-gold/40 bg-branco/90 text-rose-gold shadow-card transition-all duration-200 hover:scale-110 hover:bg-rosa-blush hover:text-white hover:shadow-card-lg active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
               >
-                <PlayPause playing={effectivelyPlaying} />
+                {effectivelyPlaying ? (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                    <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
               </button>
             </div>
           )}
@@ -593,12 +619,16 @@ export default function HeroCarousel({
                   onClick={() => setQuickView(null)}
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-rose-gold/30 bg-rosa-claro/40 text-rose-gold transition-all duration-200 hover:scale-110 hover:bg-rosa-blush hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
                 >
-                  <Close />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
                 </button>
               </header>
 
               <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20">
-                <ProductArt product={quickView} className="absolute inset-0 h-full w-full" />
+                <Pedestal aspectRatio="4 / 3">
+                  <ProductArt product={quickView} className="absolute inset-0 h-full w-full" />
+                </Pedestal>
                 {quickView.stockStatus === "out_of_stock" && (
                   <span className="absolute right-3 top-3 rounded-full bg-foreground/10 px-3 py-1 text-xs font-semibold text-foreground/70 backdrop-blur-sm">
                     Esgotado
@@ -643,13 +673,18 @@ export default function HeroCarousel({
                           key={related.id}
                           type="button"
                           aria-label={`Ver ${related.name}`}
-                          onClick={() => setQuickView(related)}
+                          onClick={() => {
+                            setQuickView(related);
+                            trackSelectItem(related, 'quick_view_related', 0);
+                          }}
                           className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-rose-gold/25 bg-rosa-claro/40 transition-transform duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
                         >
-                          <ProductArt
-                            product={related}
-                            className="absolute inset-0 h-full w-full transition-transform duration-300 group-hover:scale-110"
-                          />
+                          <Pedestal aspectRatio="1 / 1">
+                            <ProductArt
+                              product={related}
+                              className="absolute inset-0 h-full w-full transition-transform duration-300 group-hover:scale-110"
+                            />
+                          </Pedestal>
                         </button>
                       ))}
                     </div>
@@ -660,7 +695,10 @@ export default function HeroCarousel({
               <footer className="border-t border-rose-gold/15 p-5">
                 <a
                   href={catalogHref}
-                  onClick={() => setQuickView(null)}
+                  onClick={() => {
+                    setQuickView(null);
+                    trackCTAClick('view_catalog', 'quick_view');
+                  }}
                   className="block w-full rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold py-3 text-center text-sm font-semibold text-white shadow-card transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
                 >
                   Ver todo o catálogo

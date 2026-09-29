@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { motion, useScroll, useMotionValue, useSpring } from "framer-motion";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import CartButton from "./cart/CartButton";
 import { useAuth } from "@/lib/AuthContext";
 import { outlineButton, primaryButton } from "./buttonStyles";
+import { LEDUnderline } from "./ui/LED";
 
 const navLinks = [
   { href: "/kits", label: "Kits" },
@@ -22,18 +24,64 @@ function isActivePath(pathname: string, href: string) {
 export default function Header() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Track scroll position
+  const { scrollY } = useScroll();
+  const scrollYSpring = useSpring(scrollY, { stiffness: 300, damping: 30 });
+
+  // Update scrolled state
+  useEffect(() => {
+    const unsubscribe = scrollYSpring.on("change", (value) => {
+      setScrolled(value > 10);
+    });
+    return () => unsubscribe();
+  }, [scrollYSpring]);
+
+  // Progress bar for scroll
+  const scrollProgress = useMotionValue(0);
+  
+  useEffect(() => {
+    const unsubscribe = scrollY.on("change", (latest) => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      scrollProgress.set(Math.min(latest / totalHeight, 1));
+    });
+    return () => unsubscribe();
+  }, [scrollY, scrollProgress]);
 
   useEffect(() => {
     setOpen(false);
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
   const closeMenu = () => setOpen(false);
 
-  const links = navLinks;
-
   return (
-    <header className="sticky top-0 z-40 border-b border-cinza-suave/40 bg-branco shadow-header">
+    <motion.header
+      className={`sticky top-0 z-40 bg-branco ${scrolled ? 'shadow-lg' : 'shadow-header'}`}
+      style={{
+        backdropFilter: scrolled ? 'blur(20px) saturate(140%)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(140%)' : 'none',
+      }}
+      animate={{
+        backgroundColor: scrolled ? 'rgba(35, 26, 31, 0.95)' : 'rgb(var(--branco))',
+        borderBottom: scrolled ? '1px solid rgba(211, 150, 160, 0.2)' : '1px solid rgba(60, 48, 54, 0.4)',
+      }}
+      transition={{
+        duration: 0.3,
+        ease: 'easeInOut',
+      }}
+    >
+      {/* Scroll progress bar */}
+      <motion.div
+        className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rosa-blush to-rose-gold"
+        style={{
+          scaleX: scrollProgress,
+          transformOrigin: 'left',
+        }}
+      />
+
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Logo size="sm" />
 
@@ -53,10 +101,14 @@ export default function Header() {
               >
                 {link.label}
                 {active && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold"
-                  />
+                  <motion.div
+                    className="absolute inset-x-3 -bottom-0.5 h-0.5"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <LEDUnderline active={true} color="pink" animated={false} />
+                  </motion.div>
                 )}
               </Link>
             );
@@ -113,10 +165,13 @@ export default function Header() {
       </div>
 
       {open && (
-        <nav
+        <motion.nav
           id="mobile-nav"
           aria-label="Principal"
           className="border-t border-cinza-suave bg-branco px-4 py-3 md:hidden"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
         >
           <div className="flex flex-col gap-1">
             {links.map((link) => {
@@ -164,8 +219,8 @@ export default function Header() {
               )}
             </div>
           </div>
-        </nav>
+        </motion.nav>
       )}
-    </header>
+    </motion.header>
   );
 }

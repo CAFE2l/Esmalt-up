@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { AuthProvider } from "@/lib/AuthContext";
 import { CartProvider } from "@/lib/CartContext";
+import { FavoritesProvider } from "@/lib/wishlist";
+import { GA4Script, TrackRouteChanges, ScrollDepthTracker, ConsentProvider, ConsentBannerWrapper } from "@/lib/analytics";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -37,12 +39,20 @@ export default function RootLayout({
         />
         <AuthProvider>
           <CartProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-            <CartDrawer />
+            <FavoritesProvider>
+              <ConsentProvider>
+                <div className="flex min-h-screen flex-col">
+                  <GA4Script />
+                  <Header />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </div>
+                <TrackRouteChanges />
+                <ScrollDepthTracker />
+                <ConsentBannerWrapper />
+                <CartDrawer />
+              </ConsentProvider>
+            </FavoritesProvider>
           </CartProvider>
         </AuthProvider>
       </body>
