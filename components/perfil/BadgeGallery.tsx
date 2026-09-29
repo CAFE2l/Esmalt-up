@@ -32,7 +32,7 @@ function badgeProgress(key: string, completedLessonIds: string[]): { current: nu
   };
   const modId = moduleMap[key];
   if (modId) {
-    const modLessons = COURSE_LESSONS.filter((c) => c.module.id === modId);
+    const modLessons = COURSE_LESSONS.filter((c) => c.module.slug === modId);
     const done = modLessons.filter((c) => completedLessonIds.includes(c.lesson.id)).length;
     return { current: done, total: modLessons.length };
   }
