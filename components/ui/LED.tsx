@@ -1,8 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { forwardRef } from "react";
-import { colors, transitions } from "./tokens";
+import { colors } from "./tokens";
 
 /**
  * LED Effects Component
@@ -29,7 +28,6 @@ export function LEDBorder({
   className = "", 
   children, 
   disabled = false,
-  onHover = true
 }: LEDBorderProps) {
   const reduceMotion = useReducedMotion();
   const shouldAnimate = !reduceMotion && !disabled;

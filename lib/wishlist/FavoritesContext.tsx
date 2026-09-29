@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { motion } from "framer-motion";
 import { type Product } from "@/lib/catalogData";
 import { trackAddToWishlist } from "@/lib/analytics";
 import { useAuth } from "@/lib/AuthContext";
@@ -21,7 +20,7 @@ interface FavoritesContextType {
   error: Error | null;
 }
 
-const FavoritesContext = createContext<FavoritesContextType | null>(null);
+export const FavoritesContext = createContext<FavoritesContextType | null>(null);
 
 // Storage keys
 const FAVORITES_KEY = 'esmaltup_favorites';
@@ -181,15 +180,6 @@ function getLocalFavorites(): Product[] {
   }
 }
 
-function getLocalRecentlyViewed(): Product[] {
-  try {
-    const stored = localStorage.getItem(RECENTLY_VIEWED_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
 // ============================================
 // EXPORTS
 // ============================================
@@ -202,4 +192,4 @@ export function useFavorites(): FavoritesContextType {
   return context;
 }
 
-export { FAVORITES_KEY, RECENTLY_VIEWED_KEY, getLocalFavorites, getLocalRecentlyViewed };
+export { FAVORITES_KEY, RECENTLY_VIEWED_KEY, getLocalFavorites };

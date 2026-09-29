@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { forwardRef } from "react";
-import { glassCardStyle, neonGlowStyle, shadows, transitions } from "./tokens";
+import { glassCardStyle, shadows } from "./tokens";
 
 /**
  * GlassCard - A premium glass-morphism card component with blur, border, and shadow effects.
@@ -73,7 +73,6 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
     const isHoverable = hoverable && !reduceMotion;
     const br = borderRadiusMap[borderRadius];
     const pad = paddingMap[padding];
-    const ledColorValue = ledColors[ledColor];
     const ledGlowValue = ledGlowMap[ledColor];
 
     const baseStyle = {

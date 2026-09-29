@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { LEDBorder, NeonGlow, LightSweep, Pedestal, AmbientOrb } from "@/components/ui/LED";
+import { LEDBorder, LightSweep, Pedestal, AmbientOrb } from "@/components/ui/LED";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/Button";
 import {
   CATEGORY_LABELS,

@@ -1,9 +1,8 @@
 "use client";
 
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { BADGE_DEFINITIONS, BADGE_BY_KEY, deriveLevel } from "@/lib/badges";
+import { motion, useReducedMotion } from "framer-motion";
+import { BADGE_DEFINITIONS } from "@/lib/badges";
 import { COURSE_LESSONS } from "@/lib/courseData";
-import Link from "next/link";
 
 interface EarnedBadge { badgeKey: string; awardedAt: string; }
 

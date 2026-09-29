@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Pedestal, LightSweep } from "@/components/ui/LED";
-import { PrimaryButton } from "@/components/ui/Button";
 import ProductArt from "@/components/marketplace/ProductArt";
 import { getLocalRecentlyViewed, type Product } from "./useRecentlyViewed";
 import { formatPrice } from "@/lib/catalogData";

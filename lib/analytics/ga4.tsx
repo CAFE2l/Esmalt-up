@@ -82,8 +82,8 @@ export function sendGA4Event(eventName: string, params: GA4EventParams = {}): vo
 
   const eventParams = { ...params, ...(isDebugMode() ? { debug_mode: true } : {}) };
 
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', eventName, eventParams);
+  if (typeof window !== 'undefined' && (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag) {
+    (window as unknown as { gtag: (...args: unknown[]) => void }).gtag('event', eventName, eventParams);
     if (isDebugMode()) console.log('[GA4 Debug]', { event: eventName, params, timestamp: new Date().toISOString() });
   }
 }
@@ -95,16 +95,17 @@ export function initializeGA4(consent: ConsentState = DEFAULT_CONSENT): void {
   gaInitialized = true;
 
   if (typeof window !== 'undefined') {
-    (window as any).gtag = (window as any).gtag || function() {
-      ((window as any).gtag.q = (window as any).gtag.q || []).push(arguments);
+    const w = window as unknown as { gtag?: (...args: unknown[]) => void; gtagQ?: unknown[][] };
+    w.gtag = w.gtag || function(...args: unknown[]) {
+      (w.gtagQ = w.gtagQ || []).push(args);
     };
-    (window as any).gtag('consent', 'default', consent);
+    w.gtag('consent', 'default', consent);
     
     const script = document.createElement('script');
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
     script.onload = () => {
-      (window as any).gtag('config', gaId, isDebugMode() ? { debug_mode: true } : {});
+      w.gtag!('config', gaId, isDebugMode() ? { debug_mode: true } : {});
       console.log('[GA4] Initialized');
     };
     script.onerror = () => console.error('[GA4] Failed to load gtag.js');
@@ -114,8 +115,8 @@ export function initializeGA4(consent: ConsentState = DEFAULT_CONSENT): void {
 
 export function updateConsent(newConsent: Partial<ConsentState>): void {
   const consent: ConsentState = { ...DEFAULT_CONSENT, ...newConsent };
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('consent', 'update', consent);
+  if (typeof window !== 'undefined' && (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag) {
+    (window as unknown as { gtag: (...args: unknown[]) => void }).gtag('consent', 'update', consent);
   }
   if (consent.analytics_storage === 'granted' && !gaInitialized) {
     initializeGA4(consent);
@@ -130,7 +131,14 @@ export function trackPageView(path: string, title?: string): void {
   sendGA4Event('page_view', { page_path: path, ...(title && { page_title: title }) });
 }
 
-export function trackViewItemList(itemListName: string, items: any[] = [], params?: GA4EventParams): void {
+interface TrackableItem {
+  id: string;
+  name: string;
+  category?: string;
+  priceCents?: number;
+}
+
+export function trackViewItemList(itemListName: string, items: TrackableItem[] = [], params?: GA4EventParams): void {
   sendGA4Event('view_item_list', {
     item_list_name: itemListName,
     item_list_id: itemListName,
@@ -143,7 +151,7 @@ export function trackViewItemList(itemListName: string, items: any[] = [], param
   });
 }
 
-export function trackSelectItem(item: any, itemListName: string, index?: number, params?: GA4EventParams): void {
+export function trackSelectItem(item: TrackableItem, itemListName: string, index?: number, params?: GA4EventParams): void {
   sendGA4Event('select_item', {
     item_list_name: itemListName,
     item_id: item.id,
@@ -154,7 +162,7 @@ export function trackSelectItem(item: any, itemListName: string, index?: number,
   });
 }
 
-export function trackViewItem(item: any, params?: GA4EventParams): void {
+export function trackViewItem(item: TrackableItem, params?: GA4EventParams): void {
   sendGA4Event('view_item', {
     item_id: item.id,
     item_name: item.name,
@@ -164,7 +172,7 @@ export function trackViewItem(item: any, params?: GA4EventParams): void {
   });
 }
 
-export function trackAddToWishlist(item: any, params?: GA4EventParams): void {
+export function trackAddToWishlist(item: TrackableItem, params?: GA4EventParams): void {
   sendGA4Event('add_to_wishlist', {
     item_id: item.id,
     item_name: item.name,
@@ -206,7 +214,7 @@ export function trackLogin(method?: string, params?: GA4EventParams): void {
   sendGA4Event('login', { ...(method && { method }), ...params });
 }
 
-export function trackQuickViewOpen(item: any, params?: GA4EventParams): void {
+export function trackQuickViewOpen(item: TrackableItem, params?: GA4EventParams): void {
   sendGA4Event('quick_view_open', {
     item_id: item.id,
     item_name: item.name,

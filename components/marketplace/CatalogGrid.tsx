@@ -2,9 +2,9 @@
 
 import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion, LayoutGroup } from "framer-motion";
+import { motion, useReducedMotion, LayoutGroup } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { Pedestal, NeonGlow, LEDUnderline } from "@/components/ui/LED";
+import { Pedestal, LEDUnderline } from "@/components/ui/LED";
 import { PrimaryButton } from "@/components/ui/Button";
 import { FloatingHeartButton } from "@/lib/wishlist";
 import {

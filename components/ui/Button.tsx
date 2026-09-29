@@ -2,8 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { forwardRef } from "react";
-import { NeonGlow, LEDBorder } from "./LED";
-import { transitions } from "./tokens";
+import { LEDBorder } from "./LED";
 
 /**
  * Button Component System

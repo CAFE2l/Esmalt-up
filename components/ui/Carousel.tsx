@@ -7,10 +7,9 @@ import {
   useRef, 
   useState 
 } from "react";
-import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform, useVelocity } from "framer-motion";
-import { GlassCard } from "./GlassCard";
-import { LEDBorder, NeonGlow, LEDUnderline, AmbientOrb } from "./LED";
-import { colors, transitions, animation, zIndex } from "./tokens";
+import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { LEDBorder, AmbientOrb } from "./LED";
+import { zIndex } from "./tokens";
 
 /**
  * Reusable Carousel Component
@@ -31,7 +30,7 @@ import { colors, transitions, animation, zIndex } from "./tokens";
 interface CarouselItem {
   id: string;
   content: React.ReactNode;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface CarouselProps<T extends CarouselItem> {
@@ -91,7 +90,6 @@ export function Carousel<T extends CarouselItem>({
   // Behavior defaults
   autoplay = true,
   autoplayInterval = 6000,
-  loop = true,
   dragEnabled = true,
   keyboardEnabled = true,
   
@@ -127,11 +125,6 @@ export function Carousel<T extends CarouselItem>({
 
   // Track user interaction to disable autoplay permanently
   const userInteracted = useRef(false);
-
-  // Calculate center position
-  const centerIndex = useMemo(() => {
-    return Math.floor(length / 2);
-  }, [length]);
 
   // Spring physics for smooth movement
   const x = useMotionValue(0);
@@ -194,7 +187,7 @@ export function Carousel<T extends CarouselItem>({
       setUserAutoplay(false);
       onAutoplayStop?.();
     }
-  }, [index, length, gap, containerWidth, onChange, onAutoplayStop]);
+  }, [index, length, gap, containerWidth, onChange, onAutoplayStop, x]);
 
   // Handle direct index selection
   const goTo = useCallback((newIndex: number) => {
@@ -210,7 +203,7 @@ export function Carousel<T extends CarouselItem>({
       setUserAutoplay(false);
       onAutoplayStop?.();
     }
-  }, [index, gap, containerWidth, onChange, onAutoplayStop]);
+  }, [index, gap, containerWidth, onChange, onAutoplayStop, x]);
 
   // Autoplay logic
   const autoplayActive = useMemo(() => {
@@ -269,7 +262,7 @@ export function Carousel<T extends CarouselItem>({
     setHoverPaused(true);
   }, []);
 
-  const handleDragEnd = useCallback((_event: any, info: { offset: { x: number }, velocity: { x: number } }) => {
+  const handleDragEnd = useCallback((_event: unknown, info: { offset: { x: number }, velocity: { x: number } }) => {
     dragging.current = false;
     setHoverPaused(false);
     
@@ -290,7 +283,7 @@ export function Carousel<T extends CarouselItem>({
     userInteracted.current = true;
     setUserAutoplay(false);
     onAutoplayStop?.();
-  }, [go, index, containerWidth, gap, onAutoplayStop]);
+  }, [go, index, containerWidth, gap, onAutoplayStop, x]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
@@ -317,7 +310,6 @@ export function Carousel<T extends CarouselItem>({
   // Calculate visible items with padding
   const visibleItems = useMemo(() => {
     const padding = Math.floor(length / 2);
-    const total = length + padding * 2;
     const result: (T | null)[] = [];
     
     for (let i = -padding; i < length + padding; i++) {

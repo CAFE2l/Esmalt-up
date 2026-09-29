@@ -11,6 +11,7 @@ export type CurriculumLesson = {
   durationSec: number | null;
   thumbnailUrl: string | null;
   orderIndex: number;
+  kind?: 'video' | 'text';
 };
 
 export type CurriculumModule = {
@@ -323,6 +324,21 @@ export function buildCurriculum(): CurriculumBuildReport {
     buckets[module]?.push(lesson);
   };
 
+  // Welcome text-only intro lesson (no real video yet — flag for future video ID)
+  const welcomeLesson: CurriculumLesson = {
+    slug: "bem-vinda-ao-esmaltup",
+    title: "Bem-vinda ao Esmalt'up!",
+    description: "Apresentação do curso: o que você vai aprender, como os módulos funcionam e como acompanhar seu progresso.",
+    youtubeVideoId: null,
+    youtubePlaylistId: null,
+    channel: "Esmalt'up",
+    durationSec: null,
+    thumbnailUrl: null,
+    orderIndex: -1,
+    kind: 'text',
+  };
+  buckets["mundo-1"]!.push(welcomeLesson);
+
   // Hygiene / theory extras first so Mundo 1 opens with sterilization.
   const extraFirst = EXTRA_VIDEOS.filter((v) => v.module === "mundo-1").slice(0, 3);
   const extraRest = EXTRA_VIDEOS.filter((v) => !extraFirst.includes(v));
@@ -344,8 +360,8 @@ export function buildCurriculum(): CurriculumBuildReport {
   for (const [key, dump] of Object.entries(PLAYLISTS)) {
     let kept = 0;
     for (const video of dump.videos) {
-      const module = moduleOfPlaylistVideo(video.id, key);
-      if (!module) {
+      const mod = moduleOfPlaylistVideo(video.id, key);
+      if (!mod) {
         if (SKIPPED_VIDEO_IDS.has(video.id)) {
           skipped.push({
             id: video.id,
@@ -357,9 +373,9 @@ export function buildCurriculum(): CurriculumBuildReport {
         }
         continue;
       }
-      const before = buckets[module]!.length;
-      push(module, toLesson(video, "Wanessa Guedes", 0), video.id);
-      if (buckets[module]!.length > before) kept += 1;
+      const before = buckets[mod]!.length;
+      push(mod, toLesson(video, "Wanessa Guedes", 0), video.id);
+      if (buckets[mod]!.length > before) kept += 1;
     }
     playlistTotals[key] = { fetched: dump.videos.length, kept };
   }

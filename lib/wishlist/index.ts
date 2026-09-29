@@ -9,8 +9,10 @@
  * - Full GA4 tracking integration
  */
 
-export * from './FavoritesContext';
-export * from './useFavorites';
-export * from './useRecentlyViewed';
-export * from './FavoritesButton';
-export * from './RecentlyViewedStrip';
+// Explicit exports to avoid star-export conflicts
+export { FavoritesProvider, FavoritesContext, useFavorites, FAVORITES_KEY, RECENTLY_VIEWED_KEY, getLocalFavorites } from './FavoritesContext';
+export { useFavoriteToggle, useIsFavorite, useFavoritesCount } from './useFavorites';
+export { useRecentlyViewed, RecentlyViewedProvider } from './useRecentlyViewed';
+export { getLocalRecentlyViewed } from './useRecentlyViewed';
+export { FavoritesButton, HeartIconButton, FloatingHeartButton } from './FavoritesButton';
+export { RecentlyViewedStrip } from './RecentlyViewedStrip';

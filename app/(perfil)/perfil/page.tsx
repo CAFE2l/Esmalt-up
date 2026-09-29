@@ -441,7 +441,7 @@ export default function PerfilPage() {
   const [flash, setFlash] = useState<Flash>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [bannerUploadOpen, setBannerUploadOpen] = useState(false);
+  const [_bannerUploadOpen, setBannerUploadOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
