@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { CartProvider } from "@/lib/CartContext";
 import { FavoritesProvider } from "@/lib/wishlist";
 import { GA4Script, TrackRouteChanges, ScrollDepthTracker, ConsentProvider, ConsentBannerWrapper } from "@/lib/analytics/client";
+import { ProfileProvider } from "@/lib/profile/ProfileContext";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -40,6 +41,7 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <FavoritesProvider>
+              <ProfileProvider>
               <ConsentProvider>
                 <div className="flex min-h-screen flex-col">
                   <GA4Script />
@@ -52,6 +54,7 @@ export default function RootLayout({
                 <ConsentBannerWrapper />
                 <CartDrawer />
               </ConsentProvider>
+              </ProfileProvider>
             </FavoritesProvider>
           </CartProvider>
         </AuthProvider>

@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Google Analytics 4 for Esmalt'up
  * 

@@ -58,6 +58,7 @@ export async function GET(req: Request) {
 
     const { uid, decoded } = auth;
 
+    // Lazy upsert: creates the profile row if it doesn't exist yet
     const profile = await prisma.userProfile.upsert({
       where: { uid },
       update: {
@@ -78,13 +79,19 @@ export async function GET(req: Request) {
         where: { userId: uid },
         orderBy: { date: "desc" },
       }),
-      prisma.courseProgress.findMany({
+      prisma.lessonProgress.findMany({
         where: { userId: uid },
-        orderBy: { dateCompleted: "desc" },
+        include: { lesson: { select: { slug: true, title: true } } },
+        orderBy: { updatedAt: "desc" },
       }),
     ]);
 
-    return NextResponse.json({ profile, orders, progress });
+    const badges = await prisma.userBadge.findMany({
+      where: { userId: uid },
+      orderBy: { awardedAt: "asc" },
+    });
+
+    return NextResponse.json({ profile, orders, progress, badges });
   } catch (error) {
     console.error("[api/profile] GET", error);
     return NextResponse.json(

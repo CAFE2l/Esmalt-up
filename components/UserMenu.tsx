@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { useProfilePhoto } from "@/lib/profile/ProfileContext";
 import ConfirmDialog from "./ConfirmDialog";
 
 const ICON_SIZE = 18;
@@ -51,6 +52,7 @@ const itemStyle = {
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
+  const { photoUrl } = useProfilePhoto();
   const pathname = usePathname();
 
   const [open, setOpen] = useState(false);
@@ -176,7 +178,7 @@ export default function UserMenu() {
   if (!user) return null;
 
   const displayName = user.displayName?.trim() || "Usuária Esmalt'up";
-  const avatarUrl = user.photoURL ?? null;
+  const avatarUrl = photoUrl ?? user.photoURL ?? null;
 
   const handleConfirm = async () => {
     if (!user) return;

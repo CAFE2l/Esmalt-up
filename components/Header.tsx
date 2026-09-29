@@ -86,7 +86,7 @@ export default function Header() {
         <Logo size="sm" />
 
         <nav className="hidden h-10 items-center gap-1 md:flex lg:gap-2" aria-label="Principal">
-          {links.map((link) => {
+          {navLinks.map((link) => {
             const active = isActivePath(pathname, link.href);
             return (
               <Link
@@ -174,7 +174,7 @@ export default function Header() {
           exit={{ opacity: 0, y: -10 }}
         >
           <div className="flex flex-col gap-1">
-            {links.map((link) => {
+            {navLinks.map((link) => {
               const active = isActivePath(pathname, link.href);
               return (
                 <Link
