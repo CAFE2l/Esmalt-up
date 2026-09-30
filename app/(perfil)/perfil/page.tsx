@@ -7,7 +7,6 @@ import {
   Camera,
   Check,
   CreditCard,
-  Instagram,
   Loader2,
   Lock,
   Settings,
@@ -17,7 +16,6 @@ import {
   Upload,
   UserRound,
   X,
-  Youtube,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
@@ -119,6 +117,24 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className ?? "h-4 w-4"}>
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
+function YoutubeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className ?? "h-4 w-4"}>
+      <path d="M23 12s0-3.4-.44-5.03a2.63 2.63 0 0 0-1.85-1.86C19.06 4.64 12 4.64 12 4.64s-7.06 0-8.71.47a2.63 2.63 0 0 0-1.85 1.86C1 8.6 1 12 1 12s0 3.4.44 5.03c.24.9.95 1.62 1.85 1.86 1.65.47 8.71.47 8.71.47s7.06 0 8.71-.47a2.63 2.63 0 0 0 1.85-1.86C23 15.4 23 12 23 12zM9.75 15.02V8.98L15.5 12l-5.75 3.02z" />
+    </svg>
+  );
 }
 
 function TikTokIcon({ className }: { className?: string }) {
@@ -1210,7 +1226,7 @@ export default function PerfilPage() {
                   >
                     <div className="relative">
                       <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
-                        <Instagram className="h-4 w-4" />
+                        <InstagramIcon className="h-4 w-4" />
                       </span>
                       <input
                         id="instagram"
@@ -1230,7 +1246,7 @@ export default function PerfilPage() {
                   >
                     <div className="relative">
                       <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
-                        <Youtube className="h-4 w-4" />
+                        <YoutubeIcon className="h-4 w-4" />
                       </span>
                       <input
                         id="youtube"

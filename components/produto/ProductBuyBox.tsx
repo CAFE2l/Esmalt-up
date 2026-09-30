@@ -238,7 +238,7 @@ export default function ProductBuyBox({ product, onBuyNow }: ProductBuyBoxProps)
         <div className="flex items-start gap-3">
           <Package className="h-5 w-5 shrink-0 text-rose-gold" />
           <div>
-            <p className="text-sm font-semibold text-foreground">Vendido e entregue por Esmalt'up</p>
+            <p className="text-sm font-semibold text-foreground">Vendido e entregue por Esmalt&apos;up</p>
             <p className="text-xs text-foreground/60">Compra 100% segura</p>
           </div>
         </div>

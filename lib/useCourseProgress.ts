@@ -3,11 +3,11 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   COURSE_UNITS,
-  getAllLessons,
+  _getAllLessons,
   getMainTrackLessons,
   getLessonBySlug,
   type CourseLesson,
-  type CourseUnit,
+  type _CourseUnit,
 } from "@/data/course";
 import { useAuth } from "./AuthContext";
 

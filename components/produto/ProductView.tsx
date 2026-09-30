@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState as _useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCategoryLabel, getInstallments, type Product } from "@/lib/products";
+import { getCategoryLabel, getInstallments as _getInstallments, type Product } from "@/lib/products";
 import ProductGallery from "./ProductGallery";
 import ProductBuyBox from "./ProductBuyBox";
 import Stars from "./Stars";

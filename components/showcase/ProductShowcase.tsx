@@ -11,7 +11,7 @@ import {
   countByTab,
   formatBRL,
   type ShowcaseTabId,
-  type ShowcaseProduct,
+  type _ShowcaseProduct,
 } from "./data";
 import ShowcaseTabs from "./ShowcaseTabs";
 import ShowcaseThumb from "./ShowcaseThumb";
@@ -59,7 +59,7 @@ export default function ProductShowcase({
       if (saved) {
         setFavorites(new Set(JSON.parse(saved)));
       }
-    } catch (e) {
+    } catch {
       // Silently fail if localStorage is unavailable
     }
     setLoaded(true);
@@ -70,7 +70,7 @@ export default function ProductShowcase({
     if (!loaded) return;
     try {
       localStorage.setItem("esmaltup-favorites", JSON.stringify([...favorites]));
-    } catch (e) {
+    } catch {
       // Silently fail if localStorage is unavailable
     }
   }, [favorites, loaded]);
@@ -112,7 +112,7 @@ export default function ProductShowcase({
       trackEvent("carousel_interact", { action: "autoplay_stop", index: activeIndex });
     }, AUTOPLAY_MS);
     return () => window.clearTimeout(id);
-  }, [autoplayOn, activeIndex, products.length]);
+  }, [autoplayOn, activeIndex, products.length, go]);
 
   // Reset to first item when tab changes
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function ProductShowcase({
   }, [currentProduct]);
 
   const handleDragEnd = useCallback(
-    (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
+    (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
       if (info.offset.x < -50 || info.velocity.x < -400) {
         go(1);
       } else if (info.offset.x > 50 || info.velocity.x > 400) {

@@ -90,7 +90,7 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
     };
 
     // Fallback for browsers without backdrop-filter
-    const hasBackdropFilter =
+    const _hasBackdropFilter =
       typeof window !== "undefined" &&
       "backdropFilter" in document.body.style;
 
