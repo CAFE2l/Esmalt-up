@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { m, AnimatePresence, LazyMotion, domAnimation, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { Heart, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   SHOWCASE_TABS,
-  SHOWCASE_PRODUCTS,
   productsForTab,
   countByTab,
   formatBRL,
@@ -20,7 +18,7 @@ import ShowcaseThumb from "./ShowcaseThumb";
 import ProductPhoto from "./ProductPhoto";
 import AnimatedPrice from "./AnimatedPrice";
 import { trackEvent, type ShowcaseInteractAction } from "./analytics";
-import { focusRing, glass, AUTOPLAY_MS, productSpring } from "./chrome";
+import { focusRing, AUTOPLAY_MS, productSpring } from "./chrome";
 import { useTilt, useMediaQuery } from "./useTilt";
 
 const DEFAULT_TAB: ShowcaseTabId = "pecas";

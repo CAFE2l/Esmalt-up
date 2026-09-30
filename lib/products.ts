@@ -18,7 +18,7 @@ export interface Product {
   images: string[];
   highlights: string[];
   specs: { label: string; value: string }[] | null;
-  variants: any;
+  variants: Record<string, unknown> | null;
   weightG: number;
   heightCm: number;
   widthCm: number;
@@ -139,7 +139,7 @@ export function getByKindSync(kind: ProductKind): Product[] {
   return PRODUCTS.filter((p) => p.kind === kind).map(transformStaticProduct);
 }
 
-function transformStaticProduct(staticProduct: any): Product {
+function transformStaticProduct(staticProduct: Record<string, unknown>): Product {
   return {
     id: staticProduct.id,
     slug: staticProduct.id,
@@ -207,7 +207,7 @@ export function freeShippingThresholdCents(): number {
   return 9900;
 }
 
-function transformDbProduct(dbProduct: any): Product {
+function transformDbProduct(dbProduct: Record<string, unknown>): Product {
   const specs = dbProduct.specs as { specs?: { label: string; value: string }[] } | null;
   return {
     id: dbProduct.id,

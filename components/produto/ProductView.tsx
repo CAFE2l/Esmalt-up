@@ -20,14 +20,12 @@ export default function ProductView({
   initialCount,
 }: ProductViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"descricao" | "especificacoes">("descricao");
 
   const handleBuyNow = () => {
     router.push("/checkout");
   };
 
   const categoryLabel = getCategoryLabel(product.category);
-  const installments = getInstallments(product.priceCents);
   const outOfStock = product.stock <= 0;
 
   return (

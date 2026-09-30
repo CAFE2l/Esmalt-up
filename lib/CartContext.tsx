@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { getProduct, formatPrice } from "./products";
+import { formatPrice, getProductSync } from "./products";
 import {
   couponDiscountCents,
   type AppliedCoupon,
@@ -138,7 +138,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(
     (productId: string, quantity = 1) => {
-      const { getProductSync } = require("./products");
       const product = getProductSync(productId);
       if (!product || quantity < 1) return;
       setItems((current) => {
@@ -245,7 +244,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const linePrice = useCallback((productId: string) => {
-    const { getProductSync } = require("./products");
     const product = getProductSync(productId);
     return product ? formatPrice(product.priceCents) : "";
   }, []);
