@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, _useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -20,7 +20,7 @@ import {
   getUnitOfLesson,
   getNextLesson,
   getPrevLesson,
-  type CourseLesson,
+  type _CourseLesson,
 } from "@/data/course";
 import { useCourseProgress } from "@/lib/useCourseProgress";
 import { useAuth } from "@/lib/AuthContext";
@@ -165,8 +165,8 @@ export default function LessonPlayerView({ slug }: Props) {
               setIsPlayerReady(true);
               // Resume from saved position if more than 5 seconds
               const savedSecs = positions[slug];
-              if (savedSecs && savedSecs > 5 && (e.target as any).seekTo) {
-                (e.target as any).seekTo(savedSecs, true);
+              if (savedSecs && savedSecs > 5 && (e.target as unknown as { seekTo: (s: number, u?: boolean) => void }).seekTo) {
+                (e.target as unknown as { seekTo: (s: number, u?: boolean) => void }).seekTo(savedSecs, true);
               }
             },
             onStateChange: (e) => {
@@ -554,7 +554,7 @@ export default function LessonPlayerView({ slug }: Props) {
                 <div className="mt-2 pt-2 border-t border-cinza-suave/20">
                   {(() => {
                     const bonusSlug = unit.bonusChest.lesson.slug;
-                    const bonusCompleted = isLessonCompleted(bonusSlug);
+                    const _bonusCompleted = isLessonCompleted(bonusSlug);
                     const bonusUnlocked = isLessonUnlocked(bonusSlug);
                     const isCurrentBonus = bonusSlug === slug;
 

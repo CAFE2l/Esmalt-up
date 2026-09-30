@@ -1,26 +1,20 @@
 import type { Metadata } from "next";
-import CursoApp from "@/components/curso/CursoApp";
-import { RequireAuth } from "@/components/RequireAuth";
+import { Suspense } from "react";
+import CoursePath from "@/components/curso/CoursePath";
+import CourseSkeleton from "@/components/curso/CourseSkeleton";
 
 export const metadata: Metadata = {
-  title: "Curso Preparatório",
+  title: "Curso Preparatório | Trilha de Aulas",
   description:
-    "Curso preparatório Esmalt'up: manicure do zero ao primeiro cliente. Aulas em vídeo com exercícios práticos.",
+    "Curso preparatório Esmalt'up: aprenda manicure, esterilização, unhas de gel e carreira em uma trilha gamificada.",
 };
 
-// The course page reads the `?aula=` query param and (on the client) the
-// user's saved progress, so it must render per-request instead of being
-// prerendered statically.
 export const dynamic = "force-dynamic";
 
-export default function CursoPage({
-  searchParams,
-}: {
-  searchParams: { aula?: string };
-}) {
+export default function CursoPage() {
   return (
-    <RequireAuth>
-      <CursoApp initialLessonId={searchParams?.aula} />
-    </RequireAuth>
+    <Suspense fallback={<CourseSkeleton />}>
+      <CoursePath />
+    </Suspense>
   );
 }

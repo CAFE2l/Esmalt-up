@@ -66,13 +66,12 @@ export async function POST(req: Request) {
     const { items, customer, address, couponCode, payment } = parsed.data;
 
     // ---- Valida itens contra o catálogo (fonte da verdade de preço). ----
-    const lines = items
-      .map((item) => {
-        const product = getProduct(item.productId);
-        if (!product) return null;
-        return { ...item, product, cents: product.priceCents * item.quantity };
-      })
-      .filter((line) => line !== null);
+    const lines: Array<{ item: typeof items[0]; product: Awaited<ReturnType<typeof getProduct>>; cents: number }> = [];
+    for (const item of items) {
+      const product = await getProduct(item.productId);
+      if (!product) continue;
+      lines.push({ item, product, cents: product.priceCents * item.quantity });
+    }
 
     if (lines.length === 0) {
       return NextResponse.json(
@@ -82,7 +81,7 @@ export async function POST(req: Request) {
     }
 
     const productWithNoStock = lines.find(
-      (line) => line.product.stockStatus !== "in_stock",
+      (line) => line.product.stock === 0,
     );
     if (productWithNoStock) {
       return NextResponse.json(

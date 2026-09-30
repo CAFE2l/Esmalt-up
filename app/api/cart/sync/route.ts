@@ -34,10 +34,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const validItems = parsed.data.items.filter((item) => {
-      const product = getProduct(item.productId);
-      return product && product.stockStatus === "in_stock";
-    });
+    const validItems: typeof parsed.data.items = [];
+    for (const item of parsed.data.items) {
+      const product = await getProduct(item.productId);
+      if (product && product.stock > 0) {
+        validItems.push(item);
+      }
+    }
 
     const cart = await prisma.cart.upsert({
       where: { userId: auth.uid },

@@ -9,6 +9,7 @@ import { CartProvider } from "@/lib/CartContext";
 import { FavoritesProvider } from "@/lib/wishlist";
 import { GA4Script, TrackRouteChanges, ScrollDepthTracker, ConsentProvider, ConsentBannerWrapper } from "@/lib/analytics/client";
 import { ProfileProvider } from "@/lib/profile/ProfileContext";
+import MotionProvider from "@/components/providers/MotionProvider";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -43,22 +44,24 @@ export default function RootLayout({
           <CartProvider>
             <FavoritesProvider>
               <ProfileProvider>
-              <ConsentProvider>
-                <div className="flex min-h-screen flex-col">
-                  <GA4Script />
-                  <Suspense>
-                    <Header />
-                  </Suspense>
-                  <main className="flex-1">{children}</main>
-                  <Footer />
-                </div>
-                <Suspense>
-                  <TrackRouteChanges />
-                </Suspense>
-                <ScrollDepthTracker />
-                <ConsentBannerWrapper />
+                <MotionProvider>
+                  <ConsentProvider>
+                    <div className="flex min-h-screen flex-col">
+                      <GA4Script />
+                      <Suspense>
+                        <Header />
+                      </Suspense>
+                      <main className="flex-1">{children}</main>
+                      <Footer />
+                    </div>
+                    <Suspense>
+                      <TrackRouteChanges />
+                    </Suspense>
+                    <ScrollDepthTracker />
+                    <ConsentBannerWrapper />
+                  </ConsentProvider>
+                </MotionProvider>
                 <CartDrawer />
-              </ConsentProvider>
               </ProfileProvider>
             </FavoritesProvider>
           </CartProvider>

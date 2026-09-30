@@ -36,7 +36,7 @@ export default function CoursePath() {
     isLessonCurrent,
     isChestUnlocked,
     openChest,
-    currentLesson,
+    _currentLesson,
     completedCount,
     totalLessons,
     progressPercent,
