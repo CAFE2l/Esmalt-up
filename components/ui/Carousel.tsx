@@ -422,13 +422,13 @@ export function Carousel<T extends CarouselItem>({
             position="top-left"
             color="pink"
             size="md"
-            disabled={reduceMotion}
+            disabled={!!reduceMotion}
           />
           <AmbientOrb
             position="top-right"
             color="rose"
             size="lg"
-            disabled={reduceMotion}
+            disabled={!!reduceMotion}
           />
         </>
       )}
@@ -511,7 +511,7 @@ export function Carousel<T extends CarouselItem>({
               >
                 {/* LED border for active item */}
                 {withLED && isActive && (
-                  <LEDBorder disabled={reduceMotion}>
+                  <LEDBorder disabled={reduceMotion ?? false}>
                     <div className="absolute inset-0" />
                   </LEDBorder>
                 )}

@@ -124,6 +124,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonBaseProps>(
       ledBorder = false,
       className = "",
       disabled,
+      onDrag: _onDrag,
+      onDragStart: _onDragStart,
+      onDragEnd: _onDragEnd,
+      onDragEnter: _onDragEnter,
+      onDragLeave: _onDragLeave,
+      onDragOver: _onDragOver,
+      onDragExit: _onDragExit,
+      onDrop: _onDrop,
+      onAnimationStart: _onAnimationStart,
+      onAnimationEnd: _onAnimationEnd,
+      onAnimationIteration: _onAnimationIteration,
+      onTransitionEnd: _onTransitionEnd,
       ...props
     },
     ref
@@ -148,16 +160,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonBaseProps>(
         disabled={isDisabled}
         whileHover={!reduceMotion && !isDisabled ? hoverStyles[variant] : {}}
         whileTap={!reduceMotion && !isDisabled ? activeStyles[variant] : {}}
-        onHoverStart={(e) => {
-          if (!reduceMotion && !isDisabled) {
-            e.currentTarget.style.transform = hoverStyles[variant].transform as string;
-          }
-        }}
-        onHoverEnd={(e) => {
-          if (!reduceMotion && !isDisabled) {
-            e.currentTarget.style.transform = 'translateY(0)';
-          }
-        }}
         {...props}
       >
         {/* LED Border */}
