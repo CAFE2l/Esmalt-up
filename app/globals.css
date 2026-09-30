@@ -122,3 +122,16 @@ body {
     animation: none;
   }
 }
+
+@supports (backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px)) {
+  .showcase-glass {
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+  }
+}
+
+@supports not ((backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px))) {
+  .showcase-glass {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}

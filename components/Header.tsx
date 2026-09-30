@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { m, m as motion, useScroll, useMotionValue, useSpring } from "framer-motion";
+import { Bell } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import CartButton from "./cart/CartButton";
