@@ -164,8 +164,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: "perfil", label: "Perfil", icon: UserRound, href: "/perfil", active: true },
+  { id: "pedidos", label: "Pedidos", icon: ShoppingBag, href: "/pedidos" },
   { id: "configuracoes", label: "Configurações", icon: Settings, href: "/configuracoes" },
-  { id: "pedidos", label: "Pedidos", icon: ShoppingBag, disabled: true, badge: "Em breve" },
   { id: "assinatura", label: "Assinatura / Plano", icon: CreditCard, disabled: true, badge: "Em breve" },
   { id: "notificacoes", label: "Notificações", icon: Bell, disabled: true, badge: "Em breve" },
 ];

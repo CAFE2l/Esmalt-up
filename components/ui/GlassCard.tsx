@@ -89,11 +89,10 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
       borderRadius: br,
     };
 
-    // Fallback for browsers without backdrop-filter
-    const _hasBackdropFilter =
-      typeof window !== "undefined" &&
-      "backdropFilter" in document.body.style;
-
+    // NOTE: a `typeof window !== "undefined"` check used to run here to decide
+    // whether to render a backdrop-filter fallback layer. Reading `window`
+    // during render makes server and client markup differ, which breaks React
+    // hydration in Next.js. The fallback layer has been removed.
     return (
       <m.div
         ref={ref}

@@ -44,6 +44,7 @@ export default function QuestionsSection({ productId }: { productId: string }) {
   const [message, setMessage] = useState<"ok" | "error" | null>(null);
   const [localHelpful, setLocalHelpful] = useState<Record<string, boolean>>({});
   const [localCounts, setLocalCounts] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -199,11 +200,33 @@ export default function QuestionsSection({ productId }: { productId: string }) {
 
       {questions.length === 0 ? (
         <p className="mt-6 rounded-3xl bg-rosa-claro/30 p-6 text-center text-sm text-foreground/60">
-          Nenhuma pergunta ainda. Tire sua dúvida e ajude outras profissionais!
+          Ninguém perguntou ainda. Seja o primeiro!
         </p>
       ) : (
-        <ul className="mt-6 space-y-5">
-          {questions.map((question) => (
+        <>
+          <div className="mt-6">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Buscar perguntas..."
+              aria-label="Buscar perguntas"
+              className="w-full rounded-full border border-cinza-suave/50 bg-branco px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-foreground/40 focus:border-rosa-blush"
+            />
+          </div>
+
+          <ul className="mt-6 space-y-5">
+            {questions
+              .filter((q) => {
+                if (!searchQuery.trim()) return true;
+                const query = searchQuery.toLowerCase();
+                return (
+                  q.content.toLowerCase().includes(query) ||
+                  q.userName.toLowerCase().includes(query) ||
+                  q.answers.some((a) => a.content.toLowerCase().includes(query))
+                );
+              })
+              .map((question) => (
             <li key={question.id} className="rounded-3xl border border-cinza-suave/30 p-5">
               <div className="flex items-start gap-3">
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rosa-claro text-sm font-bold text-rose-gold">
@@ -262,6 +285,7 @@ export default function QuestionsSection({ productId }: { productId: string }) {
             </li>
           ))}
         </ul>
+        </>
       )}
     </div>
   );

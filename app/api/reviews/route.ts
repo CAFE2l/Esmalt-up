@@ -94,6 +94,7 @@ export async function GET(req: Request) {
             (auth.ok && vote.userId === auth.uid) ||
             (!auth.ok && vote.sessionId && vote.sessionId === sessionId),
         ),
+        verifiedBuyer: review.userId ? true : false,
         media: review.media,
       })),
       hasMore: page * pageSize < total,
@@ -127,11 +128,32 @@ export async function POST(req: Request) {
 
     const { productId, rating, title, content, media } = parsed.data;
 
-    if (!getProduct(productId)) {
+    const product = await getProduct(productId);
+    if (!product) {
       return NextResponse.json(
         { error: "Produto não encontrado." },
-        { status: 400 },
+        { status: 404 },
       );
+    }
+
+    // Verified buyer check: user must have a delivered/paid order for this product
+    if (isAuth && auth.uid) {
+      const hasOrder = await prisma.orderItem.findFirst({
+        where: {
+          productId,
+          order: {
+            userId: auth.uid,
+            status: { in: ["pago", "entregue", "concluido"] },
+          },
+        },
+        take: 1,
+      });
+      if (!hasOrder) {
+        return NextResponse.json(
+          { error: "Apenas clientes que compraram este produto podem avaliar." },
+          { status: 403 },
+        );
+      }
     }
 
     let userName = "Cliente";

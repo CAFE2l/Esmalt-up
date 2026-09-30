@@ -21,6 +21,7 @@ interface OrderResult {
   totalCents: number;
   demo: boolean;
   gateway: string;
+  orderUrl: string;
   discounts: { subtotalCents: number; discountCents: number; shippingCents: number };
   instructions: {
     kind: Method;

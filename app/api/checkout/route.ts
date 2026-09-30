@@ -229,6 +229,7 @@ export async function POST(req: Request) {
         discounts: { subtotalCents, discountCents, shippingCents: freight.cents },
         gateway: instructions.mode,
         demo: instructions.mode === "demo",
+        orderUrl: `${process.env.NEXT_PUBLIC_APP_URL}/order/${order.id}`,
         instructions: {
           kind: instructions.kind,
           status: instructions.status,

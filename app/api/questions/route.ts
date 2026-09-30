@@ -17,6 +17,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get("productId");
+    const search = searchParams.get("search") ?? "";
     if (!productId) {
       return NextResponse.json(
         { error: "productId é obrigatório." },
@@ -25,7 +26,7 @@ export async function GET(req: Request) {
     }
 
     const questions = await prisma.question.findMany({
-      where: { productId, status: "answered" },
+      where: { productId, status: "answered", ...(search.trim() ? { content: { contains: search.trim(), mode: "insensitive" as const } } : {}) },
       orderBy: [{ createdAt: "desc" }],
       take: 20,
       include: {

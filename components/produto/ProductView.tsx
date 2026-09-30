@@ -1,8 +1,8 @@
 "use client";
 
-import { useState as _useState } from "react";
+import { useState as _useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getCategoryLabel, getInstallments as _getInstallments, type Product } from "@/lib/products";
+import { getCategoryLabel, getInstallments as _getInstallments, formatPrice, type Product } from "@/lib/products";
 import ProductGallery from "./ProductGallery";
 import ProductBuyBox from "./ProductBuyBox";
 import Stars from "./Stars";
@@ -14,12 +14,32 @@ interface ProductViewProps {
   initialCount: number;
 }
 
+const RECENTLY_VIEWED_KEY = "esmaltup-recently-viewed";
+
+function addRecentlyViewed(product: Product) {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = window.localStorage.getItem(RECENTLY_VIEWED_KEY);
+    const items: string[] = stored ? JSON.parse(stored) : [];
+    const filtered = items.filter((id) => id !== product.id);
+    filtered.unshift(product.id);
+    if (filtered.length > 20) filtered.pop();
+    window.localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(filtered));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 export default function ProductView({
   product,
   initialAverage,
   initialCount,
 }: ProductViewProps) {
   const router = useRouter();
+
+  useEffect(() => {
+    addRecentlyViewed(product);
+  }, [product.id]);
 
   const handleBuyNow = () => {
     router.push("/checkout");
@@ -187,15 +207,16 @@ export default function ProductView({
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-cinza-suave/40 bg-branco p-4 shadow-header lg:hidden">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs text-foreground/60">Total</p>
-            <p className="text-lg font-bold text-rose-gold">{/* Dynamic total */}</p>
+            <p className="text-xs text-foreground/60">A partir de</p>
+            <p className="text-lg font-bold text-rose-gold">{formatPrice(product.priceCents)}</p>
           </div>
           <button
             type="button"
             onClick={handleBuyNow}
-            className="flex-1 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold py-3 text-center text-sm font-bold text-white shadow-lg"
+            disabled={outOfStock}
+            className="flex-1 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold py-3 text-center text-sm font-bold text-white shadow-lg disabled:opacity-40"
           >
-            Comprar agora
+            {outOfStock ? "Indisponível" : "Comprar agora"}
           </button>
         </div>
       </div>

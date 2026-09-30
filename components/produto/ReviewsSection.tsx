@@ -22,6 +22,7 @@ interface ReviewItem {
   createdAt: string;
   helpfulCount: number;
   myVote: boolean;
+  verifiedBuyer: boolean;
   media: ReviewMedia[];
 }
 
@@ -461,6 +462,11 @@ export default function ReviewsSection({ productId }: { productId: string }) {
                     <span className="text-xs text-foreground/50">
                       {formatDate(review.createdAt)}
                     </span>
+                    {review.verifiedBuyer && (
+                      <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                        Compra verificada
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

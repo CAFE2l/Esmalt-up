@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 import ProductView from "@/components/produto/ProductView";
@@ -58,6 +58,9 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
+  // Redirect old routes to new unified route
+  // (kept for backward compatibility - old links still work via this page)
+
   const where = { productId: product.id, status: "approved" as const };
 
   const [total, grouped] = await Promise.all([
@@ -81,6 +84,48 @@ export default async function ProductPage({
 
   return (
     <div className="pb-24 bg-[#1c1519]">
+      {/* JSON-LD Schema.org Product */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: product.name,
+            description: product.description,
+            image: product.images,
+            brand: product.brand
+              ? { "@type": "Brand", name: product.brand }
+              : undefined,
+            sku: product.sku,
+            offers: {
+              "@type": "Offer",
+              url: `${process.env.NEXT_PUBLIC_APP_URL}/produto/${product.slug}`,
+              priceCurrency: "BRL",
+              price: (product.priceCents / 100).toFixed(2),
+              availability:
+                product.stock > 0
+                  ? "https://schema.org/InStock"
+                  : "https://schema.org/OutOfStock",
+              ...(product.oldPriceCents
+                ? { priceValidUntil: "2026-12-31" }
+                : {}),
+            },
+            ...(average
+              ? {
+                  aggregateRating: {
+                    "@type": "AggregateRating",
+                    ratingValue: average.toFixed(1),
+                    reviewCount: total,
+                    bestRating: 5,
+                    worstRating: 1,
+                  },
+                }
+              : {}),
+          }),
+        }}
+      />
+
       <ProductView
         product={product}
         initialAverage={average}

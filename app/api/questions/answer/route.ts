@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     });
 
     // Notifica quem perguntou (se houver e-mail).
-    const product = getProduct(question.productId);
+    const product = await getProduct(question.productId);
     if (question.email) {
       await sendMail(
         buildQuestionAnsweredEmail({
