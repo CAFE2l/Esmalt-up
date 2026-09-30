@@ -9,6 +9,7 @@ import { CartProvider } from "@/lib/CartContext";
 import { FavoritesProvider } from "@/lib/wishlist";
 import { GA4Script, TrackRouteChanges, ScrollDepthTracker, ConsentProvider, ConsentBannerWrapper } from "@/lib/analytics/client";
 import { ProfileProvider } from "@/lib/profile/ProfileContext";
+import MotionProvider from "@/components/providers/MotionProvider";
 import "./globals.css";
 
 const poppins = Poppins({
