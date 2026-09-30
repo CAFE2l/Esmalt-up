@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed:curriculum": "npx tsx prisma/seed/curriculum.ts"
+    "seed:curriculum": "npx tsx prisma/seed/curriculum.ts",
+    "validate:videos": "npx tsx scripts/validate-course-videos.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

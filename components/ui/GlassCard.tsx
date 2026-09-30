@@ -90,8 +90,9 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
     };
 
     // Fallback for browsers without backdrop-filter
-    const hasBackdropFilter = typeof window !== 'undefined' && 
-      'backdropFilter' in document.body.style;
+    const hasBackdropFilter =
+      typeof window !== "undefined" &&
+      "backdropFilter" in document.body.style;
 
     return (
       <m.div
@@ -171,17 +172,13 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
           />
         )}
 
-        {/* Fallback for browsers without backdrop-filter support */}
-        {!hasBackdropFilter && (
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              borderRadius: br,
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
-          />
-        )}
+        {/*
+          Backdrop-filter fallback used to be gated on a `typeof window` check
+          performed during render, which produced different markup on the server
+          and the client and broke hydration. `glassCardStyle` already supplies
+          an equivalent translucent background + border, so no extra node is
+          needed here.
+        */}
       </m.div>
     );
   }

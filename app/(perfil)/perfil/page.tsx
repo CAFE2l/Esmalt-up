@@ -1,88 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
-import { LogOut, Settings, UserRound } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  Bell,
+  Camera,
+  Check,
+  CreditCard,
+  Instagram,
+  Loader2,
+  Lock,
+  Settings,
+  ShoppingBag,
+  Sparkles,
+  Trash2,
+  Upload,
+  UserRound,
+  X,
+  Youtube,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { getLesson, COURSE_LESSONS } from "@/lib/courseData";
-import { primaryButton } from "@/components/buttonStyles";
-import ImageUploader from "@/components/perfil/ImageUploader";
+import { useProfilePhoto } from "@/lib/profile/ProfileContext";
+import { primaryButton, outlineButton } from "@/components/buttonStyles";
 
 type ProfileForm = {
-  profilePhotoUrl: string;
-  bannerUrl: string;
-  isEntrepreneur: boolean;
-  services: string[];
-  pricing: string;
-  bookingLink: string;
+  name: string;
+  bio: string;
+  city: string;
   level: string;
   experienceYears: string;
   favoriteBrands: string;
   favoriteStyles: string;
   equipment: string;
   courseInProgress: string;
-  city: string;
   status: string;
   interests: string[];
   badges: string[];
+  profilePhotoUrl: string;
+  bannerUrl: string;
+  isEntrepreneur: boolean;
+  services: string[];
+  pricing: string;
+  bookingLink: string;
   youtube: string;
   instagram: string;
   tiktok: string;
 };
 
-type OrderRow = {
-  id: string;
-  kitName: string;
-  date: string;
-  status: string;
-};
+type ToastState = {
+  type: "success" | "error";
+  message: string;
+} | null;
 
-type ProgressRow = {
-  id: string;
-  lessonTitle: string;
-  dateCompleted: string;
-  status: string;
-};
+const statusOptions = [
+  "Disponível para atendimentos",
+  "Indisponível",
+  "Só estudando",
+] as const;
 
-type Flash = { kind: "ok" | "error"; text: string } | null;
+const levelOptions = ["Iniciante", "Intermediário", "Avançado"] as const;
+
+const stylePresets = [
+  "Nail Art",
+  "Francesinha",
+  "Alongamento",
+  "Esmaltação em Gel",
+  "Cuticulagem Russa",
+  "Minimalista",
+];
 
 const emptyProfile: ProfileForm = {
+  name: "",
+  bio: "",
+  city: "",
+  level: "Iniciante",
+  experienceYears: "",
+  favoriteBrands: "",
+  favoriteStyles: "",
+  equipment: "",
+  courseInProgress: "",
+  status: "Disponível para atendimentos",
+  interests: [],
+  badges: [],
   profilePhotoUrl: "",
   bannerUrl: "",
   isEntrepreneur: false,
   services: [],
   pricing: "",
   bookingLink: "",
-    level: "",
-  experienceYears: "",
-  favoriteBrands: "",
-  favoriteStyles: "",
-  equipment: "",
-  courseInProgress: "",
-  city: "",
-  status: "Disponível para atendimentos",
-  interests: [],
-  badges: [],
   youtube: "",
   instagram: "",
   tiktok: "",
 };
 
-const statusOptions = [
-  "Disponível para atendimentos",
-  "Indisponível",
-  "Só estudando",
-];
-
 const inputClasses =
-  "w-full rounded-2xl border border-cinza-suave bg-rosa-claro/40 px-4 py-3 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:border-rose-gold focus:outline-none";
-
-function parseTags(value: string): string[] {
-  return value
-    .split(",")
-    .map((tag) => tag.trim().replace(/^#/, "#").trim())
-    .filter(Boolean);
-}
+  "w-full rounded-2xl border border-cinza-suave bg-rosa-claro/40 px-4 py-3 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:border-rose-gold focus:outline-none focus:ring-1 focus:ring-rose-gold/40";
 
 function initialsOf(name: string | null | undefined): string {
   if (!name) return "E";
@@ -92,357 +105,128 @@ function initialsOf(name: string | null | undefined): string {
   return (first + last).toUpperCase();
 }
 
-function formatDate(value: string | Date): string {
-  return new Date(value).toLocaleDateString("pt-BR");
+function parseTags(value: string): string[] {
+  return value
+    .split(",")
+    .map((tag) => tag.trim().replace(/^#/, "#").trim())
+    .filter(Boolean);
 }
 
-type LocalCourseProgress = {
-  completed: Record<string, boolean>;
-  currentLessonId: string;
-};
-
-function loadLocalCourseProgress(): LocalCourseProgress {
-  if (typeof window === "undefined") {
-    return { completed: {}, currentLessonId: "" };
-  }
-  try {
-    const raw = localStorage.getItem("esmaltup-curso-progress");
-    if (!raw) return { completed: {}, currentLessonId: "" };
-    const parsed = JSON.parse(raw);
-    return {
-      completed: parsed.completed ?? {},
-      currentLessonId: parsed.currentLessonId ?? "",
-    };
-  } catch {
-    return { completed: {}, currentLessonId: "" };
-  }
+function fileToBase64(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
-function mergeProgress(
-  dbRows: ProgressRow[],
-  localRows: ProgressRow[],
-): ProgressRow[] {
-  const dbTitles = new Set(dbRows.map((row) => row.lessonTitle));
-  const merged = [
-    ...localRows.filter((row) => !dbTitles.has(row.lessonTitle)),
-    ...dbRows,
-  ];
-  const orderOf = (title: string) =>
-    COURSE_LESSONS.findIndex((item) => item.lesson.title === title);
-  return merged.sort((a, b) => orderOf(a.lessonTitle) - orderOf(b.lessonTitle));
-}
-
-function StatusPill({ status }: { status: string }) {
-  const done = /conclu|entregue|concluído|concluída/i.test(status);
+function TikTokIcon({ className }: { className?: string }) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-        done
-          ? "border border-rose-gold/50 bg-rosa-blush/20 text-rose-gold"
-          : "border border-cinza-suave bg-rosa-claro/70 text-foreground/80"
-      }`}
-    >
-      {status}
-    </span>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-sm font-medium text-foreground/80"
-      >
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function TagField({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string[];
-  onChange: (tags: string[]) => void;
-  placeholder: string;
-}) {
-  return (
-    <div>
-      <span className="mb-1.5 block text-sm font-medium text-foreground/80">
-        {label}
-      </span>
-      <input
-        type="text"
-        value={value.join(", ")}
-        onChange={(event) => onChange(parseTags(event.target.value))}
-        placeholder={placeholder}
-        className={inputClasses}
-      />
-      {value.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {value.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center rounded-full border border-rose-gold/40 bg-rosa-claro/60 px-3 py-1 text-xs font-medium text-rose-gold"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SectionTitle({
-  eyebrow,
-  title,
-  subtitle,
-}: {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-2 text-center">
-      {eyebrow && (
-        <span className="text-sm font-semibold uppercase tracking-widest text-rose-gold">
-          {eyebrow}
-        </span>
-      )}
-      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-        <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
-          {title}
-        </span>
-      </h1>
-      {subtitle && (
-        <p className="max-w-xl text-sm text-foreground/70 sm:text-base">
-          {subtitle}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function TableShell({
-  title,
-  columns,
-  empty,
-  meta,
-  children,
-}: {
-  title: string;
-  columns: string[];
-  empty: boolean;
-  meta?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-xl font-bold tracking-tight">
-          <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
-            {title}
-          </span>
-        </h3>
-        {meta}
-      </div>
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[600px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-cinza-suave bg-rosa-claro/50">
-              {columns.map((column) => (
-                <th
-                  key={column}
-                  className="px-4 py-3 font-semibold text-rose-gold"
-                >
-                  {column}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-cinza-suave/70">
-            {empty ? (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-4 py-10 text-center text-foreground/60"
-                >
-                  Nenhum registro por aqui ainda. Assim que tiver novidades,
-                  elas aparecem nesta tabela.
-                </td>
-              </tr>
-            ) : (
-              children
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5">
-      <circle cx="11" cy="11" r="7" />
-      <path d="M21 21l-4.3-4.3" />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-    </svg>
-  );
-}
-
-function SparkleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-      <path d="M12 3l1.9 6.1L20 11l-6.1 1.9L12 19l-1.9-6.1L4 11l6.1-1.9z" />
-      <circle cx="19" cy="6" r="1.6" opacity="0.7" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ open }: { open: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-    >
-      <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
-}
-
-function BannerIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className ?? "h-5 w-5"}
-    >
-      <rect x={3} y={3} width={18} height={18} rx={3} />
-      <path d="M3 15l5-5 3 3 5-5 5 5v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <circle cx={9} cy={9} r={1} />
-    </svg>
-  );
-}
-
-function LinkIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className ?? "h-4 w-4"}
-    >
-      <path d="M10 13a5 5 0 0 0 7.5-.5 1 1 0 0 1 1.7.7A7 7 0 0 1 5 18a7 7 0 0 1 0-14 7 7 0 0 1 10 5.5" />
-      <circle cx={4} cy={11} r={1} />
-      <path d="M17 6h.01" />
-    </svg>
-  );
-}
-
-function PencilIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className ?? "h-4 w-4"}
-    >
-      <path d="M12 19l7-7 2 5v3a2 2 0 01-2 2h-5l-2-2z" />
-      <path d="M9.5 6.5 15 2l5 5-5.5 5.5z" />
-      <path d="M14 2v5a2 2 0 002 2h5" />
-    </svg>
-  );
-}
-
-function SocialIcon({
-  name,
-  className = "h-6 w-6",
-}: {
-  name: "youtube" | "instagram" | "tiktok";
-  className?: string;
-}) {
-  if (name === "youtube") {
-    return (
-      <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M23 12s0-3.4-.44-5.03a2.63 2.63 0 0 0-1.85-1.86C19.06 4.64 12 4.64 12 4.64s-7.06 0-8.71.47a2.63 2.63 0 0 0-1.85 1.86C1 8.6 1 12 1 12s0 3.4.44 5.03c.24.9.95 1.62 1.85 1.86 1.65.47 8.71.47 8.71.47s7.06 0 8.71-.47a2.63 2.63 0 0 0 1.85-1.86C23 15.4 23 12 23 12zM9.75 15.02V8.98L15.5 12l-5.75 3.02z" />
-      </svg>
-    );
-  }
-  if (name === "instagram") {
-    return (
-      <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63a5.9 5.9 0 0 0-2.13 1.38A5.9 5.9 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.8.72 1.47 1.38 2.13a5.9 5.9 0 0 0 2.13 1.38c.76.3 1.64.5 2.91.56 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.9 5.9 0 0 0 2.13-1.38 5.9 5.9 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.9 5.9 0 0 0-1.38-2.13A5.9 5.9 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0z" />
-        <circle cx="12" cy="12" r="2.9" />
-        <circle cx="17.4" cy="6.6" r="1" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-      <path
-        d="M16.5 9.16a3.5 3.5 0 0 0 3-1.73V4.5a1 1 0 0 0-1-1H17a1 1 0 0 0-1 1z"
-        fill="currentColor"
-        stroke="none"
-      />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className ?? "h-4 w-4"}>
+      <path d="M16.5 9.16a3.5 3.5 0 0 0 3-1.73V4.5a1 1 0 0 0-1-1H17a1 1 0 0 0-1 1z" />
       <path
         d="M8.5 11.5A3.5 3.5 0 1 0 12 15V4.5a1 1 0 0 1 1-1h1.5"
         fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
         strokeLinecap="round"
       />
     </svg>
   );
 }
 
-export default function PerfilPage() {
-  const { user, loading, logout } = useAuth();
-  const [profile, setProfile] = useState<ProfileForm>(emptyProfile);
-  const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [progress, setProgress] = useState<ProgressRow[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [flash, setFlash] = useState<Flash>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [, setBannerUploadOpen] = useState(false);
+interface NavItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  href?: string;
+  active?: boolean;
+  disabled?: boolean;
+  badge?: string;
+}
 
+const navItems: NavItem[] = [
+  { id: "perfil", label: "Perfil", icon: UserRound, href: "/perfil", active: true },
+  { id: "configuracoes", label: "Configurações", icon: Settings, href: "/configuracoes" },
+  { id: "pedidos", label: "Pedidos", icon: ShoppingBag, disabled: true, badge: "Em breve" },
+  { id: "assinatura", label: "Assinatura / Plano", icon: CreditCard, disabled: true, badge: "Em breve" },
+  { id: "notificacoes", label: "Notificações", icon: Bell, disabled: true, badge: "Em breve" },
+];
+
+function FormRow({
+  label,
+  helper,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  helper?: string;
+  htmlFor?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-8 py-5 border-b border-cinza-suave/40 last:border-b-0 items-start">
+      <div>
+        {htmlFor ? (
+          <label htmlFor={htmlFor} className="block text-sm font-semibold text-foreground">
+            {label}
+          </label>
+        ) : (
+          <span className="block text-sm font-semibold text-foreground">
+            {label}
+          </span>
+        )}
+        {helper && (
+          <p className="mt-1 text-xs text-foreground/55 leading-relaxed">{helper}</p>
+        )}
+      </div>
+      <div className="md:col-span-2">{children}</div>
+    </div>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border-t border-cinza-suave/50 pt-8 first:border-t-0 first:pt-0">
+      <div className="mb-4">
+        <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+          {title}
+        </h2>
+        <p className="mt-0.5 text-xs sm:text-sm text-foreground/60">{description}</p>
+      </div>
+      <div className="divide-y divide-cinza-suave/40">{children}</div>
+    </section>
+  );
+}
+
+export default function PerfilPage() {
+  const { user, loading } = useAuth();
+  const { setPhotoUrl } = useProfilePhoto();
+
+  const [profile, setProfile] = useState<ProfileForm>(emptyProfile);
+  const initialProfileRef = useRef<ProfileForm | null>(null);
+
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
+
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  // Load profile data
   useEffect(() => {
     let active = true;
 
@@ -455,77 +239,51 @@ export default function PerfilPage() {
         });
         const data = await response.json();
         if (!active) return;
+
         if (!response.ok) {
-          setFlash({ kind: "error", text: data.error });
+          setToast({ type: "error", message: data.error || "Erro ao carregar dados do perfil." });
           return;
-                }
-        const profileData = {
-          profilePhotoUrl: data.profile.profilePhotoUrl ?? "",
-          bannerUrl: data.profile.bannerUrl ?? "",
-          isEntrepreneur: data.profile.isEntrepreneur ?? false,
-          services: data.profile.services ?? [],
-          pricing: data.profile.pricing ?? "",
-          bookingLink: data.profile.bookingLink ?? "",
-          level: data.profile.level ?? "",
+        }
+
+        // Restore saved bio from localStorage if available
+        let savedBio = "";
+        try {
+          savedBio = localStorage.getItem(`esmaltup_bio_${user.uid}`) || "";
+        } catch {
+          // ignore localStorage error
+        }
+
+        const loaded: ProfileForm = {
+          name: data.profile.name ?? user.displayName ?? "",
+          bio: savedBio,
+          city: data.profile.city ?? "",
+          level: data.profile.level || "Iniciante",
           experienceYears: data.profile.experienceYears ?? "",
           favoriteBrands: data.profile.favoriteBrands ?? "",
           favoriteStyles: data.profile.favoriteStyles ?? "",
           equipment: data.profile.equipment ?? "",
           courseInProgress: data.profile.courseInProgress ?? "",
-          city: data.profile.city ?? "",
           status: data.profile.status ?? "Disponível para atendimentos",
           interests: data.profile.interests ?? [],
           badges: data.profile.badges ?? [],
+          profilePhotoUrl: data.profile.profilePhotoUrl ?? user.photoURL ?? "",
+          bannerUrl: data.profile.bannerUrl ?? "",
+          isEntrepreneur: data.profile.isEntrepreneur ?? false,
+          services: data.profile.services ?? [],
+          pricing: data.profile.pricing ?? "",
+          bookingLink: data.profile.bookingLink ?? "",
           youtube: data.profile.youtube ?? "",
           instagram: data.profile.instagram ?? "",
           tiktok: data.profile.tiktok ?? "",
         };
 
-        // Fetch DB lesson progress
-        const lpRes = await fetch("/api/course/progress", {
-          headers: { authorization: `Bearer ${token}` },
-        });
-        const lpData = lpRes.ok ? await lpRes.json() : { progress: [] };
-        const dbLessonRows: ProgressRow[] = (lpData.progress ?? []).map(
-          (row: { id: string; lesson: { title: string }; completedAt: string | null }) => ({
-            id: row.id,
-            lessonTitle: row.lesson.title,
-            dateCompleted: row.completedAt ?? "",
-            status: row.completedAt ? "Concluído" : "Em andamento",
-          }),
-        );
-
-        const local = loadLocalCourseProgress();
-        const localRows: ProgressRow[] = Object.keys(local.completed)
-          .filter((id) => local.completed[id])
-          .map((id) => {
-            const lesson = getLesson(id);
-            return {
-              id: `local-${id}`,
-              lessonTitle: lesson?.lesson.title ?? id,
-              dateCompleted: "",
-              status: "Concluído",
-            };
-          });
-        const currentModule = local.currentLessonId
-          ? getLesson(local.currentLessonId)?.module.title
-          : undefined;
-
-        setProfile({
-          ...profileData,
-          courseInProgress: profileData.courseInProgress || currentModule || "",
-        });
-        setOrders(data.orders ?? []);
-        // DB lesson progress takes priority; fall back to legacy + local
-        const merged = dbLessonRows.length > 0
-          ? dbLessonRows
-          : mergeProgress(data.progress ?? [], localRows);
-        setProgress(merged);
+        setProfile(loaded);
+        initialProfileRef.current = loaded;
       } catch {
         if (active) {
-          setFlash({
-            kind: "error",
-            text: "Não foi possível carregar o perfil. Tente novamente.",
+          setToast({
+            type: "error",
+            message: "Não foi possível carregar o perfil. Verifique sua conexão.",
           });
         }
       }
@@ -537,16 +295,59 @@ export default function PerfilPage() {
     };
   }, [user]);
 
-  const set = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
-    setProfile((current) => ({ ...current, [key]: value }));
-    if (flash) setFlash(null);
-  };
+  // Close status dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setStatusMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Track if changes have been made
+  const isDirty = useMemo(() => {
+    if (!initialProfileRef.current) return false;
+    return JSON.stringify(profile) !== JSON.stringify(initialProfileRef.current);
+  }, [profile]);
+
+  // Warn if leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const set = useCallback(<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
+    setProfile((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
-    setFlash(null);
+    setToast(null);
+
     try {
+      // Save bio client-side
+      try {
+        localStorage.setItem(`esmaltup_bio_${user.uid}`, profile.bio);
+      } catch {
+        // ignore
+      }
+
       const token = await user.getIdToken();
       const response = await fetch("/api/profile", {
         method: "PUT",
@@ -556,34 +357,163 @@ export default function PerfilPage() {
         },
         body: JSON.stringify(profile),
       });
+
       const data = await response.json();
       if (!response.ok) {
-        setFlash({ kind: "error", text: data.error });
+        setToast({ type: "error", message: data.error || "Erro ao salvar alterações." });
         return;
       }
-      setFlash({ kind: "ok", text: "Perfil salvo com sucesso." });
+
+      initialProfileRef.current = profile;
+      setToast({ type: "success", message: "Perfil atualizado com sucesso!" });
     } catch {
-      setFlash({
-        kind: "error",
-        text: "Não foi possível salvar o perfil. Tente novamente.",
+      setToast({
+        type: "error",
+        message: "Não foi possível salvar o perfil. Tente novamente.",
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleLogout = async () => {
-    setDropdownOpen(false);
-    await logout();
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setToast({ type: "error", message: "Formato inválido. Use JPG, PNG ou WebP." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({ type: "error", message: "A foto deve ter no máximo 5 MB." });
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const fileBase64 = await fileToBase64(file);
+      const token = await user.getIdToken();
+      const res = await fetch("/api/profile/upload", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ fileBase64, fileName: file.name, folder: "profiles" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Falha no envio da foto.");
+
+      set("profilePhotoUrl", data.url);
+      setPhotoUrl(data.url);
+      if (initialProfileRef.current) {
+        initialProfileRef.current = { ...initialProfileRef.current, profilePhotoUrl: data.url };
+      }
+      setToast({ type: "success", message: "Foto de perfil atualizada!" });
+    } catch (err) {
+      setToast({
+        type: "error",
+        message: err instanceof Error ? err.message : "Erro ao carregar a foto.",
+      });
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
   };
 
-  // Prefer the custom uploaded photo; fall back to Firebase avatar.
-  const effectivePhotoUrl =
-    profile.profilePhotoUrl || user?.photoURL || null;
-  const displayName = user?.displayName ?? "Usuária Esmalt'up";
-  const completedCount = progress.filter((row) =>
-    /conclu/.test(row.status),
-  ).length;
+  const handleAvatarRemove = async () => {
+    if (!user || !profile.profilePhotoUrl) return;
+    setAvatarUploading(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/profile/upload?field=profilePhotoUrl", {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Falha ao remover foto.");
+
+      set("profilePhotoUrl", "");
+      setPhotoUrl(null);
+      if (initialProfileRef.current) {
+        initialProfileRef.current = { ...initialProfileRef.current, profilePhotoUrl: "" };
+      }
+      setToast({ type: "success", message: "Foto removida com sucesso." });
+    } catch {
+      setToast({ type: "error", message: "Não foi possível remover a foto." });
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setToast({ type: "error", message: "Formato inválido. Use JPG, PNG ou WebP." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({ type: "error", message: "O banner deve ter no máximo 5 MB." });
+      return;
+    }
+
+    setBannerUploading(true);
+    try {
+      const fileBase64 = await fileToBase64(file);
+      const token = await user.getIdToken();
+      const res = await fetch("/api/profile/upload", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ fileBase64, fileName: file.name, folder: "banners" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Falha no envio do banner.");
+
+      set("bannerUrl", data.url);
+      if (initialProfileRef.current) {
+        initialProfileRef.current = { ...initialProfileRef.current, bannerUrl: data.url };
+      }
+      setToast({ type: "success", message: "Banner atualizado com sucesso!" });
+    } catch (err) {
+      setToast({
+        type: "error",
+        message: err instanceof Error ? err.message : "Erro ao carregar o banner.",
+      });
+    } finally {
+      setBannerUploading(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = "";
+    }
+  };
+
+  const handleBannerRemove = async () => {
+    if (!user || !profile.bannerUrl) return;
+    setBannerUploading(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/profile/upload?field=bannerUrl", {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Falha ao remover banner.");
+
+      set("bannerUrl", "");
+      if (initialProfileRef.current) {
+        initialProfileRef.current = { ...initialProfileRef.current, bannerUrl: "" };
+      }
+      setToast({ type: "success", message: "Banner removido." });
+    } catch {
+      setToast({ type: "error", message: "Não foi possível remover o banner." });
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
+  const effectivePhotoUrl = profile.profilePhotoUrl || user?.photoURL || null;
+  const displayName = profile.name || user?.displayName || "Usuária Esmalt'up";
 
   if (loading) {
     return (
@@ -604,8 +534,8 @@ export default function PerfilPage() {
         <div aria-hidden className="pointer-events-none absolute top-10 right-0 h-72 w-72 rounded-full bg-rose-gold/20 blur-3xl" />
         <div className="relative mx-auto flex max-w-xl flex-col items-center px-4 py-24 text-center sm:px-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-rose-gold/30 bg-branco px-4 py-1.5 text-sm font-medium text-rose-gold shadow-card">
-            <SparkleIcon />
-            Perfil
+            <Lock className="h-4 w-4" />
+            Minha Área
           </span>
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
             <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
@@ -613,7 +543,7 @@ export default function PerfilPage() {
             </span>
           </h1>
           <p className="mt-5 text-lg text-foreground/75">
-            Seus dados, preferências e conquistas ficam todos aqui.
+            Acesse suas preferências, informações e dados pessoais em um só lugar.
           </p>
           <Link href="/login" className={`${primaryButton} mt-8 px-8 py-3.5 text-base`}>
             Fazer login
@@ -624,608 +554,786 @@ export default function PerfilPage() {
   }
 
   return (
-    <section className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      {/* Decorative ambient gradients */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-rosa-medio/30 blur-3xl"
+        className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-rosa-medio/25 blur-3xl"
       />
       <div
         aria-hidden
         className="pointer-events-none absolute top-1/3 -right-28 h-96 w-96 rounded-full bg-rose-gold/20 blur-3xl"
       />
-            <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-rosa-medio/20 blur-3xl"
-      />
 
-      {/* ─── BANNER + AVATAR ───────────────────────────── */}
-      <div className="relative -mx-4 mb-4 sm:-mx-6">
-                <div className="relative h-40 sm:h-56 md:h-64 w-full overflow-hidden rounded-3xl">
-          {profile.bannerUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.bannerUrl}
-              alt="Banner do perfil"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-rosa-blush/30 via-rose-gold/20 to-rosa-medio/30">
-              <BannerIcon className="h-14 w-14 text-foreground/30" />
-              <p className="text-center text-sm text-foreground/50">
-                Banner personalizado
-              </p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setBannerUploadOpen(true)}
-            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-branco/70 bg-branco/90 px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-card transition-all hover:bg-rosa-blush hover:text-white"
-          >
-            <PencilIcon className="h-3 w-3" />
-            {profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}
-          </button>
-        </div>
-
-        {/* Avatar uploader — overlaps the bottom of the banner */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:left-6 sm:translate-x-0 sm:translate-y-[-40%] cursor-pointer">
-          <ImageUploader
-            mode="avatar"
-            folder="profiles"
-            alt={initialsOf(displayName)}
-                        value={effectivePhotoUrl}
-            onUpload={(url) => set("profilePhotoUrl", url)}
-            onRemove={() => set("profilePhotoUrl", "")}
-          />
+      {/* Breadcrumb Header */}
+      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <nav aria-label="Navegação da área" className="flex items-center gap-2 text-xs font-semibold text-foreground/50 uppercase tracking-wider">
+            <span>Minha Área</span>
+            <span className="text-foreground/30">/</span>
+            <span className="text-rose-gold font-bold">Perfil</span>
+          </nav>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Meu Perfil
+          </h1>
         </div>
       </div>
 
-      <div className="mt-6 relative">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="relative w-full max-w-sm sm:max-w-xs">
-            <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-foreground/50">
-              <SearchIcon />
-            </span>
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar em sua área"
-              aria-label="Buscar"
-              className={`${inputClasses} pl-11`}
-            />
+      {/* Main Layout: Sidebar + Card */}
+      <div className="flex flex-col gap-8 md:flex-row md:items-start">
+        {/* Left Sidebar Navigation */}
+        <aside className="w-full md:w-60 shrink-0">
+          {/* Mobile Tab Bar */}
+          <div className="md:hidden flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              if (item.disabled) {
+                return (
+                  <span
+                    key={item.id}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cinza-suave/60 bg-branco/50 px-3.5 py-1.5 text-xs text-foreground/40 opacity-70"
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                    <span className="text-[10px] text-rose-gold/70">(Em breve)</span>
+                  </span>
+                );
+              }
+              if (item.active) {
+                return (
+                  <span
+                    key={item.id}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-1.5 text-xs font-semibold text-white shadow-card"
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                  </span>
+                );
+              }
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href || "#"}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cinza-suave/70 bg-branco px-3.5 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:text-rose-gold"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Notificações"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-cinza-suave bg-branco text-foreground/70 shadow-card transition-colors hover:text-rose-gold"
-            >
-              <BellIcon />
-              <span className="absolute h-2 w-2 translate-x-4 translate-y-[-10px] rounded-full bg-rosa-blush" />
-            </button>
-            <button
-              type="button"
-              aria-label="Benefícios premium"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-white shadow-card transition-transform hover:-translate-y-0.5"
-            >
-              <SparkleIcon />
-            </button>
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setDropdownOpen((value) => !value)}
-                aria-expanded={dropdownOpen}
-                className="flex items-center gap-3 rounded-full border border-cinza-suave/70 bg-branco p-1.5 pr-3 shadow-card transition-colors hover:border-rose-gold/60"
-              >
-                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-sm font-bold text-white">
-                  {effectivePhotoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-          <img src={effectivePhotoUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    initialsOf(displayName)
-                  )}
-                </span>
-                <span className="hidden text-left sm:block">
-                  <span className="block max-w-[140px] truncate text-sm font-semibold text-foreground">
-                    {user.displayName ?? "Usuária Esmalt'up"}
-                  </span>
-                  <span className="block text-xs font-medium text-rose-gold">
-                    Usuária Premium
-                  </span>
-                </span>
-                <ChevronIcon open={dropdownOpen} />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-cinza-suave/70 bg-branco/90 p-2 shadow-card-lg backdrop-blur-xl">
+          {/* Desktop Sidebar Card */}
+          <div className="hidden md:block rounded-3xl border border-cinza-suave/70 bg-branco p-4 shadow-card">
+            <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+              Menu da conta
+            </p>
+            <nav className="mt-1 flex flex-col gap-1" aria-label="Menu Minha Área">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                if (item.disabled) {
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-2xl px-3.5 py-2.5 text-sm text-foreground/40 cursor-not-allowed select-none"
+                      title="Funcionalidade em desenvolvimento"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      <span className="rounded-full bg-rosa-claro/50 px-2 py-0.5 text-[10px] font-medium text-rose-gold/80">
+                        {item.badge}
+                      </span>
+                    </div>
+                  );
+                }
+                if (item.active) {
+                  return (
+                    <div
+                      key={item.id}
+                      aria-current="page"
+                      className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-rosa-blush to-rose-gold px-3.5 py-2.5 text-sm font-semibold text-white shadow-card"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </div>
+                  );
+                }
+                return (
                   <Link
-                    href="/perfil"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-rosa-claro/60 hover:text-rose-gold"
+                    key={item.id}
+                    href={item.href || "#"}
+                    className="flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium text-foreground/75 transition-colors hover:bg-rosa-claro/50 hover:text-rose-gold"
                   >
-                    <UserRound size={16} />
-                    Meu Perfil
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
                   </Link>
-                  <Link
-                    href="/configuracoes"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-rosa-claro/60 hover:text-rose-gold"
-                  >
-                    <Settings size={16} />
-                    Configurações
-                  </Link>
-                  <div className="my-2 h-px bg-cinza-suave/70" role="separator" />
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-4 py-2.5 text-left text-sm font-medium text-rose-gold/90 transition-colors hover:bg-rosa-claro/60 hover:text-white"
-                  >
-                    <LogOut size={16} />
-                    Sair
-                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        {/* Main Content Card: ONE clean container */}
+        <main className="flex-1 min-w-0">
+          <div className="rounded-3xl border border-cinza-suave/70 bg-branco shadow-card overflow-hidden">
+            {/* Banner Section */}
+            <div className="relative h-44 sm:h-56 md:h-64 w-full overflow-hidden bg-gradient-to-br from-rosa-blush/25 via-rose-gold/15 to-rosa-medio/25">
+              {profile.bannerUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.bannerUrl}
+                  alt="Banner do perfil"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center p-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rosa-blush/20 text-rose-gold">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-medium text-foreground/50 max-w-xs">
+                    Adicione um banner para dar o seu toque pessoal ao perfil
+                  </p>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
 
-        <div className="mt-14">
-          <SectionTitle
-            eyebrow="Minha área"
-            title="Perfil"
-            subtitle="Veja todos os detalhes do seu perfil aqui. Edite e salve suas preferências a qualquer momento."
-          />
-        </div>
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-[320px_1fr]">
-            <aside className="flex flex-col items-center gap-4 rounded-3xl border border-cinza-suave/70 bg-branco p-8 text-center shadow-card">
-            <div className="flex flex-col items-center justify-center">
-              <div className="relative mb-2 flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rosa-blush to-rose-gold text-xl font-bold text-white shadow-card-lg">
-                {profile.isEntrepreneur && (
-                  <span
-                    aria-label="Profissional manicure"
-                    className="absolute -top-2 -right-2 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-branco bg-rose-gold text-xs text-white">
-                    ✦
-                  </span>
-                )}
-                {initialsOf(displayName)}
-              </div>
-              <h2 className="text-xl font-bold tracking-tight">{displayName}</h2>
-              <p className="mt-1 text-sm text-foreground/60">
-                {user.email}
-              </p>
-            </div>
-            <span className={`inline-flex items-center rounded-full border border-rose-gold/50 bg-rosa-blush/15 px-4 py-1.5 text-xs font-semibold text-rose-gold ${profile.isEntrepreneur ? "border-rose-gold/80 bg-gradient-to-r from-rosa-blush to-rose-gold text-white" : ""}`}>
-              {profile.isEntrepreneur
-                ? "Profissional ativa"
-                : profile.status}
-            </span>
-
-            <div className="mt-2 flex w-full flex-col gap-2 border-t border-cinza-suave/70 pt-5 text-sm text-foreground/70">
-              <div className="flex justify-between gap-3">
-                <span>Nível</span>
-                <span className="font-semibold text-foreground">
-                  {profile.level || "—"}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span>Cidade</span>
-                <span className="font-semibold text-foreground">
-                  {profile.city || "—"}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span>Conquistas</span>
-                <span className="font-semibold text-rose-gold">
-                  {profile.badges.length} badge{profile.badges.length === 1 ? "" : "s"}
-                </span>
-              </div>
-            </div>
-          </aside>
-
-          <div className="flex flex-col gap-6">
-            <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
-              <h2 className="text-xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
-                  Bio &amp; Outros Detalhes
-                </span>
-              </h2>
-              <p className="mt-1 text-sm text-foreground/60">
-                Preencha com calma — essas informações aparecem no seu perfil.
-              </p>
-
-              <div className="mt-7 grid gap-6 md:grid-cols-2">
-                <Field label="Meu Nível" htmlFor="nivel">
-                  <input
-                    id="nivel"
-                    type="text"
-                    value={profile.level}
-                    onChange={(event) => set("level", event.target.value)}
-                    placeholder="Ex.: Iniciante"
-                    className={inputClasses}
-                  />
-                </Field>
-
-                <Field label="Tempo de Experiência" htmlFor="experiencia">
-                  <input
-                    id="experiencia"
-                    type="text"
-                    value={profile.experienceYears}
-                    onChange={(event) => set("experienceYears", event.target.value)}
-                    placeholder="Ex.: 2 anos"
-                    className={inputClasses}
-                  />
-                </Field>
-
-                <Field label="Marcas & Cores Favoritas" htmlFor="marcas">
-                  <input
-                    id="marcas"
-                    type="text"
-                    value={profile.favoriteBrands}
-                    onChange={(event) => set("favoriteBrands", event.target.value)}
-                    placeholder="Ex.: Risqué, Dailus, Impala"
-                    className={inputClasses}
-                  />
-                </Field>
-
-                <Field label="Estilo Preferido" htmlFor="estilo">
-                  <input
-                    id="estilo"
-                    type="text"
-                    value={profile.favoriteStyles}
-                    onChange={(event) => set("favoriteStyles", event.target.value)}
-                    placeholder="Ex.: Nail art, Francesinha"
-                    className={inputClasses}
-                  />
-                </Field>
-
-                <Field label="Equipamentos que Uso" htmlFor="equipamentos">
-                  <input
-                    id="equipamentos"
-                    type="text"
-                    value={profile.equipment}
-                    onChange={(event) => set("equipment", event.target.value)}
-                    placeholder="Ex.: Lixa elétrica, Cabine UV"
-                    className={inputClasses}
-                  />
-                </Field>
-
-                <Field label="Curso em Andamento" htmlFor="curso">
-                  <input
-                    id="curso"
-                    type="text"
-                    value={profile.courseInProgress}
-                    onChange={(event) => set("courseInProgress", event.target.value)}
-                    placeholder="Ex.: Módulo 2 — Nail art"
-                    className={inputClasses}
-                  />
-                </Field>
-
-                <Field label="Minha Cidade" htmlFor="cidade">
-                  <input
-                    id="cidade"
-                    type="text"
-                    value={profile.city}
-                    onChange={(event) => set("city", event.target.value)}
-                    placeholder="Ex.: Curitiba, PR"
-                    className={inputClasses}
-                  />
-                </Field>
-
-                <Field label="Status" htmlFor="status">
-                  <select
-                    id="status"
-                    value={profile.status}
-                    onChange={(event) => set("status", event.target.value)}
-                    className={`${inputClasses} appearance-none`}
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option} value={option} className="bg-branco">
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <TagField
-                  label="Interesses"
-                  value={profile.interests}
-                  onChange={(tags) => set("interests", tags)}
-                  placeholder="#NailArt, #Francesinha, #Gel"
+              {/* Banner Action Buttons */}
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleBannerUpload}
+                  className="sr-only"
+                  aria-label="Upload de banner"
                 />
-
-                <TagField
-                  label="Badges"
-                  value={profile.badges}
-                  onChange={(tags) => set("badges", tags)}
-                  placeholder="Curso concluído, Top Cliente"
-                />
-              </div>
-
-              <div className="mt-8 flex flex-col items-center gap-3">
                 <button
                   type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className={`${primaryButton} w-full px-8 py-3 text-sm sm:w-auto disabled:cursor-not-allowed disabled:opacity-60`}
+                  onClick={() => bannerInputRef.current?.click()}
+                  disabled={bannerUploading}
+                  aria-label={profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}
+                  title={profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/60 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur-md shadow-card transition-all hover:bg-black/80 hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
-                  {saving ? "Salvando..." : "Salvar alterações"}
+                  {bannerUploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                  )}
+                  <span>{profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}</span>
                 </button>
-                {flash && (
-                  <p
-                    className={`text-sm font-medium ${
-                      flash.kind === "ok" ? "text-rose-gold" : "text-rosa-blush"
-                    }`}
+
+                {profile.bannerUrl && (
+                  <button
+                    type="button"
+                    onClick={handleBannerRemove}
+                    disabled={bannerUploading}
+                    aria-label="Remover banner"
+                    title="Remover banner"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-black/60 text-white backdrop-blur-md shadow-card transition-all hover:bg-black/80 hover:text-red-300 active:scale-95 disabled:opacity-50"
                   >
-                    {flash.text}
-                  </p>
+                    <X className="h-4 w-4" />
+                  </button>
                 )}
               </div>
-            </section>
+            </div>
 
-            <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
-              <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                  <h2 className="text-xl font-bold tracking-tight">
-                    <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
-                      Modo Profissional
-                    </span>
-                  </h2>
-                  <p className="mt-1 text-sm text-foreground/60">
-                    Você oferece serviços de manicure? Ative o modo profissional para destacar sua área de atuação, preços e disponibilidade.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => set("isEntrepreneur", !profile.isEntrepreneur)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${profile.isEntrepreneur ? "bg-gradient-to-r from-rosa-blush to-rose-gold" : "bg-cinza-suave/50"}`}
-                  aria-label={profile.isEntrepreneur ? "Desativar modo profissional" : "Ativar modo profissional"}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${profile.isEntrepreneur ? "translate-x-5" : "translate-x-1"}`}
-                  />
-                </button>
-              </div>
-
-              {profile.isEntrepreneur && (
-                <div className="mt-6 animate-fadeIn space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-foreground/80">
-                      Banner profissional
-                    </label>
-                    <ImageUploader
-                      mode="banner"
-                      folder="banners"
-                      alt={displayName}
-                      value={profile.bannerUrl}
-                      onUpload={(url) => set("bannerUrl", url)}
-                      onRemove={() => set("bannerUrl", "")}
+            {/* Profile Identity & Action Header */}
+            <div className="px-6 sm:px-8 pb-6 sm:pb-8">
+              <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-14 sm:-mt-16 mb-8">
+                {/* Avatar + User Info */}
+                <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                  {/* Avatar overlapping banner */}
+                  <div className="relative group shrink-0 self-start sm:self-auto">
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleAvatarUpload}
+                      className="sr-only"
+                      aria-label="Upload de foto de perfil"
                     />
-                    <p className="text-xs text-foreground/50">
-                      Um banner atrativo ajuda você a se destacar e atrair mais clientes.
-                    </p>
-                                    </div>
+                    <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full ring-4 ring-branco overflow-hidden bg-gradient-to-br from-rosa-blush to-rose-gold shadow-card-lg">
+                      {effectivePhotoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={effectivePhotoUrl}
+                          alt={displayName}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-2xl sm:text-3xl font-bold text-white">
+                          {initialsOf(displayName)}
+                        </span>
+                      )}
+                      {avatarUploading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-xs">
+                          <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <Field label="Serviços Oferecidos" htmlFor="services">
-                      <input
-                        id="services"
-                        type="text"
-                        value={profile.services.join(", ")}
-                        onChange={(event) =>
-                          set(
-                            "services",
-                            event.target.value
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
-                          )
-                        }
-                        placeholder="Ex.: Manicure clássico, Nail art"
-                        className={inputClasses}
-                      />
-                    </Field>
-
-                    <Field label="Preços / Valores" htmlFor="pricing">
-                      <input
-                        id="pricing"
-                        type="text"
-                        value={profile.pricing}
-                        onChange={(event) => set("pricing", event.target.value)}
-                        placeholder="Ex.: A partir de R$ 35"
-                        className={inputClasses}
-                      />
-                    </Field>
+                    {/* Small camera icon button */}
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      aria-label="Alterar foto de perfil"
+                      title="Alterar foto de perfil"
+                      className="absolute bottom-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-branco bg-rose-gold text-white shadow-card transition-all hover:bg-rosa-blush hover:scale-105 active:scale-95 disabled:opacity-50"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
                   </div>
 
-                  <Field label="Disponibilidade" htmlFor="entreStatus">
-                    <select
-                      id="entreStatus"
-                      value={profile.status}
-                      onChange={(event) => set("status", event.target.value)}
-                      className={`${inputClasses} appearance-none`}
-                    >
-                      {statusOptions.map((option) => (
-                        <option key={option} value={option} className="bg-branco">
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
+                  {/* Name, Email, Status Badge */}
+                  <div className="sm:mb-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                        {displayName}
+                      </h2>
+                      {profile.isEntrepreneur && (
+                        <span
+                          title="Profissional Ativa"
+                          className="inline-flex items-center gap-1 rounded-full border border-rose-gold/50 bg-gradient-to-r from-rosa-blush to-rose-gold px-2.5 py-0.5 text-[11px] font-semibold text-white shadow-card"
+                        >
+                          ✦ Pro
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs sm:text-sm text-foreground/60">{user.email}</p>
 
-                  <Field label="Link para Agendamento" htmlFor="bookingLink">
+                    {/* Status Badge with quick picker */}
+                    <div className="relative mt-2.5" ref={statusMenuRef}>
+                      <button
+                        type="button"
+                        onClick={() => setStatusMenuOpen((prev) => !prev)}
+                        className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-medium border transition-all ${
+                          profile.status === "Disponível para atendimentos"
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                            : profile.status === "Só estudando"
+                            ? "border-rose-gold/40 bg-rosa-blush/15 text-rose-gold hover:bg-rosa-blush/25"
+                            : "border-cinza-suave bg-rosa-claro/50 text-foreground/70 hover:bg-rosa-claro"
+                        }`}
+                        title="Clique para alterar status de atendimento"
+                      >
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            profile.status === "Disponível para atendimentos"
+                              ? "bg-emerald-400 animate-pulse"
+                              : profile.status === "Só estudando"
+                              ? "bg-rose-gold"
+                              : "bg-foreground/40"
+                          }`}
+                        />
+                        <span>{profile.status}</span>
+                      </button>
+
+                      {statusMenuOpen && (
+                        <div className="absolute left-0 mt-2 z-20 w-64 rounded-2xl border border-cinza-suave/70 bg-branco p-1.5 shadow-card-lg backdrop-blur-xl">
+                          <p className="px-3 py-1.5 text-[11px] font-semibold text-foreground/50 uppercase tracking-wider">
+                            Alterar disponibilidade
+                          </p>
+                          {statusOptions.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                set("status", opt);
+                                setStatusMenuOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
+                                profile.status === opt
+                                  ? "bg-rosa-claro/70 text-rose-gold font-semibold"
+                                  : "text-foreground/80 hover:bg-rosa-claro/40"
+                              }`}
+                            >
+                              <span>{opt}</span>
+                              {profile.status === opt && <Check className="h-3.5 w-3.5 text-rose-gold" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Save Changes Button (Header) */}
+                <div className="sm:self-end pt-2 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={!isDirty || saving}
+                    className={`${primaryButton} w-full sm:w-auto px-6 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-card`}
+                  >
+                    {saving ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Salvando...
+                      </span>
+                    ) : (
+                      "Salvar alterações"
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Form Sections */}
+              <div className="space-y-8">
+                {/* 1. SOBRE VOCÊ */}
+                <FormSection
+                  title="Sobre você"
+                  description="Informações básicas de identificação exibidas no seu perfil público."
+                >
+                  <FormRow
+                    label="Nome de exibição"
+                    helper="Como você prefere ser chamada na comunidade e certificados."
+                    htmlFor="nome"
+                  >
+                    <input
+                      id="nome"
+                      type="text"
+                      value={profile.name}
+                      onChange={(e) => set("name", e.target.value)}
+                      placeholder="Ex.: Mariana Silva"
+                      className={inputClasses}
+                    />
+                  </FormRow>
+
+                  <FormRow
+                    label="Bio"
+                    helper="Uma breve descrição sobre você, seu estilo ou seu trabalho com unhas."
+                    htmlFor="bio"
+                  >
                     <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-foreground/50">
-                        <LinkIcon className="h-4 w-4" />
+                      <textarea
+                        id="bio"
+                        rows={3}
+                        maxLength={160}
+                        value={profile.bio}
+                        onChange={(e) => set("bio", e.target.value)}
+                        placeholder="Conte um pouco sobre sua paixão por unhas, técnicas que adora e seu momento profissional..."
+                        className={`${inputClasses} resize-none`}
+                      />
+                      <div className="mt-1 flex justify-end">
+                        <span
+                          className={`text-xs ${
+                            profile.bio.length >= 150
+                              ? "text-rose-gold font-semibold"
+                              : "text-foreground/40"
+                          }`}
+                        >
+                          {profile.bio.length} / 160 caracteres
+                        </span>
+                      </div>
+                    </div>
+                  </FormRow>
+
+                  <FormRow
+                    label="Cidade"
+                    helper="Ajuda clientes locais e colegas a encontrarem você."
+                    htmlFor="cidade"
+                  >
+                    <input
+                      id="cidade"
+                      type="text"
+                      value={profile.city}
+                      onChange={(e) => set("city", e.target.value)}
+                      placeholder="Ex.: Curitiba, PR"
+                      className={inputClasses}
+                    />
+                  </FormRow>
+                </FormSection>
+
+                {/* 2. EXPERIÊNCIA */}
+                <FormSection
+                  title="Experiência"
+                  description="Seu nível técnico, histórico e instrumentos de trabalho."
+                >
+                  <FormRow
+                    label="Meu Nível"
+                    helper="Indique em qual estágio você se encontra atualmente."
+                    htmlFor="nivel"
+                  >
+                    <div className="flex flex-wrap gap-2.5">
+                      {levelOptions.map((lvl) => {
+                        const active = profile.level.toLowerCase() === lvl.toLowerCase();
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => set("level", lvl)}
+                            aria-pressed={active}
+                            className={`rounded-2xl px-4 py-2 text-xs font-semibold transition-all ${
+                              active
+                                ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
+                                : "border border-cinza-suave bg-rosa-claro/30 text-foreground/80 hover:border-rose-gold/60 hover:text-rose-gold"
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Hidden input to preserve name/id compatibility */}
+                    <input
+                      id="nivel"
+                      type="hidden"
+                      value={profile.level}
+                    />
+                  </FormRow>
+
+                  <FormRow
+                    label="Tempo de Experiência"
+                    helper="Há quanto tempo você estuda ou atua com manicure."
+                    htmlFor="experiencia"
+                  >
+                    <input
+                      id="experiencia"
+                      type="text"
+                      value={profile.experienceYears}
+                      onChange={(e) => set("experienceYears", e.target.value)}
+                      placeholder="Ex.: 2 anos, 6 meses, Iniciando agora"
+                      className={inputClasses}
+                    />
+                  </FormRow>
+
+                  <FormRow
+                    label="Equipamentos que Uso"
+                    helper="Ferramentas e aparelhos que fazem parte do seu kit."
+                    htmlFor="equipamentos"
+                  >
+                    <input
+                      id="equipamentos"
+                      type="text"
+                      value={profile.equipment}
+                      onChange={(e) => set("equipment", e.target.value)}
+                      placeholder="Ex.: Cabine UV/LED, Lixa elétrica, Brocas de cerâmica"
+                      className={inputClasses}
+                    />
+                  </FormRow>
+
+                  <FormRow
+                    label="Curso em Andamento"
+                    helper="Qual módulo ou especialização você está concluindo."
+                    htmlFor="curso"
+                  >
+                    <input
+                      id="curso"
+                      type="text"
+                      value={profile.courseInProgress}
+                      onChange={(e) => set("courseInProgress", e.target.value)}
+                      placeholder="Ex.: Módulo 2 — Nail Art & Esmaltação em Gel"
+                      className={inputClasses}
+                    />
+                  </FormRow>
+                </FormSection>
+
+                {/* 3. PREFERÊNCIAS */}
+                <FormSection
+                  title="Preferências"
+                  description="Seus estilos favoritos, técnicas preferidas e marcas do coração."
+                >
+                  <FormRow
+                    label="Marcas & Cores Favoritas"
+                    helper="Separe por vírgulas para criar tags automáticas."
+                    htmlFor="marcas"
+                  >
+                    <input
+                      id="marcas"
+                      type="text"
+                      value={profile.favoriteBrands}
+                      onChange={(e) => set("favoriteBrands", e.target.value)}
+                      placeholder="Ex.: Risqué, Dailus, Impala, Colorama"
+                      className={inputClasses}
+                    />
+                    {profile.favoriteBrands && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {parseTags(profile.favoriteBrands).map((brand) => (
+                          <span
+                            key={brand}
+                            className="inline-flex items-center rounded-full border border-rose-gold/40 bg-rosa-claro/60 px-3 py-1 text-xs font-medium text-rose-gold"
+                          >
+                            {brand}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </FormRow>
+
+                  <FormRow
+                    label="Estilo Preferido"
+                    helper="Selecione um estilo em destaque ou digite o seu preferido."
+                    htmlFor="estilo"
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex flex-wrap gap-2">
+                        {stylePresets.map((style) => {
+                          const active = profile.favoriteStyles
+                            .toLowerCase()
+                            .includes(style.toLowerCase());
+                          return (
+                            <button
+                              key={style}
+                              type="button"
+                              onClick={() => {
+                                const current = parseTags(profile.favoriteStyles);
+                                const exists = current.some(
+                                  (s) => s.toLowerCase() === style.toLowerCase()
+                                );
+                                const next = exists
+                                  ? current.filter(
+                                      (s) => s.toLowerCase() !== style.toLowerCase()
+                                    )
+                                  : [...current, style];
+                                set("favoriteStyles", next.join(", "));
+                              }}
+                              className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                                active
+                                  ? "border border-rose-gold bg-rosa-blush/20 text-rose-gold font-semibold"
+                                  : "border border-cinza-suave bg-rosa-claro/30 text-foreground/70 hover:border-rose-gold/50 hover:text-foreground"
+                              }`}
+                            >
+                              {active ? `✓ ${style}` : `+ ${style}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input
+                        id="estilo"
+                        type="text"
+                        value={profile.favoriteStyles}
+                        onChange={(e) => set("favoriteStyles", e.target.value)}
+                        placeholder="Ex.: Francesinha, Nail Art delicada"
+                        className={inputClasses}
+                      />
+                    </div>
+                  </FormRow>
+
+                  <FormRow
+                    label="Interesses"
+                    helper="Tags e tópicos que você mais gosta de acompanhar."
+                    htmlFor="interesses"
+                  >
+                    <input
+                      id="interesses"
+                      type="text"
+                      value={profile.interests.join(", ")}
+                      onChange={(e) => set("interests", parseTags(e.target.value))}
+                      placeholder="#NailArt, #Francesinha, #AlongamentoEmGel"
+                      className={inputClasses}
+                    />
+                    {profile.interests.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {profile.interests.map((interest) => (
+                          <span
+                            key={interest}
+                            className="inline-flex items-center rounded-full border border-rose-gold/30 bg-rosa-claro/50 px-2.5 py-0.5 text-xs text-rose-gold"
+                          >
+                            {interest}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </FormRow>
+                </FormSection>
+
+                {/* 4. FOTO DE PERFIL */}
+                <FormSection
+                  title="Foto de Perfil"
+                  description="Sua imagem de exibição para a comunidade e clientes da plataforma."
+                >
+                  <FormRow
+                    label="Foto atual"
+                    helper="JPG, PNG ou WebP com tamanho de até 5 MB."
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      {/* Avatar preview */}
+                      <div className="relative h-16 w-16 shrink-0 rounded-full ring-2 ring-rose-gold/40 overflow-hidden bg-gradient-to-br from-rosa-blush to-rose-gold shadow-card">
+                        {effectivePhotoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={effectivePhotoUrl}
+                            alt={displayName}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-lg font-bold text-white">
+                            {initialsOf(displayName)}
+                          </span>
+                        )}
+                        {avatarUploading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={avatarUploading}
+                          className={`${outlineButton} px-4 py-2 text-xs font-semibold`}
+                        >
+                          <Upload className="h-3.5 w-3.5 mr-1.5" />
+                          Atualizar foto
+                        </button>
+
+                        {effectivePhotoUrl && (
+                          <button
+                            type="button"
+                            onClick={handleAvatarRemove}
+                            disabled={avatarUploading}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </FormRow>
+                </FormSection>
+
+                {/* 5. REDES SOCIAIS */}
+                <FormSection
+                  title="Redes Sociais"
+                  description="Compartilhe seu portfólio no Instagram, YouTube e TikTok."
+                >
+                  <FormRow
+                    label="Instagram"
+                    helper="Seu perfil profissional ou pessoal de nail art."
+                    htmlFor="instagram"
+                  >
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
+                        <Instagram className="h-4 w-4" />
                       </span>
                       <input
-                        id="bookingLink"
+                        id="instagram"
                         type="url"
-                        value={profile.bookingLink}
-                        onChange={(event) => set("bookingLink", event.target.value)}
-                        placeholder="https://seusite.com/agendamento"
+                        value={profile.instagram}
+                        onChange={(e) => set("instagram", e.target.value)}
+                        placeholder="instagram.com/seu_perfil"
                         className={`${inputClasses} pl-11`}
                       />
                     </div>
-                  </Field>
+                  </FormRow>
 
-                  <div className="rounded-xl border border-rose-gold/20 bg-rosa-blush/10 p-4 text-sm text-foreground/80">
-                    <strong className="text-rose-gold">Dica:</strong> Preencha todos os campos e salve para que seu perfil profissional apareça completo para os clientes.
-                  </div>
+                  <FormRow
+                    label="YouTube"
+                    helper="Seu canal com tutoriais ou demonstrações."
+                    htmlFor="youtube"
+                  >
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
+                        <Youtube className="h-4 w-4" />
+                      </span>
+                      <input
+                        id="youtube"
+                        type="url"
+                        value={profile.youtube}
+                        onChange={(e) => set("youtube", e.target.value)}
+                        placeholder="youtube.com/@seu_canal"
+                        className={`${inputClasses} pl-11`}
+                      />
+                    </div>
+                  </FormRow>
+
+                  <FormRow
+                    label="TikTok"
+                    helper="Vídeos curtos, dicas e bastidores do seu atendimento."
+                    htmlFor="tiktok"
+                  >
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
+                        <TikTokIcon className="h-4 w-4" />
+                      </span>
+                      <input
+                        id="tiktok"
+                        type="url"
+                        value={profile.tiktok}
+                        onChange={(e) => set("tiktok", e.target.value)}
+                        placeholder="tiktok.com/@seu_perfil"
+                        className={`${inputClasses} pl-11`}
+                      />
+                    </div>
+                  </FormRow>
+                </FormSection>
+              </div>
+
+              {/* Bottom Footer Save Action */}
+              <div className="mt-10 pt-6 border-t border-cinza-suave/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-xs text-foreground/50 text-center sm:text-left">
+                  {isDirty ? (
+                    <span className="text-rose-gold font-medium">
+                      ● Você tem alterações não salvas
+                    </span>
+                  ) : (
+                    "Todas as alterações foram salvas."
+                  )}
+                </p>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={!isDirty || saving}
+                    className={`${primaryButton} w-full sm:w-auto px-8 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-card`}
+                  >
+                    {saving ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Salvando...
+                      </span>
+                    ) : (
+                      "Salvar alterações"
+                    )}
+                  </button>
                 </div>
-              )}
-            </section>
-
-            <section className="rounded-3xl border border-cinza-suave/70 bg-branco p-7 shadow-card">
-              <h2 className="text-xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-rosa-blush to-rose-gold bg-clip-text text-transparent">
-                  Redes Sociais
-                </span>
-              </h2>
-              <p className="mt-1 text-sm text-foreground/60">
-                Adicione seus links para compartilhar seu trabalho.
-              </p>
-
-              <div className="mt-7 grid gap-6 sm:grid-cols-3">
-                <Field label="YouTube" htmlFor="youtube">
-                  <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/50">
-                      <SocialIcon name="youtube" className="h-4 w-4" />
-                    </span>
-                    <input
-                      id="youtube"
-                      type="url"
-                      value={profile.youtube}
-                      onChange={(event) => set("youtube", event.target.value)}
-                      placeholder="youtube.com/@voce"
-                      className={`${inputClasses} pl-10`}
-                    />
-                  </div>
-                </Field>
-                <Field label="Instagram" htmlFor="instagram">
-                  <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/50">
-                      <SocialIcon name="instagram" className="h-4 w-4" />
-                    </span>
-                    <input
-                      id="instagram"
-                      type="url"
-                      value={profile.instagram}
-                      onChange={(event) => set("instagram", event.target.value)}
-                      placeholder="instagram.com/@voce"
-                      className={`${inputClasses} pl-10`}
-                    />
-                  </div>
-                </Field>
-                <Field label="TikTok" htmlFor="tiktok">
-                  <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/50">
-                      <SocialIcon name="tiktok" className="h-4 w-4" />
-                    </span>
-                    <input
-                      id="tiktok"
-                      type="url"
-                      value={profile.tiktok}
-                      onChange={(event) => set("tiktok", event.target.value)}
-                      placeholder="tiktok.com/@voce"
-                      className={`${inputClasses} pl-10`}
-                    />
-                  </div>
-                </Field>
               </div>
-
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                {(
-                  [
-                    { name: "youtube", url: profile.youtube, label: "YouTube" },
-                    { name: "instagram", url: profile.instagram, label: "Instagram" },
-                    { name: "tiktok", url: profile.tiktok, label: "TikTok" },
-                  ] as const
-                ).map(({ name, url, label }) =>
-                  url ? (
-                    <a
-                      key={name}
-                      href={url.startsWith("http") ? url : `https://${url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full border border-rose-gold/40 bg-rosa-claro/60 px-4 py-2 text-sm font-medium text-rose-gold transition-all hover:-translate-y-0.5 hover:border-rose-gold hover:shadow-card"
-                    >
-                      <SocialIcon name={name} className="h-4 w-4" />
-                      {label}
-                    </a>
-                  ) : null,
-                )}
-                {!profile.youtube && !profile.instagram && !profile.tiktok && (
-                  <p className="text-sm text-foreground/60">
-                    Nenhum link adicionado ainda. Preencha acima e salve.
-                  </p>
-                )}
-              </div>
-            </section>
+            </div>
           </div>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-6">
-          <TableShell
-            title="Meus Pedidos"
-            columns={["Kit", "Data", "Status", "Ações"]}
-            empty={orders.length === 0}
-          >
-            {orders.map((order) => (
-              <tr key={order.id} className="transition-colors hover:bg-rosa-claro/30">
-                <td className="px-4 py-3.5 font-medium text-foreground">{order.kitName}</td>
-                <td className="px-4 py-3.5 text-foreground/70">{formatDate(order.date)}</td>
-                <td className="px-4 py-3.5">
-                  <StatusPill status={order.status} />
-                </td>
-                <td className="px-4 py-3.5">
-                  <button
-                    type="button"
-                    disabled
-                    className="cursor-not-allowed text-sm text-foreground/40"
-                  >
-                    Em breve
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </TableShell>
-
-          <TableShell
-            title="Meu Progresso no Curso"
-            columns={["Aula", "Data de Conclusão", "Status", "Ações"]}
-            empty={progress.length === 0}
-            meta={
-              <span className="inline-flex items-center rounded-full border border-rose-gold/40 bg-rosa-claro/60 px-3 py-1 text-xs font-semibold text-rose-gold">
-                {completedCount} de {COURSE_LESSONS.length} aulas concluídas
-              </span>
-            }
-          >
-            {progress.map((item) => (
-              <tr key={item.id} className="transition-colors hover:bg-rosa-claro/30">
-                <td className="px-4 py-3.5 font-medium text-foreground">{item.lessonTitle}</td>
-                <td className="px-4 py-3.5 text-foreground/70">
-                  {item.dateCompleted ? formatDate(item.dateCompleted) : "—"}
-                </td>
-                <td className="px-4 py-3.5">
-                  <StatusPill status={item.status} />
-                </td>
-                <td className="px-4 py-3.5">
-                  <button
-                    type="button"
-                    disabled
-                    className="cursor-not-allowed text-sm text-foreground/40"
-                  >
-                    Em breve
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </TableShell>
-        </div>
+        </main>
       </div>
-    </section>
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl px-5 py-3.5 shadow-card-lg backdrop-blur-xl border transition-all animate-fadeIn ${
+            toast.type === "success"
+              ? "border-rose-gold/60 bg-branco/95 text-foreground"
+              : "border-red-500/50 bg-branco/95 text-red-300"
+          }`}
+        >
+          <div
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+              toast.type === "success"
+                ? "bg-rose-gold text-white"
+                : "bg-red-500 text-white"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <X className="h-3.5 w-3.5" />
+            )}
+          </div>
+          <p className="text-sm font-semibold">{toast.message}</p>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="ml-2 text-foreground/50 hover:text-foreground"
+            aria-label="Fechar notificação"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

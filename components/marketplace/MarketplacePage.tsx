@@ -1,10 +1,12 @@
-import { getByKind, getFeatured, type ProductKind } from "@/lib/catalogData";
+import { getByKind, getFeatured, type ProductKind } from "@/lib/products";
 import HeroCarousel from "./HeroCarousel";
 import CatalogGrid from "./CatalogGrid";
 
-export default function MarketplacePage({ kind }: { kind: ProductKind }) {
-  const featured = getFeatured(kind);
-  const all = getByKind(kind);
+export default async function MarketplacePage({ kind }: { kind: ProductKind }) {
+  const [featured, all] = await Promise.all([
+    getFeatured(kind),
+    getByKind(kind),
+  ]);
   const title = kind === "kit" ? "Kits em destaque" : "Peças em destaque";
   const catalogTitle = kind === "kit" ? "Todos os kits" : "Todas as peças";
 

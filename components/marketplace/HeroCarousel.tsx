@@ -8,7 +8,7 @@ import {
   CATEGORY_LABELS,
   LEVEL_LABELS,
   formatPrice,
-  getByKind,
+  getByKindClient as getByKind,
   type Product,
 } from "@/lib/catalogData";
 import ProductArt from "./ProductArt";

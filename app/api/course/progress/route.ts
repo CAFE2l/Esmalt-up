@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyIdToken } from "@/lib/serverAuth";
+import { getLessonBySlug, getUnitById } from "@/data/course";
 
 async function getUid(req: Request): Promise<string | null> {
   const header = req.headers.get("authorization");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { m, m as motion, useReducedMotion, LayoutGroup } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -113,7 +113,7 @@ export default function CatalogGrid({
 
   // Track view_item_list event
   const listName = title.toLowerCase().replace(/\s+/g, '_');
-  useMemo(() => {
+  useEffect(() => {
     trackViewItemList(listName, filtered);
   }, [listName, filtered]);
 
@@ -133,11 +133,9 @@ export default function CatalogGrid({
     trackFilterApply('sort', newSort);
   }, []);
 
-  // Animated counter
-  const [count, setCount] = useState(filtered.length);
-  useMemo(() => {
-    setCount(filtered.length);
-  }, [filtered.length]);
+  // Animated counter — derived value; `key={count}` re-triggers the entrance
+  // animation whenever the visible product count changes.
+  const count = filtered.length;
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
