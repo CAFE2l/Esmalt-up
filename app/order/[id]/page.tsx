@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/products";
-import { CheckCircle2, Package, Truck, CreditCard, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Package, Truck, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 interface OrderPageProps {

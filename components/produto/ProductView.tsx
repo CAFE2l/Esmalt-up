@@ -38,6 +38,7 @@ export default function ProductView({
   const router = useRouter();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     addRecentlyViewed(product);
   }, [product.id]);
 
