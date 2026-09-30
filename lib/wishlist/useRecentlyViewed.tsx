@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { type Product } from "@/lib/catalogData";
+export type { Product };
 import { trackViewItem } from "@/lib/analytics";
 
 const RECENTLY_VIEWED_KEY = 'esmaltup_recently_viewed';

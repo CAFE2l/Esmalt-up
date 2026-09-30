@@ -18,7 +18,21 @@ import { glassCardStyle, shadows } from "./tokens";
  * - Respects prefers-reduced-motion
  */
 
-interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
+type NativeDragProps =
+  | 'onDrag'
+  | 'onDragStart'
+  | 'onDragEnd'
+  | 'onDragEnter'
+  | 'onDragLeave'
+  | 'onDragOver'
+  | 'onDragExit'
+  | 'onDrop'
+  | 'onAnimationStart'
+  | 'onAnimationEnd'
+  | 'onAnimationIteration'
+  | 'onTransitionEnd';
+
+interface GlassCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, NativeDragProps> {
   children: React.ReactNode;
   className?: string;
   hoverable?: boolean;

@@ -17,7 +17,7 @@ import { m, AnimatePresence } from 'framer-motion';
 // ============================================
 
 export interface GA4EventParams {
-  [key: string]: string | number | boolean | null | undefined;
+  [key: string]: string | number | boolean | null | undefined | Record<string, string | number | boolean | null | undefined>[];
 }
 
 export interface ConsentState {
@@ -145,7 +145,7 @@ export function trackViewItemList(itemListName: string, items: TrackableItem[] =
     items: items.map(item => ({
       item_id: item.id,
       item_name: item.name,
-      ...(item.category && { item_category: item.category }),
+      ...(item.category ? { item_category: item.category } : {}),
     })),
     ...params,
   });

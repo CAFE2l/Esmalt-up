@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+import { Suspense } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/cart/CartDrawer";
@@ -45,11 +46,15 @@ export default function RootLayout({
               <ConsentProvider>
                 <div className="flex min-h-screen flex-col">
                   <GA4Script />
-                  <Header />
+                  <Suspense>
+                    <Header />
+                  </Suspense>
                   <main className="flex-1">{children}</main>
                   <Footer />
                 </div>
-                <TrackRouteChanges />
+                <Suspense>
+                  <TrackRouteChanges />
+                </Suspense>
                 <ScrollDepthTracker />
                 <ConsentBannerWrapper />
                 <CartDrawer />

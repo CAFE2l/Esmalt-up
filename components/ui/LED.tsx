@@ -124,7 +124,7 @@ export function NeonGlow({
       } : {}}
       transition={{
         duration: 0.3,
-        ease: 'ease-in-out',
+        ease: 'easeInOut',
       }}
     >
       {children}
@@ -181,7 +181,7 @@ export function LEDUnderline({
       transition={{
         duration: 2,
         repeat: Infinity,
-        ease: 'ease-in-out',
+        ease: 'easeInOut',
       }}
     />
   );
