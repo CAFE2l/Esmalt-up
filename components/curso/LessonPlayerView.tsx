@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, _useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -20,7 +20,6 @@ import {
   getUnitOfLesson,
   getNextLesson,
   getPrevLesson,
-  type _CourseLesson,
 } from "@/data/course";
 import { useCourseProgress } from "@/lib/useCourseProgress";
 import { useAuth } from "@/lib/AuthContext";
@@ -143,6 +142,13 @@ export default function LessonPlayerView({ slug }: Props) {
 
       try {
         const isPlaylist = lesson.type === "playlist";
+        // YT.Player replaces the element it is given with an iframe. Never pass
+        // a React-owned node, or React will crash with insertBefore errors when
+        // it reconciles the tree. Mount on a fresh node instead.
+        const mountEl = document.createElement("div");
+        mountEl.className = "h-full w-full";
+        playerContainerRef.current.appendChild(mountEl);
+
         const playerVars: Record<string, string | number | boolean> = {
           enablejsapi: 1,
           rel: 0,
@@ -156,7 +162,7 @@ export default function LessonPlayerView({ slug }: Props) {
           playerVars.list = lesson.youtubeId;
         }
 
-        playerInstanceRef.current = new window.YT.Player(playerContainerRef.current, {
+        playerInstanceRef.current = new window.YT.Player(mountEl, {
           host: "https://www.youtube-nocookie.com",
           videoId: isPlaylist ? undefined : lesson.youtubeId,
           playerVars,
@@ -203,6 +209,10 @@ export default function LessonPlayerView({ slug }: Props) {
           // ignore
         }
         playerInstanceRef.current = null;
+      }
+      // Remove any imperatively-added iframe/mount node so React owns a clean tree.
+      if (playerContainerRef.current) {
+        playerContainerRef.current.innerHTML = "";
       }
     };
   }, [lesson, slug, isUnlocked, hasVideoError, markCompleted, savePosition, positions]);
