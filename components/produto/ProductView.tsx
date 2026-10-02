@@ -1,12 +1,13 @@
 "use client";
 
-import { useState as _useState, useEffect } from "react";
+import { useState as _useState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCategoryLabel, getInstallments as _getInstallments, formatPrice, type Product } from "@/lib/products";
 import ProductGallery from "./ProductGallery";
 import ProductBuyBox from "./ProductBuyBox";
 import Stars from "./Stars";
 import { cn } from "@/lib/cn";
+import { usePurchaseVerification } from "./PurchaseVerification";
 
 interface ProductViewProps {
   product: Product;
@@ -36,6 +37,7 @@ export default function ProductView({
   initialCount,
 }: ProductViewProps) {
   const router = useRouter();
+  const { hasPurchased } = usePurchaseVerification(product.id);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +201,13 @@ export default function ProductView({
         {/* Right: Buy Box (sticky on desktop) */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 rounded-3xl border border-cinza-suave/40 bg-branco p-6 shadow-card">
-            <ProductBuyBox product={product} onBuyNow={handleBuyNow} />
+            <ProductBuyBox 
+              product={product} 
+              onBuyNow={handleBuyNow}
+              reviewCount={initialCount}
+              ratingAvg={initialAverage}
+              userHasPurchased={hasPurchased}
+            />
           </div>
         </div>
       </div>
