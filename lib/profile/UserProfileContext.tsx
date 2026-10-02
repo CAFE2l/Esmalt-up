@@ -209,10 +209,10 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       
       // Update Firebase auth if name or photo changed
       const firebaseUpdates: { displayName?: string; photoURL?: string | null } = {};
-      if (updates.name !== undefined && profile.name !== updates.name) {
+      if (updates.name !== undefined && profile && profile.name !== updates.name) {
         firebaseUpdates.displayName = updates.name;
       }
-      if (updates.profilePhotoUrl !== undefined && profile.profilePhotoUrl !== updates.profilePhotoUrl) {
+      if (updates.profilePhotoUrl !== undefined && profile && profile.profilePhotoUrl !== updates.profilePhotoUrl) {
         firebaseUpdates.photoURL = updates.profilePhotoUrl;
       }
       

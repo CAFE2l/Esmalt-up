@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { getRedirectResult } from "firebase/auth";
 import { useAuth } from "@/lib/AuthContext";
+import { auth } from "@/lib/firebase";
 import { primaryButton, outlineButton } from "./buttonStyles";
 
 type AuthMode = "login" | "signup";
@@ -22,6 +24,12 @@ const authErrors: Record<string, string> = {
   "auth/weak-password": "A senha deve ter pelo menos 6 caracteres.",
   "auth/missing-password": "Digite uma senha.",
   "auth/popup-closed-by-user": "Janela do Google fechada antes do login.",
+  "auth/popup-blocked":
+    "O navegador bloqueou a janela do Google. Tente novamente.",
+  "auth/unauthorized-domain":
+    "Este domínio não está autorizado para login no Firebase.",
+  "auth/operation-not-supported-in-this-environment":
+    "Este navegador não permite login em janela. Tente novamente.",
   "auth/account-exists-with-different-credential":
     "Este e-mail já está vinculado a outra forma de login.",
   "auth/network-request-failed":
@@ -71,6 +79,24 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (!active || !result) return;
+        router.replace("/");
+        router.refresh();
+      })
+      .catch((redirectError: unknown) => {
+        if (active) setError(getErrorMessage(redirectError));
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();

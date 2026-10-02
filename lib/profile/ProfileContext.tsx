@@ -17,7 +17,7 @@ export function ProfileProvider({ children, initialPhotoUrl = null }: { children
   // Sync with global profile context
   useEffect(() => {
     if (!profileLoading && profile) {
-      setPhotoUrlState(profile.profilePhotoUrl);
+      setPhotoUrlState(profile.profilePhotoUrl || null);
     }
   }, [profileLoading, profile]);
 

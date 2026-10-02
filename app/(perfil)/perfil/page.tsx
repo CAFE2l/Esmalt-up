@@ -722,7 +722,7 @@ export default function PerfilPage() {
   };
 
   const handleAvatarRemove = async () => {
-    if (!user || !profile.profilePhotoUrl) return;
+    if (!user || !localProfile?.profilePhotoUrl) return;
     setAvatarUploading(true);
     try {
       const token = await user.getIdToken();
@@ -798,7 +798,7 @@ export default function PerfilPage() {
   };
 
   const handleBannerRemove = async () => {
-    if (!user || !profile.bannerUrl) return;
+    if (!user || !localProfile?.bannerUrl) return;
     setBannerUploading(true);
     try {
       const token = await user.getIdToken();
@@ -991,13 +991,13 @@ export default function PerfilPage() {
           <div className="rounded-3xl border border-cinza-suave/70 bg-branco shadow-card overflow-hidden">
             {/* NEW: Redesigned Profile Header */}
             <ProfileHeader
-              bannerUrl={profile.bannerUrl || null}
+              bannerUrl={localProfile?.bannerUrl || null}
               avatarSrc={effectivePhotoUrl}
               avatarInitials={initialsOf(displayName)}
               displayName={displayName}
               email={user.email || ""}
-              status={profile.status}
-              isEntrepreneur={profile.isEntrepreneur}
+              status={localProfile?.status || "Disponível para atendimentos"}
+              isEntrepreneur={localProfile?.isEntrepreneur || false}
               onBannerUpload={() => bannerInputRef.current?.click()}
               onBannerRemove={handleBannerRemove}
               bannerUploading={bannerUploading}
@@ -1041,13 +1041,13 @@ export default function PerfilPage() {
                         setStatusMenuOpen(false);
                       }}
                       className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
-                        profile.status === opt
+                        localProfile?.status === opt
                           ? "bg-rosa-claro/70 text-rose-gold font-semibold"
                           : "text-foreground/80 hover:bg-rosa-claro/40"
                       }`}
                     >
                       <span>{opt}</span>
-                      {profile.status === opt && <Check className="h-3.5 w-3.5 text-rose-gold" />}
+                      {localProfile?.status === opt && <Check className="h-3.5 w-3.5 text-rose-gold" />}
                     </button>
                   ))}
                 </div>
@@ -1091,7 +1091,7 @@ export default function PerfilPage() {
                   <input
                     id="nome"
                     type="text"
-                    value={profile.name}
+                    value={localProfile?.name || ""}
                     onChange={(e) => set("name", e.target.value)}
                     placeholder="Ex.: Mariana Silva"
                     className={inputClasses}
@@ -1108,7 +1108,7 @@ export default function PerfilPage() {
                       id="bio"
                       rows={3}
                       maxLength={160}
-                      value={profile.bio}
+                      value={localProfile?.bio || ""}
                       onChange={(e) => set("bio", e.target.value)}
                       placeholder="Conte um pouco sobre sua paixão por unhas, técnicas que adora e seu momento profissional..."
                       className={`${inputClasses} resize-none`}
@@ -1116,12 +1116,12 @@ export default function PerfilPage() {
                     <div className="mt-1 flex justify-end">
                       <span
                         className={`text-xs ${
-                          profile.bio.length >= 150
+                          (localProfile?.bio?.length || 0) >= 150
                             ? "text-rose-gold font-semibold"
                             : "text-foreground/40"
                         }`}
                       >
-                        {profile.bio.length} / 160 caracteres
+                        {(localProfile?.bio?.length || 0)} / 160 caracteres
                       </span>
                     </div>
                   </div>
@@ -1135,7 +1135,7 @@ export default function PerfilPage() {
                   <input
                     id="cidade"
                     type="text"
-                    value={profile.city}
+                    value={localProfile?.city || ""}
                     onChange={(e) => set("city", e.target.value)}
                     placeholder="Ex.: Curitiba, PR"
                     className={inputClasses}
@@ -1155,7 +1155,7 @@ export default function PerfilPage() {
                 >
                   <select
                     id="nivel"
-                    value={profile.level}
+                    value={localProfile?.level || "Iniciante"}
                     onChange={(e) => set("level", e.target.value)}
                     className={`${inputClasses} appearance-none bg-no-repeat bg-right-4 pr-10`}
                     style={{
@@ -1178,7 +1178,7 @@ export default function PerfilPage() {
                   <input
                     id="experiencia"
                     type="number"
-                    value={profile.experienceYears}
+                    value={localProfile?.experienceYears || ""}
                     onChange={(e) => set("experienceYears", e.target.value)}
                     placeholder="Ex.: 3"
                     min="0"
@@ -1195,7 +1195,7 @@ export default function PerfilPage() {
                   <input
                     id="marcas"
                     type="text"
-                    value={profile.favoriteBrands}
+                    value={localProfile?.favoriteBrands || ""}
                     onChange={(e) => set("favoriteBrands", e.target.value)}
                     placeholder="Ex.: CND, OPI, Gelish"
                     className={inputClasses}
@@ -1210,7 +1210,7 @@ export default function PerfilPage() {
                   <input
                     id="estilos"
                     type="text"
-                    value={profile.favoriteStyles}
+                    value={localProfile?.favoriteStyles || ""}
                     onChange={(e) => set("favoriteStyles", e.target.value)}
                     placeholder="Ex.: Nail Art, Francesinha"
                     className={inputClasses}
@@ -1225,7 +1225,7 @@ export default function PerfilPage() {
                   <input
                     id="equipamentos"
                     type="text"
-                    value={profile.equipment}
+                    value={localProfile?.equipment || ""}
                     onChange={(e) => set("equipment", e.target.value)}
                     placeholder="Ex.: Lâmpada UV, Drill, Pincéis"
                     className={inputClasses}
@@ -1240,7 +1240,7 @@ export default function PerfilPage() {
                   <input
                     id="curso"
                     type="text"
-                    value={profile.courseInProgress}
+                    value={localProfile?.courseInProgress || ""}
                     onChange={(e) => set("courseInProgress", e.target.value)}
                     placeholder="Ex.: Curso Avançado de Nail Art"
                     className={inputClasses}
@@ -1261,7 +1261,7 @@ export default function PerfilPage() {
                   <input
                     id="interesses"
                     type="text"
-                    value={profile.interests.join(", ")}
+                    value={localProfile?.interests?.join(", ") || ""}
                     onChange={(e) => set("interests", parseTags(e.target.value))}
                     placeholder="Ex.: Novidades, Tutorial, Tendências"
                     className={inputClasses}
@@ -1279,19 +1279,19 @@ export default function PerfilPage() {
                         key={preset}
                         type="button"
                         onClick={() => {
-                          const current = profile.interests;
+                          const current = localProfile?.interests || [];
                           const newInterests = current.includes(preset)
                             ? current.filter((i) => i !== preset)
                             : [...current, preset];
                           set("interests", newInterests);
                         }}
                         className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                          profile.interests.includes(preset)
+                          current.includes(preset)
                             ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
                             : "border border-rose-gold/40 bg-rosa-claro/40 text-rose-gold hover:bg-rosa-claro/60"
                         }`}
                       >
-                        {profile.interests.includes(preset) && (
+                        {(localProfile?.interests || []).includes(preset) && (
                           <Check className="h-3 w-3" />
                         )}
                         {preset}
@@ -1302,7 +1302,7 @@ export default function PerfilPage() {
               </FormSection>
 
               {/* SECTION 4: PROFISSIONAL (Conditional) */}
-              {profile.isEntrepreneur && (
+              {localProfile?.isEntrepreneur && (
                 <FormSection
                   title="Informações Profissionais"
                   description="Configurações para profissionais que oferecem serviços."
@@ -1315,7 +1315,7 @@ export default function PerfilPage() {
                     <input
                       id="servicos"
                       type="text"
-                      value={profile.services.join(", ")}
+                      value={localProfile?.services?.join(", ") || ""}
                       onChange={(e) => set("services", parseTags(e.target.value))}
                       placeholder="Ex.: Manicure, Pedicure, Alongamento"
                       className={inputClasses}
@@ -1330,7 +1330,7 @@ export default function PerfilPage() {
                     <input
                       id="preco"
                       type="text"
-                      value={profile.pricing}
+                      value={localProfile?.pricing || ""}
                       onChange={(e) => set("pricing", e.target.value)}
                       placeholder="Ex.: R$ 50 - R$ 200"
                       className={inputClasses}
@@ -1345,7 +1345,7 @@ export default function PerfilPage() {
                     <input
                       id="agendamento"
                       type="url"
-                      value={profile.bookingLink}
+                      value={localProfile?.bookingLink || ""}
                       onChange={(e) => set("bookingLink", e.target.value)}
                       placeholder="Ex.: https://booksy.com/minha-agenda"
                       className={inputClasses}
@@ -1368,7 +1368,7 @@ export default function PerfilPage() {
                     <input
                       id="instagram"
                       type="text"
-                      value={profile.instagram}
+                      value={localProfile?.instagram || ""}
                       onChange={(e) => set("instagram", e.target.value)}
                       placeholder="Ex.: @seuinstagram"
                       className={inputClasses}
@@ -1385,7 +1385,7 @@ export default function PerfilPage() {
                     <input
                       id="youtube"
                       type="text"
-                      value={profile.youtube}
+                      value={localProfile?.youtube || ""}
                       onChange={(e) => set("youtube", e.target.value)}
                       placeholder="Ex.: https://youtube.com/c/voerchannel"
                       className={inputClasses}
@@ -1402,7 +1402,7 @@ export default function PerfilPage() {
                     <input
                       id="tiktok"
                       type="text"
-                      value={profile.tiktok}
+                      value={localProfile?.tiktok || ""}
                       onChange={(e) => set("tiktok", e.target.value)}
                       placeholder="Ex.: @seutiktok"
                       className={inputClasses}
