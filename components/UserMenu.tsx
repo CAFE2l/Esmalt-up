@@ -52,7 +52,7 @@ const itemStyle = {
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
-  const { profile, loading: profileLoading } = useUserProfile();
+  const { profile } = useUserProfile();
   const { photoUrl } = useProfilePhoto();
   const pathname = usePathname();
 

@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useCart } from "@/lib/CartContext";
-import { Camera, PlayCircle, X, ChevronLeft, ChevronRight, Star, User, Check, Clock, MessageCircle, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
+import { Camera, PlayCircle, X, ChevronLeft, ChevronRight, Star, User, Check, Image as ImageIcon, Video as VideoIcon, ThumbsUp } from "lucide-react";
 import { primaryButton } from "@/components/buttonStyles";
 import { useAuthGate } from "@/components/AuthGateModal";
 

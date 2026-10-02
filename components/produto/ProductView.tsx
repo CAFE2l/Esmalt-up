@@ -1,6 +1,6 @@
 "use client";
 
-import { useState as _useState, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCategoryLabel, getInstallments as _getInstallments, formatPrice, type Product } from "@/lib/products";
 import ProductGallery from "./ProductGallery";
@@ -17,13 +17,13 @@ interface ProductViewProps {
 
 const RECENTLY_VIEWED_KEY = "esmaltup-recently-viewed";
 
-function addRecentlyViewed(product: Product) {
+function addRecentlyViewed(productId: string) {
   if (typeof window === "undefined") return;
   try {
     const stored = window.localStorage.getItem(RECENTLY_VIEWED_KEY);
     const items: string[] = stored ? JSON.parse(stored) : [];
-    const filtered = items.filter((id) => id !== product.id);
-    filtered.unshift(product.id);
+    const filtered = items.filter((id) => id !== productId);
+    filtered.unshift(productId);
     if (filtered.length > 20) filtered.pop();
     window.localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(filtered));
   } catch {
@@ -40,8 +40,7 @@ export default function ProductView({
   const { hasPurchased } = usePurchaseVerification(product.id);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    addRecentlyViewed(product);
+    addRecentlyViewed(product.id);
   }, [product.id]);
 
   const handleBuyNow = () => {

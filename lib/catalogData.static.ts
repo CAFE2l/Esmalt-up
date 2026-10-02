@@ -223,7 +223,7 @@ export const PRODUCTS: Product[] = [
     kind: "peca",
     name: "Tips Almond 500 un",
     description: "Curvatura almond em 10 tamanhos, prontas para alongamento.",
-    imageUrl: "/produtos/produtos_separados/tips_almond.svg",
+    imageUrl: "/produtos/produtos_separados/tips_almond.jpg",
     priceCents: 3290,
     category: "tips",
     featured: false,

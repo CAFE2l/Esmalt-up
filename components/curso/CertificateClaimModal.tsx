@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/AuthContext";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onClaimed: (data: { recipientName: string; issuedAt: string }) => void;
+  onClaimed: (data: { recipientName: string; issuedAt: string; publicCode: string; completedAt?: string }) => void;
 }
 
 /**
@@ -64,6 +64,8 @@ export default function CertificateClaimModal({ isOpen, onClose, onClaimed }: Pr
       onClaimed({
         recipientName: data.certificate.recipientName,
         issuedAt: data.certificate.issuedAt,
+        publicCode: data.certificate.publicCode,
+        completedAt: data.certificate.completedAt,
       });
     } catch {
       setError("Erro de conexão. Tente novamente.");

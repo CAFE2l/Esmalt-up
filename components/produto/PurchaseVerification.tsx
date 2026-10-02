@@ -38,8 +38,3 @@ export function usePurchaseVerification(productId: string) {
 
   return { hasPurchased, loading };
 }
-
-export default function PurchaseVerification({ productId }: { productId: string }) {
-  const { hasPurchased } = usePurchaseVerification(productId);
-  return null; // This component doesn't render anything, it's just for the hook
-}

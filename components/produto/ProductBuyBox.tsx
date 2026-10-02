@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
 import { 
@@ -13,22 +13,16 @@ import {
   Star,
   Clock,
   Check,
-  Users,
   Eye,
   ShoppingCart,
   CreditCard,
   Banknote,
-  RefreshCw,
-  ThumbsUp,
   MessageCircle,
-  Camera,
-  PlayCircle,
   X
 } from "lucide-react";
 import { formatPrice, getInstallments, type Product } from "@/lib/products";
 import { calculateFreight, isCepComplete, lookupCep, type CepAddress } from "@/lib/shipping";
 import { cn } from "@/lib/cn";
-import { primaryButton } from "@/components/buttonStyles";
 import { useAuthGate } from "@/components/AuthGateModal";
 
 // Define variant types for products
@@ -446,7 +440,7 @@ export default function ProductBuyBox({
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   
   // Track if user can review this product
-  const [canReview, setCanReview] = useState(userHasPurchased);
+  const canReview = userHasPurchased;
 
   // Calculate current variant based on selections
   const currentVariant = useMemo(() => {

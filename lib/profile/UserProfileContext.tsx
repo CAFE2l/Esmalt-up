@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { updateProfile } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { updateProfile as updateFirebaseAuthProfile } from "firebase/auth";
 
 interface UserProfile {
   name: string;
@@ -49,31 +48,6 @@ interface UserProfileContextValue {
 }
 
 const UserProfileContext = createContext<UserProfileContextValue | null>(null);
-
-const defaultProfile: UserProfile = {
-  name: "",
-  email: "",
-  profilePhotoUrl: null,
-  bannerUrl: null,
-  bio: "",
-  city: "",
-  level: "Iniciante",
-  experienceYears: "",
-  favoriteBrands: "",
-  favoriteStyles: "",
-  equipment: "",
-  courseInProgress: "",
-  status: "Disponível para atendimentos",
-  interests: [],
-  badges: [],
-  isEntrepreneur: false,
-  services: [],
-  pricing: null,
-  bookingLink: null,
-  youtube: null,
-  instagram: null,
-  tiktok: null,
-};
 
 export function UserProfileProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -152,7 +126,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           firebaseUpdates.photoURL = updates.photoURL;
         }
         
-        await updateProfile(user, firebaseUpdates);
+        await updateFirebaseAuthProfile(user, firebaseUpdates);
         
         // Force refresh the Firebase auth state to pick up changes
         await user.reload();

@@ -15,6 +15,7 @@ import CertificateClaimModal from "./CertificateClaimModal";
 import CourseSkeleton from "./CourseSkeleton";
 import CourseErrorState from "./CourseErrorState";
 import { primaryButton, outlineButton } from "../buttonStyles";
+import { useAuthGate } from "@/components/AuthGateModal";
 
 // Soft zig-zag offset classes
 const ZIG_ZAG_OFFSETS = [
@@ -31,12 +32,18 @@ export default function CoursePath() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const { guard: authGuard, modal: authModal } = useAuthGate(
+    user,
+    "Faça login para resgatar seu certificado.",
+  );
   const [selectedChest, setSelectedChest] = useState<BonusChest | null>(null);
   const [showLockedAlert, setShowLockedAlert] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
   const [showClaim, setShowClaim] = useState(false);
   const [claimedName, setClaimedName] = useState<string | null>(null);
   const [claimedIssuedAt, setClaimedIssuedAt] = useState<string | null>(null);
+  const [claimedPublicCode, setClaimedPublicCode] = useState<string | null>(null);
+  const [claimedCompletedAt, setClaimedCompletedAt] = useState<string | null>(null);
 
   const {
     isLessonCompleted,
@@ -172,7 +179,7 @@ export default function CoursePath() {
           {progressPercent >= 100 && (
             <button
               type="button"
-              onClick={() => setShowClaim(true)}
+              onClick={() => authGuard(() => setShowClaim(true))}
               className={`${outlineButton} inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm`}
             >
               <Award className="h-3.5 w-3.5" />
@@ -285,8 +292,8 @@ export default function CoursePath() {
           role={progressPercent >= 100 ? "button" : undefined}
           tabIndex={progressPercent >= 100 ? 0 : undefined}
           aria-label={progressPercent >= 100 ? "Resgatar certificado" : "Conclua todas as aulas para liberar o certificado"}
-          onClick={progressPercent >= 100 ? () => setShowClaim(true) : undefined}
-          onKeyDown={progressPercent >= 100 ? (e) => { if (e.key === "Enter" || e.key === " ") { setShowClaim(true); } } : undefined}
+          onClick={progressPercent >= 100 ? () => authGuard(() => setShowClaim(true)) : undefined}
+          onKeyDown={progressPercent >= 100 ? (e) => { if (e.key === "Enter" || e.key === " ") { authGuard(() => setShowClaim(true)); } } : undefined}
         >
           <Award className={`h-9 w-9 ${ progressPercent >= 100 ? "text-white" : "text-foreground/25" }`} />
         </div>
@@ -294,6 +301,8 @@ export default function CoursePath() {
           {progressPercent >= 100 ? "Certificado" : "Conclua todas as aulas para liberar"}
         </span>
       </div>
+
+      {authModal}
 
       {/* Bonus Chest Celebration Modal */}
       {selectedChest && (
@@ -311,6 +320,8 @@ export default function CoursePath() {
         onClaimed={(data) => {
           setClaimedName(data.recipientName);
           setClaimedIssuedAt(data.issuedAt);
+          setClaimedPublicCode((data as { recipientName: string; issuedAt: string; publicCode?: string }).publicCode ?? null);
+          setClaimedCompletedAt((data as { recipientName: string; issuedAt: string; completedAt?: string }).completedAt ?? null);
           issueCertificate();
           setShowClaim(false);
           setShowCertificate(true);
@@ -323,6 +334,8 @@ export default function CoursePath() {
         onClose={() => setShowCertificate(false)}
         userName={claimedName || profile?.name?.trim() || user?.displayName?.trim() || "Aluna Esmalt'up"}
         issuedAt={claimedIssuedAt || certificateIssuedAt || new Date().toISOString()}
+        completedAt={claimedCompletedAt ?? undefined}
+        publicCode={claimedPublicCode ?? undefined}
       />
 
       {/* Wall link after issuing */}

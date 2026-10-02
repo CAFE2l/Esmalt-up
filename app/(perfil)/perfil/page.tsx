@@ -13,14 +13,13 @@ import {
   ShoppingBag,
   Sparkles,
   Trash2,
-  Upload,
   UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useUserProfile, useProfilePhoto } from "@/lib/profile";
-import { primaryButton, outlineButton } from "@/components/buttonStyles";
+import { primaryButton } from "@/components/buttonStyles";
 
 // Type definitions
 type ProfileForm = {
@@ -68,30 +67,6 @@ const stylePresets = [
   "Cuticulagem Russa",
   "Minimalista",
 ];
-
-const emptyProfile: ProfileForm = {
-  name: "",
-  bio: "",
-  city: "",
-  level: "Iniciante",
-  experienceYears: "",
-  favoriteBrands: "",
-  favoriteStyles: "",
-  equipment: "",
-  courseInProgress: "",
-  status: "Disponível para atendimentos",
-  interests: [],
-  badges: [],
-  profilePhotoUrl: "",
-  bannerUrl: "",
-  isEntrepreneur: false,
-  services: [],
-  pricing: "",
-  bookingLink: "",
-  youtube: "",
-  instagram: "",
-  tiktok: "",
-};
 
 const inputClasses =
   "w-full rounded-2xl border border-cinza-suave bg-rosa-claro/40 px-4 py-3 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:border-rose-gold focus:outline-none focus:ring-1 focus:ring-rose-gold/40";
@@ -544,27 +519,6 @@ function ProfileHeader({
   );
 }
 
-// NEW: Stats Card Component
-function StatsCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  icon: ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-cinza-suave/70 bg-branco p-4 shadow-card text-center">
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <span className="text-rose-gold">{icon}</span>
-        <span className="text-xl sm:text-2xl font-bold text-foreground">{value}</span>
-      </div>
-      <p className="text-xs text-foreground/50 uppercase tracking-wider font-medium">{label}</p>
-    </div>
-  );
-}
-
 // Main Profile Page Component
 export default function PerfilPage() {
   const { user, loading: authLoading } = useAuth();
@@ -791,11 +745,6 @@ export default function PerfilPage() {
     } finally {
       setAvatarUploading(false);
     }
-  };
-
-  const handleBannerUpload = async () => {
-    if (!bannerInputRef.current) return;
-    bannerInputRef.current.click();
   };
 
   const handleBannerUploadChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
