@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/authUtils";
-import { getProduct } from "@/lib/catalogData";
+import { getProduct, getPrimaryProductImage } from "@/lib/products";
 
 export const runtime = "nodejs";
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     for (const item of parsed.data.items) {
       const product = await getProduct(item.productId);
       if (product && product.stock > 0) {
-        validItems.push(item);
+        validItems.push({ ...item, productId: product.id });
       }
     }
 
@@ -71,12 +71,28 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    const items = Array.from(merged.entries()).map(([productId, quantity]) => ({
-      productId,
-      quantity,
-    }));
+    const items = await Promise.all(
+      Array.from(merged.entries()).map(async ([productId, quantity]) => {
+        const product = await getProduct(productId);
+        return product
+          ? {
+              productId,
+              quantity,
+              product: {
+                id: product.id,
+                slug: product.slug,
+                kind: product.kind,
+                name: product.name,
+                priceCents: product.priceCents,
+                imageUrl: getPrimaryProductImage(product),
+                stock: product.stock,
+              },
+            }
+          : null;
+      }),
+    );
 
-    return NextResponse.json({ items });
+    return NextResponse.json({ items: items.filter((item) => item !== null) });
   } catch (error) {
     console.error("[api/cart/sync] POST", error);
     return NextResponse.json(

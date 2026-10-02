@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCart } from "@/lib/CartContext";
 import { formatPrice } from "@/lib/products";
-import { Heart, Share2, ShoppingCart } from "lucide-react";
+import { Share2, ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { FavoritesButton } from "@/lib/wishlist";
 
 interface Product {
   id: string;
+  slug: string;
   name: string;
   priceCents: number;
   imageUrl: string;
@@ -57,7 +59,24 @@ export default function ProductCarousel({ products, title, className = "" }: Pro
       {title && <h2 className="mb-4 text-xl font-bold text-foreground sm:text-2xl">{title}</h2>}
       <div ref={containerRef} className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }} onScroll={handleScroll} tabIndex={0} onKeyDown={(e) => { if (e.key === "ArrowRight") { e.preventDefault(); next(); } if (e.key === "ArrowLeft") { e.preventDefault(); prev(); } }}>
         {products.map((product, i) => (
-          <ProductCard key={product.id} product={product} isActive={i === activeIndex} onAddToCart={() => addItem(product.id)} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            isActive={i === activeIndex}
+            onAddToCart={() =>
+              addItem(product.id, 1, {
+                product: {
+                  id: product.id,
+                  slug: product.slug,
+                  kind: product.kind,
+                  name: product.name,
+                  priceCents: product.priceCents,
+                  imageUrl: product.imageUrl,
+                  stock: product.stock,
+                },
+              })
+            }
+          />
         ))}
       </div>
       {products.length > 1 && (
@@ -82,7 +101,6 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product, isActive, onAddToCart }: ProductCardProps) {
-  const [liked, setLiked] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   const handleShare = async () => {
@@ -98,15 +116,16 @@ function ProductCard({ product, isActive, onAddToCart }: ProductCardProps) {
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-4" loading="lazy" />
+        <FavoritesButton
+          product={product}
+          className="absolute right-3 top-3 z-10"
+        />
       </div>
       <div className="mt-3">
         <Link href={`/produto/${product.slug}`} className="line-clamp-1 text-sm font-semibold text-foreground hover:text-rose-gold">{product.name}</Link>
         <p className="text-base font-bold text-rose-gold">{formatPrice(product.priceCents)}</p>
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <button type="button" onClick={() => setLiked(!liked)} className={`rounded-full p-2 transition-colors ${liked ? "text-rose-gold" : "text-foreground/50 hover:text-rose-gold"}`} aria-label={liked ? "Remover dos favoritos" : "Adicionar aos favoritos"}>
-          <Heart className={`h-5 w-5 ${liked ? "fill-current" : ""}`} />
-        </button>
         <button type="button" onClick={handleShare} className="rounded-full p-2 text-foreground/50 transition-colors hover:text-rose-gold" aria-label="Compartilhar">
           <Share2 className="h-5 w-5" />
         </button>

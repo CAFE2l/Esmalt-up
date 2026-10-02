@@ -5,7 +5,6 @@ import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
 import { 
   Truck, 
-  Heart, 
   Package, 
   ChevronLeft, 
   ChevronRight, 
@@ -24,6 +23,8 @@ import { formatPrice, getInstallments, type Product } from "@/lib/products";
 import { calculateFreight, isCepComplete, lookupCep, type CepAddress } from "@/lib/shipping";
 import { cn } from "@/lib/cn";
 import { useAuthGate } from "@/components/AuthGateModal";
+import { getPrimaryProductImage } from "@/lib/products";
+import { FavoritesButton } from "@/lib/wishlist";
 
 // Define variant types for products
 interface ProductVariant {
@@ -434,7 +435,6 @@ export default function ProductBuyBox({
     cents: number;
     etaDays: string;
   } | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
 
   // Variant state
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -547,6 +547,15 @@ export default function ProductBuyBox({
       addItem(product.id, quantity, {
         variantId: currentVariant?.id,
         variantName: currentVariant?.name,
+        product: {
+          id: product.id,
+          slug: product.slug,
+          kind: product.kind,
+          name: product.name,
+          priceCents: effectivePrice,
+          imageUrl: getPrimaryProductImage(product),
+          stock: effectiveStock,
+        },
       });
     });
   };
@@ -558,14 +567,18 @@ export default function ProductBuyBox({
       addItem(product.id, quantity, {
         variantId: currentVariant?.id,
         variantName: currentVariant?.name,
+        product: {
+          id: product.id,
+          slug: product.slug,
+          kind: product.kind,
+          name: product.name,
+          priceCents: effectivePrice,
+          imageUrl: getPrimaryProductImage(product),
+          stock: effectiveStock,
+        },
       });
       onBuyNow?.();
     });
-  };
-
-  // Handle favorite toggle
-  const handleFavorite = () => {
-    authGuard(() => setIsFavorite((f) => !f));
   };
 
   return (
@@ -685,17 +698,11 @@ export default function ProductBuyBox({
           </span>
         </button>
 
-        <button
-          type="button"
-          onClick={handleFavorite}
-          className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-full border border-cinza-suave/50 bg-branco py-3 text-sm font-medium text-foreground transition-all duration-200 hover:border-rose-gold hover:text-rose-gold",
-            isFavorite && "border-rose-gold text-rose-gold bg-rosa-claro/40"
-          )}
-        >
-          <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
-          {isFavorite ? "Nos favoritos" : "Adicionar aos favoritos"}
-        </button>
+        <FavoritesButton
+          product={product}
+          showText
+          className="w-full py-3 text-sm font-medium"
+        />
       </div>
 
       {/* SHIPPING CALCULATOR */}

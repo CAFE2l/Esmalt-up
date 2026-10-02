@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useCart } from "@/lib/CartContext";
 import {
-  getProduct,
   formatPrice,
 } from "@/lib/catalogData";
 import { calculateFreight, isCepComplete, lookupCep, type CepAddress } from "@/lib/shipping";
@@ -690,12 +689,14 @@ export default function CheckoutPage() {
           <h2 className="text-base font-bold text-foreground">Resumo do pedido</h2>
           <ul className="mt-4 space-y-3">
             {items.map((line) => {
-              const product = getProduct(line.productId);
+              const product = line.product;
               if (!product) return null;
               return (
                 <li key={line.productId} className="flex items-center gap-3">
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-branco">
-                    <Image src={product.imageUrl} alt={product.name} fill sizes="56px" className="object-cover" />
+                    {product.imageUrl ? (
+                      <Image src={product.imageUrl} alt={product.name} fill sizes="56px" className="object-cover" />
+                    ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-foreground">

@@ -1,44 +1,26 @@
 "use client";
 
+import { Heart } from "lucide-react";
 import { m as motion, useReducedMotion } from "framer-motion";
+import { useAuth } from "@/lib/AuthContext";
+import { useAuthGate } from "@/components/AuthGateModal";
 import { useFavoriteToggle } from "./useFavorites";
-import { type Product } from "@/lib/catalogData";
-import { NeonGlow } from "@/components/ui/LED";
-
-/**
- * FavoritesButton - Animated heart icon for wishlist
- * 
- * Features:
- * - Spring-powered animation on toggle
- * - Pop effect when adding
- * - Glass/blur effects
- * - Accessible with ARIA labels
- * - Optimistic UI
- */
+import type { FavoriteProductInput } from "./FavoritesContext";
 
 interface FavoritesButtonProps {
-  product: Product;
+  product: FavoriteProductInput;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   showText?: boolean;
   textClassName?: string;
   iconClassName?: string;
+  guard?: () => void;
 }
 
 const sizeClasses = {
-  sm: 'h-8 w-8 text-sm',
-  md: 'h-10 w-10 text-base',
-  lg: 'h-12 w-12 text-lg',
-};
-
-const heartVariants = {
-  initial: { scale: 1, color: 'rgba(var(--foreground-rgb), 0.5)' },
-  animate: { 
-    scale: [1, 1.3, 1], 
-    color: ['rgba(var(--foreground-rgb), 0.5)', '#e8a0b4', 'rgba(232, 160, 180, 0.8)'] 
-  },
-  exit: { scale: 1, color: 'rgba(var(--foreground-rgb), 0.5)' },
-  filled: { scale: 1, color: '#e8a0b4' },
+  sm: "h-9 w-9",
+  md: "h-11 w-11",
+  lg: "h-12 w-12",
 };
 
 export function FavoritesButton({
@@ -47,163 +29,95 @@ export function FavoritesButton({
   size = "md",
   showText = false,
   textClassName = "",
+  iconClassName = "",
 }: FavoritesButtonProps) {
   const reduceMotion = useReducedMotion();
+  const { user } = useAuth();
   const { isFavorite, toggleFavorite, isLoading } = useFavoriteToggle(product.id);
-  const sizeClass = sizeClasses[size];
-
-  // Heart icon SVG paths
-  const outlineHeart = (
-    <path 
-      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  );
-
-  const filledHeart = (
-    <path 
-      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-      fill="currentColor"
-      stroke="none"
-    />
+  const { guard, modal } = useAuthGate(
+    user,
+    "Entre em sua conta para criar sua lista de desejos.",
+    "Faça login para salvar favoritos",
   );
 
   return (
-    <motion.button
-      type="button"
-      aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-      aria-pressed={isFavorite}
-      onClick={() => toggleFavorite(product)}
-      disabled={isLoading}
-      className={`flex items-center gap-2 rounded-full bg-branco/90 border border-rose-gold/20 p-2 transition-all duration-200 hover:border-rose-gold backdrop-blur-xl ${className}`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      {/* Neon glow effect */}
-      <NeonGlow color="pink" intensity="sm" disabled={!isFavorite}>
-        <motion.svg
-          viewBox="0 0 24 24"
-          className={`shrink-0 ${sizeClass}`}
-          initial={reduceMotion ? {} : "initial"}
-          animate={reduceMotion ? {} : (isFavorite ? "filled" : "initial")}
-          variants={reduceMotion ? {} : heartVariants}
-          transition={reduceMotion ? {} : {
-            duration: 0.5,
-            ease: "easeOut",
-          }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+    <>
+      <motion.button
+        type="button"
+        aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+        aria-pressed={isFavorite}
+        onClick={() => guard(() => void toggleFavorite(product))}
+        disabled={isLoading}
+        whileHover={reduceMotion ? undefined : { scale: 1.08 }}
+        whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+        className={`group/favorite inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-white/75 text-foreground/60 shadow-[0_8px_24px_rgba(38,20,29,0.18)] backdrop-blur-xl transition-[background,color,border,box-shadow] duration-200 hover:border-pink-200 hover:bg-white hover:text-pink-500 hover:shadow-[0_8px_28px_rgba(236,72,153,0.28)] disabled:cursor-wait disabled:opacity-60 ${
+          isFavorite
+            ? "border-pink-200 bg-gradient-to-br from-pink-500 to-rose-400 text-white shadow-[0_8px_24px_rgba(236,72,153,0.3)]"
+            : ""
+        } ${sizeClasses[size]} ${className}`}
+      >
+        <motion.span
+          key={isFavorite ? "saved" : "unsaved"}
+          initial={reduceMotion ? false : { scale: isFavorite ? 0.55 : 1 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 440, damping: 18 }}
+          className="relative flex"
         >
-          {isFavorite ? filledHeart : outlineHeart}
-        </motion.svg>
-      </NeonGlow>
-
-      {showText && (
-        <span className={`text-sm font-medium transition-colors ${isFavorite ? 'text-rose-gold' : 'text-foreground/60'} ${textClassName}`}>
-          {isFavorite ? "Favoritado" : "Favoritar"}
-        </span>
-      )}
-    </motion.button>
+          <Heart
+            className={`${iconClassName || "h-5 w-5"} transition-colors duration-200 ${
+              isFavorite ? "fill-white stroke-white" : "fill-transparent"
+            }`}
+            strokeWidth={isFavorite ? 2.1 : 1.7}
+          />
+        </motion.span>
+        {showText && (
+          <span className={`text-sm font-semibold ${textClassName}`}>
+            {isFavorite ? "Salvo" : "Favoritar"}
+          </span>
+        )}
+      </motion.button>
+      {modal}
+    </>
   );
 }
 
-/**
- * Simple heart icon without text
- */
 export function HeartIconButton({
   product,
   className = "",
   size = "md",
   iconClassName = "",
-}: Omit<FavoritesButtonProps, 'showText' | 'textClassName'>) {
-  const { isFavorite, toggleFavorite, isLoading } = useFavoriteToggle(product.id);
-  const sizeClass = sizeClasses[size];
-
-  const outlineHeart = (
-    <path 
-      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  );
-
-  const filledHeart = (
-    <path 
-      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-      fill="currentColor"
-      stroke="none"
-    />
-  );
-
+}: Omit<FavoritesButtonProps, "showText" | "textClassName">) {
   return (
-    <motion.button
-      type="button"
-      aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-      aria-pressed={isFavorite}
-      onClick={() => toggleFavorite(product)}
-      disabled={isLoading}
-      className={`flex items-center justify-center rounded-full p-1.5 transition-all duration-200 hover:bg-rosa-claro/20 ${className}`}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
-    >
-      <motion.svg
-        viewBox="0 0 24 24"
-        className={`shrink-0 ${sizeClass} ${iconClassName}`}
-        initial={false}
-        animate={isFavorite ? "filled" : "initial"}
-        variants={{
-          initial: { 
-            color: 'rgba(var(--foreground-rgb), 0.5)',
-            scale: 1,
-          },
-          filled: { 
-            color: '#e8a0b4',
-            scale: 1,
-          },
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        {isFavorite ? filledHeart : outlineHeart}
-      </motion.svg>
-    </motion.button>
+    <FavoritesButton
+      product={product}
+      className={className}
+      size={size}
+      iconClassName={iconClassName}
+    />
   );
 }
 
-/**
- * Floating heart button for product cards
- */
 export function FloatingHeartButton({
   product,
   className = "",
   position = "top-right",
 }: {
-  product: Product;
+  product: FavoriteProductInput;
   className?: string;
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
 }) {
   const positionClasses = {
-    'top-right': 'absolute top-3 right-3',
-    'top-left': 'absolute top-3 left-3',
-    'bottom-right': 'absolute bottom-3 right-3',
-    'bottom-left': 'absolute bottom-3 left-3',
+    "top-right": "absolute right-3 top-3",
+    "top-left": "absolute left-3 top-3",
+    "bottom-right": "absolute bottom-3 right-3",
+    "bottom-left": "absolute bottom-3 left-3",
   };
 
   return (
-    <div className={positionClasses[position]}>
-      <HeartIconButton
-        product={product}
-        className={`z-10 ${className}`}
-        size="md"
-      />
-    </div>
+    <FavoritesButton
+      product={product}
+      className={`z-20 ${positionClasses[position]} ${className}`}
+      size="md"
+    />
   );
 }
-
-

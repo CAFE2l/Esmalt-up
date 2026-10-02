@@ -2,7 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getCategoryLabel, getInstallments as _getInstallments, formatPrice, type Product } from "@/lib/products";
+import {
+  getCategoryLabel,
+  getInstallments as _getInstallments,
+  getPrimaryProductImage,
+  formatPrice,
+  type Product,
+} from "@/lib/products";
 import ProductGallery from "./ProductGallery";
 import ProductBuyBox from "./ProductBuyBox";
 import Stars from "./Stars";
@@ -49,6 +55,10 @@ export default function ProductView({
 
   const categoryLabel = getCategoryLabel(product.category);
   const outOfStock = product.stock <= 0;
+  const primaryImage = getPrimaryProductImage(product);
+  const galleryImages = primaryImage
+    ? [primaryImage, ...product.images.filter((image) => image !== primaryImage)]
+    : product.images;
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:pt-10">
@@ -76,7 +86,7 @@ export default function ProductView({
         {/* Left: Gallery */}
         <div className="lg:col-span-1">
           <ProductGallery
-            images={product.images}
+            images={galleryImages}
             videoUrl={product.videoUrl}
             productName={product.name}
             outOfStock={outOfStock}

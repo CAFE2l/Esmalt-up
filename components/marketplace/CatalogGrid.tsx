@@ -6,7 +6,7 @@ import { m, m as motion, useReducedMotion, LayoutGroup } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Pedestal, LEDUnderline } from "@/components/ui/LED";
 import { PrimaryButton } from "@/components/ui/Button";
-import { FloatingHeartButton } from "@/lib/wishlist";
+import { FavoritesButton } from "@/lib/wishlist";
 import {
   CATEGORY_LABELS,
   formatPrice,
@@ -309,7 +309,10 @@ export default function CatalogGrid({
                   </Pedestal>
                   
                   {/* Floating heart button */}
-                  <FloatingHeartButton product={product} position="top-right" />
+                  <FavoritesButton
+                    product={product}
+                    className="absolute right-3 top-3 z-20"
+                  />
                   
                   {/* Glass overlay on image */}
                   <div
@@ -317,7 +320,7 @@ export default function CatalogGrid({
                     className="pointer-events-none absolute inset-0 bg-rosa-blush/10 mix-blend-soft-light"
                   />
                   
-                  {product.stockStatus === "out_of_stock" && (
+                  {product.stock <= 0 && (
                     <span className="absolute right-3 top-3 z-10 rounded-full bg-foreground/10 px-3 py-1 text-xs font-semibold text-foreground/70 backdrop-blur-sm">
                       Esgotado
                     </span>
@@ -341,7 +344,7 @@ export default function CatalogGrid({
                     </span>
                     {product.level && (
                       <span className="w-fit rounded-full bg-rosa-blush/15 px-3 py-1 text-xs font-medium text-rosa-blush">
-                        {LEVEL_LABELS[product.level]}
+                        {LEVEL_LABELS[product.level as SkillLevel] ?? product.level}
                       </span>
                     )}
                   </div>

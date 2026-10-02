@@ -1,195 +1,244 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { type Product } from "@/lib/catalogData";
-import { trackAddToWishlist } from "@/lib/analytics";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useAuth } from "@/lib/AuthContext";
+import { trackAddToWishlist } from "@/lib/analytics";
 
-// ============================================
-// TYPES
-// ============================================
+export interface FavoriteProduct {
+  id: string;
+  slug: string;
+  kind: string;
+  name: string;
+  description: string;
+  priceCents: number;
+  category: string;
+  stock: number;
+  images: string[];
+  featured: boolean;
+}
+
+export type FavoriteProductInput = Pick<
+  FavoriteProduct,
+  "id" | "name" | "kind" | "category" | "priceCents"
+> & {
+  slug?: string;
+  stock?: number;
+  images?: string[];
+  imageUrl?: string;
+};
 
 interface FavoritesContextType {
-  favorites: Product[];
+  favorites: FavoriteProduct[];
   isFavorite: (productId: string) => boolean;
-  toggleFavorite: (product: Product) => Promise<void>;
-  addFavorite: (product: Product) => Promise<void>;
+  toggleFavorite: (product: FavoriteProductInput) => Promise<void>;
+  addFavorite: (product: FavoriteProductInput) => Promise<void>;
   removeFavorite: (productId: string) => Promise<void>;
   favoritesCount: number;
   isLoading: boolean;
+  pendingIds: Set<string>;
   error: Error | null;
 }
 
 export const FavoritesContext = createContext<FavoritesContextType | null>(null);
+export const RECENTLY_VIEWED_KEY = "esmaltup_recently_viewed";
 
-// Storage keys
-const FAVORITES_KEY = 'esmaltup_favorites';
-const RECENTLY_VIEWED_KEY = 'esmaltup_recently_viewed';
+interface FavoriteResponse {
+  id: string;
+  productId: string;
+  createdAt: string;
+  product: FavoriteProduct;
+}
 
-// ============================================
-// FAVORITES PROVIDER
-// ============================================
+async function requestFavorites(
+  token: string,
+  method: "GET" | "POST" | "DELETE",
+  productId?: string,
+): Promise<{ favorites?: FavoriteResponse[]; favorite?: FavoriteResponse }> {
+  const response = await fetch("/api/favorites", {
+    method,
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...(method !== "GET" ? { "content-type": "application/json" } : {}),
+    },
+    ...(method !== "GET" ? { body: JSON.stringify({ productId }) } : {}),
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    favorites?: FavoriteResponse[];
+    favorite?: FavoriteResponse;
+  };
+  if (!response.ok) {
+    throw new Error(data.error ?? "Não foi possível atualizar sua lista de desejos.");
+  }
+  return data;
+}
 
-/**
- * Favorites Provider
- * 
- * Manages favorites/wishlist state with:
- * - DB persistence for logged-in users (via Firebase)
- * - localStorage for guests
- * - Sync between localStorage and DB on login
- * - Optimistic updates for instant feedback
- */
 export function FavoritesProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const [favorites, setFavorites] = useState<Product[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<Error | null>(null);
+  const [toast, setToast] = useState<{ message: string; kind: "success" | "error" } | null>(null);
 
-  // Load favorites from storage
+  const notify = useCallback((message: string, kind: "success" | "error" = "success") => {
+    setToast({ message, kind });
+  }, []);
+
   useEffect(() => {
-    async function loadFavorites() {
-      try {
-        setLoading(true);
-        
-        if (user) {
-          // TODO: Load from Firebase
-          // For now, fall back to localStorage
-          const stored = getLocalFavorites();
-          setFavorites(stored);
-        } else {
-          const stored = getLocalFavorites();
-          setFavorites(stored);
-        }
-      } catch (err) {
-        setError(err as Error);
-        console.error('[Favorites] Error loading favorites:', err);
-      } finally {
+    if (authLoading) return;
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      if (!user) {
+        setFavorites([]);
         setLoading(false);
+        return;
+      }
+      try {
+        const token = await user.getIdToken();
+        const data = await requestFavorites(token, "GET");
+        if (active) setFavorites((data.favorites ?? []).map((favorite) => favorite.product));
+      } catch (loadError) {
+        if (active) {
+          const issue = loadError instanceof Error ? loadError : new Error("Falha ao carregar favoritos.");
+          setError(issue);
+          notify(issue.message, "error");
+          console.error("[Favorites] Error loading favorites:", issue);
+        }
+      } finally {
+        if (active) setLoading(false);
       }
     }
 
-    loadFavorites();
-  }, [user, authLoading]);
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [authLoading, notify, user]);
 
-  // Sync localStorage favorites to DB on login
   useEffect(() => {
-    if (user && !authLoading) {
-      const localFavorites = getLocalFavorites();
-      if (localFavorites.length > 0) {
-        // TODO: Sync to Firebase
-        // For now, just merge with any existing DB favorites
-        console.log('[Favorites] User logged in, sync local to DB:', localFavorites.length, 'items');
+    if (!toast) return;
+    const timeout = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
+
+  const isFavorite = useCallback(
+    (productId: string) => favorites.some((favorite) => favorite.id === productId || favorite.slug === productId),
+    [favorites],
+  );
+
+  const runFavoriteRequest = useCallback(
+    async (productId: string, method: "POST" | "DELETE", input?: FavoriteProductInput) => {
+      if (!user) {
+        notify("Entre em sua conta para criar sua lista de desejos.", "error");
+        return;
       }
-    }
-  }, [user, authLoading]);
-
-  // Save favorites to storage
-  const saveFavorites = useCallback((newFavorites: Product[]) => {
-    if (user) {
-      // TODO: Save to Firebase
-      // For now, also save to localStorage as backup
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
-    } else {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
-    }
-    setFavorites(newFavorites);
-  }, [user]);
-
-  // Check if product is favorite
-  const isFavorite = useCallback((productId: string): boolean => {
-    return favorites.some((fav) => fav.id === productId);
-  }, [favorites]);
-
-  // Add to favorites with optimistic update
-  const addFavorite = useCallback(async (product: Product) => {
-    if (isFavorite(product.id)) return;
-
-    // Optimistic update
-    const newFavorites = [...favorites, product];
-    saveFavorites(newFavorites);
-
-    // Track GA4 event
-    trackAddToWishlist(product);
-
-    // TODO: If user is logged in, also save to Firebase
-    if (user) {
+      if (pendingIds.has(productId)) return;
+      setPendingIds((current) => new Set(current).add(productId));
+      setError(null);
       try {
-        // TODO: await saveToFirebase(user.uid, product);
-      } catch (err) {
-        console.error('[Favorites] Error saving to DB:', err);
-        // Revert optimistic update on error
-        setFavorites(favorites);
+        const token = await user.getIdToken();
+        const data = await requestFavorites(token, method, input?.slug ?? productId);
+        if (method === "POST" && data.favorite) {
+          setFavorites((current) => [
+            data.favorite!.product,
+            ...current.filter((favorite) => favorite.id !== data.favorite!.productId),
+          ]);
+          trackAddToWishlist({
+            id: data.favorite.product.id,
+            name: data.favorite.product.name,
+          });
+          notify("Produto adicionado aos favoritos");
+        } else {
+          setFavorites((current) =>
+            current.filter((favorite) => favorite.id !== productId && favorite.slug !== productId),
+          );
+          notify("Produto removido dos favoritos");
+        }
+      } catch (requestError) {
+        const issue = requestError instanceof Error
+          ? requestError
+          : new Error("Não foi possível atualizar os favoritos.");
+        setError(issue);
+        notify(issue.message, "error");
+        console.error("[Favorites] Error updating favorites:", issue);
+      } finally {
+        setPendingIds((current) => {
+          const next = new Set(current);
+          next.delete(productId);
+          return next;
+        });
       }
-    }
-  }, [favorites, isFavorite, saveFavorites, user]);
+    },
+    [notify, pendingIds, user],
+  );
 
-  // Remove from favorites with optimistic update
-  const removeFavorite = useCallback(async (productId: string) => {
-    const newFavorites = favorites.filter((fav) => fav.id !== productId);
-    saveFavorites(newFavorites);
+  const addFavorite = useCallback(
+    (product: FavoriteProductInput) => runFavoriteRequest(product.id, "POST", product),
+    [runFavoriteRequest],
+  );
 
-    // TODO: If user is logged in, also remove from Firebase
-    if (user) {
-      try {
-        // TODO: await removeFromFirebase(user.uid, productId);
-      } catch (err) {
-        console.error('[Favorites] Error removing from DB:', err);
-        // Revert optimistic update on error
-        setFavorites(favorites);
-      }
-    }
-  }, [favorites, saveFavorites, user]);
+  const removeFavorite = useCallback(
+    (productId: string) => runFavoriteRequest(productId, "DELETE"),
+    [runFavoriteRequest],
+  );
 
-  // Toggle favorite
-  const toggleFavorite = useCallback(async (product: Product) => {
-    if (isFavorite(product.id)) {
-      await removeFavorite(product.id);
-    } else {
-      await addFavorite(product);
-    }
-  }, [isFavorite, addFavorite, removeFavorite]);
+  const toggleFavorite = useCallback(
+    (product: FavoriteProductInput) =>
+      isFavorite(product.id) ? removeFavorite(product.id) : addFavorite(product),
+    [addFavorite, isFavorite, removeFavorite],
+  );
 
-  const value: FavoritesContextType = {
-    favorites,
-    isFavorite,
-    toggleFavorite,
-    addFavorite,
-    removeFavorite,
-    favoritesCount: favorites.length,
-    isLoading: loading || authLoading,
-    error,
-  };
+  const value = useMemo<FavoritesContextType>(
+    () => ({
+      favorites,
+      isFavorite,
+      toggleFavorite,
+      addFavorite,
+      removeFavorite,
+      favoritesCount: favorites.length,
+      isLoading: loading || authLoading,
+      pendingIds,
+      error,
+    }),
+    [addFavorite, authLoading, error, favorites, isFavorite, loading, pendingIds, removeFavorite, toggleFavorite],
+  );
 
   return (
     <FavoritesContext.Provider value={value}>
       {children}
+      {toast && (
+        <div
+          role={toast.kind === "error" ? "alert" : "status"}
+          aria-live="polite"
+          className={`fixed bottom-5 left-1/2 z-[90] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-2xl border px-5 py-3 text-center text-sm font-medium shadow-card-lg backdrop-blur-xl ${
+            toast.kind === "error"
+              ? "border-red-400/40 bg-branco/95 text-red-600"
+              : "border-rose-gold/40 bg-branco/95 text-rose-gold"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </FavoritesContext.Provider>
   );
 }
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-function getLocalFavorites(): Product[] {
-  try {
-    const stored = localStorage.getItem(FAVORITES_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-// ============================================
-// EXPORTS
-// ============================================
-
 export function useFavorites(): FavoritesContextType {
   const context = useContext(FavoritesContext);
   if (!context) {
-    throw new Error('useFavorites must be used within a FavoritesProvider');
+    throw new Error("useFavorites must be used within a FavoritesProvider");
   }
   return context;
 }
-
-export { FAVORITES_KEY, RECENTLY_VIEWED_KEY, getLocalFavorites };

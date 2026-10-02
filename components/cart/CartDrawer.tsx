@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/lib/CartContext";
-import { getProduct, formatPrice } from "@/lib/catalogData";
+import { formatPrice } from "@/lib/catalogData";
 import { primaryButton } from "@/components/buttonStyles";
 
 export default function CartDrawer() {
@@ -100,7 +100,7 @@ export default function CartDrawer() {
         ) : (
           <ul className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
             {items.map((line) => {
-              const product = getProduct(line.productId);
+              const product = line.product;
               if (!product) return null;
               return (
                 <li
@@ -112,13 +112,15 @@ export default function CartDrawer() {
                     onClick={closeCart}
                     className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-rosa-claro"
                   >
-                    <Image
-                      src={product.images[0] || "/placeholder-product.jpg"}
-                      alt={product.name}
-                      fill
-                      sizes="80px"
-                      className="object-cover"
-                    />
+                    {product.imageUrl ? (
+                      <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        fill
+                        sizes="80px"
+                        className="object-cover"
+                      />
+                    ) : null}
                   </Link>
 
                   <div className="flex min-w-0 flex-1 flex-col">

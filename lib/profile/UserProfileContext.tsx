@@ -155,7 +155,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
 
   // Update profile data - this is the main method for profile updates
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
-    if (!user || !profile) return;
+    if (!user) return;
     
     setSaveStatus('saving');
     setSaveError(null);
@@ -209,10 +209,10 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       
       // Update Firebase auth if name or photo changed
       const firebaseUpdates: { displayName?: string; photoURL?: string | null } = {};
-      if (updates.name !== undefined && profile && profile.name !== updates.name) {
+      if (updates.name !== undefined) {
         firebaseUpdates.displayName = updates.name;
       }
-      if (updates.profilePhotoUrl !== undefined && profile && profile.profilePhotoUrl !== updates.profilePhotoUrl) {
+      if (updates.profilePhotoUrl !== undefined) {
         firebaseUpdates.photoURL = updates.profilePhotoUrl;
       }
       
@@ -224,6 +224,9 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       
       // Auto-reset success status after 3 seconds
       setTimeout(() => setSaveStatus('idle'), 3000);
+      
+      // Refresh profile from server to ensure consistency
+      await refreshProfile();
       
     } catch (err) {
       console.error("[UserProfileContext] Error updating profile:", err);
@@ -237,7 +240,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         setSaveError(null);
       }, 5000);
     }
-  }, [user, profile, updateFirebaseProfile]);
+  }, [user, updateFirebaseProfile, refreshProfile]);
 
   // Dedicated method for photo URL updates (used by image uploaders)
   const updatePhotoUrl = useCallback(async (url: string | null) => {

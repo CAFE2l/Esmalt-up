@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, type ReactNode, useEffect } from "react";
-import { useUserProfile } from "./UserProfileContext";
 
 interface ProfileContextValue {
   photoUrl: string | null;
@@ -10,24 +9,12 @@ interface ProfileContextValue {
 
 const ProfileContext = createContext<ProfileContextValue | null>(null);
 
-export function ProfileProvider({ children, initialPhotoUrl = null }: { children: ReactNode; initialPhotoUrl?: string | null }) {
-  const { profile, updatePhotoUrl, loading: profileLoading } = useUserProfile();
-  const [photoUrl, setPhotoUrlState] = useState<string | null>(initialPhotoUrl);
-  
-  // Sync with global profile context
-  useEffect(() => {
-    if (!profileLoading && profile) {
-      setPhotoUrlState(profile.profilePhotoUrl || null);
-    }
-  }, [profileLoading, profile]);
+export function ProfileProvider({ children }: { children: ReactNode }) {
+  const [photoUrl, setPhotoUrlState] = useState<string | null>(null);
 
   const setPhotoUrl = useCallback((url: string | null) => {
     setPhotoUrlState(url);
-    // Also update the global profile context
-    if (profile) {
-      updatePhotoUrl(url);
-    }
-  }, [profile, updatePhotoUrl]);
+  }, []);
 
   return (
     <ProfileContext.Provider value={{ photoUrl, setPhotoUrl }}>

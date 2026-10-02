@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getRelatedProducts } from "@/lib/products";
+import { getPrimaryProductImage, getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 import ProductView from "@/components/produto/ProductView";
 import ReviewsSection from "@/components/produto/ReviewsSection";
@@ -26,7 +26,7 @@ export async function generateMetadata({
   const product = await getProductBySlug(slug);
   if (!product) return { title: "Produto não encontrado" };
 
-  const imageUrl = product.images[0] || "/placeholder-product.jpg";
+  const imageUrl = getPrimaryProductImage(product) || "/placeholder-product.jpg";
 
   return {
     title: `${product.name} | Esmalt'up`,
@@ -81,6 +81,7 @@ export default async function ProductPage({
   const average = total > 0 ? sum / total : null;
 
   const related = await getRelatedProducts(product, 4);
+  const primaryImage = getPrimaryProductImage(product);
 
   return (
     <div className="pb-24 bg-[#1c1519]">
@@ -93,7 +94,7 @@ export default async function ProductPage({
             "@type": "Product",
             name: product.name,
             description: product.description,
-            image: product.images,
+            image: [primaryImage, ...product.images.filter((image) => image !== primaryImage)],
             brand: product.brand
               ? { "@type": "Brand", name: product.brand }
               : undefined,

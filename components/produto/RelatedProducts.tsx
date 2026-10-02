@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice, type Product } from "@/lib/catalogData";
+import { getPrimaryProductImage, formatPrice, type Product } from "@/lib/products";
 import { useCart } from "@/lib/CartContext";
 import Stars from "./Stars";
 import { cn } from "@/lib/cn";
+import { FavoritesButton } from "@/lib/wishlist";
 
 export default function RelatedProducts({ products }: { products: Product[] }) {
   const { addItem } = useCart();
@@ -26,34 +27,37 @@ export default function RelatedProducts({ products }: { products: Product[] }) {
       <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {products.map((product) => {
           const outOfStock = product.stock === 0;
-          const imageUrl = product.images[0] || "/placeholder-product.jpg";
+          const imageUrl = getPrimaryProductImage(product) || "/placeholder-product.jpg";
           return (
             <article
               key={product.id}
               className="group flex flex-col overflow-hidden rounded-[1.5rem] border border-cinza-suave/40 bg-branco shadow-card transition-shadow hover:shadow-card-lg"
             >
-              <Link
-                href={`/produto/${product.slug}`}
-                className="relative aspect-square overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20"
-              >
-                <div
-                  aria-hidden
-                  className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl brightness-[0.7] saturate-150"
-                  style={{ backgroundImage: `url("${imageUrl}")` }}
-                />
-                <Image
-                  src={imageUrl}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 640px) 50vw, 25vw"
-                  className="relative object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+              <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20">
+                <Link
+                  href={`/produto/${product.slug}`}
+                  className="absolute inset-0"
+                >
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl brightness-[0.7] saturate-150"
+                    style={{ backgroundImage: `url("${imageUrl}")` }}
+                  />
+                  <Image
+                    src={imageUrl}
+                    alt={product.name}
+                    fill
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                    className="relative object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </Link>
+                <FavoritesButton product={product} className="absolute right-3 top-3 z-20" />
                 {outOfStock && (
-                  <span className="absolute right-3 top-3 rounded-full bg-foreground/15 px-3 py-1 text-xs font-semibold text-foreground/70 backdrop-blur-sm">
+                  <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-foreground/15 px-3 py-1 text-xs font-semibold text-foreground/70 backdrop-blur-sm">
                     Esgotado
                   </span>
                 )}
-              </Link>
+              </div>
 
               <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
                 <Link
@@ -68,7 +72,19 @@ export default function RelatedProducts({ products }: { products: Product[] }) {
                 <button
                   type="button"
                   disabled={outOfStock}
-                  onClick={() => addItem(product.id)}
+                  onClick={() =>
+                    addItem(product.id, 1, {
+                      product: {
+                        id: product.id,
+                        slug: product.slug,
+                        kind: product.kind,
+                        name: product.name,
+                        priceCents: product.priceCents,
+                        imageUrl,
+                        stock: product.stock,
+                      },
+                    })
+                  }
                   className={cn(
                     "mt-3 rounded-full border border-rose-gold/40 py-2 text-xs font-semibold transition-colors",
                     outOfStock

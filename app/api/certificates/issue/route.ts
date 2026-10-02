@@ -98,18 +98,18 @@ async function checkEligibility(uid: string): Promise<boolean> {
   for (const lesson of mainTrackLessons) {
     const lessonId = slugToId.get(lesson.slug);
     if (!lessonId) {
-      // Lesson not in database yet, check if it exists in course data
-      // This handles the case where database doesn't have all lessons
-      // Fall back to checking if we can find any progress for this user
-      const _hasAnyProgress = progressRows.length > 0;
-      // For now, if lesson is not in DB, we'll consider it not completed
-      // This is conservative - user must have all lessons in DB to be eligible
-      return false;
+      // Lesson not in database yet, skip it
+      continue;
     }
     
     if (!completedLessonIds.has(lessonId)) {
       return false;
     }
+  }
+  
+  // If no lessons were found at all, return false
+  if (slugToId.size === 0) {
+    return false;
   }
   
   return true;
@@ -171,6 +171,13 @@ export async function POST(req: Request) {
     );
   }
 
+  // Get the latest completed lesson date for the user
+  const lastCompleted = await prisma.lessonProgress.findFirst({
+    where: { userId: uid, completedAt: { not: null } },
+    orderBy: { completedAt: "desc" },
+    select: { completedAt: true },
+  });
+
   // Check if certificate already exists (idempotent)
   const existingCertificate = await prisma.certificate.findUnique({
     where: {
@@ -190,6 +197,7 @@ export async function POST(req: Request) {
         recipientName: existingCertificate.recipientName,
         issuedAt: existingCertificate.issuedAt.toISOString(),
         status: existingCertificate.status,
+        completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
       },
       message: "Certificado já emitido. Aqui está o seu certificado existente.",
     });
@@ -239,6 +247,7 @@ export async function POST(req: Request) {
         recipientName: certificate.recipientName,
         issuedAt: certificate.issuedAt.toISOString(),
         status: certificate.status,
+        completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
       },
       message: "Certificado emitido com sucesso! O nome não poderá ser alterado depois.",
     });
@@ -277,6 +286,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ certificate: null });
   }
 
+  // Get the latest completed lesson date for the user
+  const lastCompleted = await prisma.lessonProgress.findFirst({
+    where: { userId: uid, completedAt: { not: null } },
+    orderBy: { completedAt: "desc" },
+    select: { completedAt: true },
+  });
+
   return NextResponse.json({
     certificate: {
       id: certificate.id,
@@ -285,6 +301,7 @@ export async function GET(req: Request) {
       issuedAt: certificate.issuedAt.toISOString(),
       status: certificate.status,
       showOnWall: certificate.showOnWall,
+      completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
     },
   });
 }

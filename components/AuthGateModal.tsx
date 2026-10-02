@@ -7,11 +7,12 @@ import { primaryButton, outlineButton } from "./buttonStyles";
 
 interface AuthGateModalProps {
   onClose: () => void;
+  title?: string;
   /** Override the default message body */
   message?: string;
 }
 
-export function AuthGateModal({ onClose, message }: AuthGateModalProps) {
+export function AuthGateModal({ onClose, title, message }: AuthGateModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
@@ -36,7 +37,7 @@ export function AuthGateModal({ onClose, message }: AuthGateModalProps) {
             id="auth-gate-title"
             className="text-xl font-bold tracking-tight text-foreground"
           >
-            Faça login para continuar
+            {title ?? "Faça login para continuar"}
           </h2>
 
           <p className="mt-2 text-sm leading-relaxed text-foreground/70">
@@ -83,6 +84,7 @@ export function AuthGateModal({ onClose, message }: AuthGateModalProps) {
 export function useAuthGate(
   user: { uid: string } | null | undefined,
   message?: string,
+  title?: string,
 ) {
   const [open, setOpen] = useState(false);
 
@@ -98,7 +100,7 @@ export function useAuthGate(
   );
 
   const modal = open ? (
-    <AuthGateModal onClose={() => setOpen(false)} message={message} />
+    <AuthGateModal onClose={() => setOpen(false)} title={title} message={message} />
   ) : null;
 
   return { guard, modal };

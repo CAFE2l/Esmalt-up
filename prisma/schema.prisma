@@ -14,6 +14,7 @@ model UserProfile {
   avatarUrl        String?
   profilePhotoUrl  String?
   bannerUrl        String?
+  bio              String?
   isEntrepreneur   Boolean  @default(false)
   services         String[] @default([])
   pricing          String?
@@ -46,6 +47,7 @@ model UserProfile {
   badgesEarned     UserBadge[]
   lessonProgress   LessonProgress[]
   certificates     Certificate[]
+  favorites        Favorite[]
 
   @@map("user_profiles")
 }
@@ -110,6 +112,7 @@ model Product {
   orderItems      OrderItem[]
   reviews         Review[]
   questions       Question[]
+  favorites        Favorite[]
 
   @@index([kind, active])
   @@index([category, active])
@@ -264,6 +267,20 @@ model CartItem {
 
   @@unique([cartId, productId])
   @@map("cart_items")
+}
+
+model Favorite {
+  id        String      @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime    @default(now())
+  user      UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+  @@index([productId])
+  @@map("favorites")
 }
 
 model Coupon {

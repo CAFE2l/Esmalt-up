@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
+  Heart,
   LogOut,
   Settings,
   Trash2,
@@ -12,7 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { useUserProfile, useProfilePhoto } from "@/lib/profile";
+import { useUserProfile } from "@/lib/profile";
+import { useFavorites } from "@/lib/wishlist";
 import ConfirmDialog from "./ConfirmDialog";
 
 const ICON_SIZE = 18;
@@ -53,7 +55,8 @@ const itemStyle = {
 export default function UserMenu() {
   const { user, logout } = useAuth();
   const { profile } = useUserProfile();
-  const { photoUrl } = useProfilePhoto();
+  const { favoritesCount } = useFavorites();
+  // Use profile context for photo URL to get real-time updates
   const pathname = usePathname();
 
   const [open, setOpen] = useState(false);
@@ -180,7 +183,7 @@ export default function UserMenu() {
 
   // Use profile context data first, fall back to Firebase user data
   const displayName = profile?.name?.trim() || user.displayName?.trim() || "Usuária Esmalt'up";
-  const avatarUrl = photoUrl ?? profile?.profilePhotoUrl ?? user.photoURL ?? null;
+  const avatarUrl = profile?.profilePhotoUrl ?? user.photoURL ?? null;
 
   const handleConfirm = async () => {
     if (!user) return;
@@ -222,6 +225,21 @@ export default function UserMenu() {
       >
         <Settings size={ICON_SIZE} />
         Configurações
+      </Link>
+      <Link
+        href="/desejos"
+        role="menuitem"
+        data-menu-item
+        onClick={() => closeMenu()}
+        className={`${itemStyle.link} ${itemStyle.normal}`}
+      >
+        <Heart size={ICON_SIZE} />
+        Minha Lista de Desejos
+        {favoritesCount > 0 && (
+          <span className="ml-auto rounded-full bg-rosa-claro px-2 py-0.5 text-[11px] font-semibold text-rose-gold">
+            {favoritesCount}
+          </span>
+        )}
       </Link>
 
       <div

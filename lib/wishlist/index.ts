@@ -10,7 +10,7 @@
  */
 
 // Explicit exports to avoid star-export conflicts
-export { FavoritesProvider, FavoritesContext, useFavorites, FAVORITES_KEY, RECENTLY_VIEWED_KEY, getLocalFavorites } from './FavoritesContext';
+export { FavoritesProvider, FavoritesContext, useFavorites, RECENTLY_VIEWED_KEY, type FavoriteProduct, type FavoriteProductInput } from './FavoritesContext';
 export { useFavoriteToggle, useIsFavorite, useFavoritesCount } from './useFavorites';
 export { useRecentlyViewed, RecentlyViewedProvider } from './useRecentlyViewed';
 export { getLocalRecentlyViewed } from './useRecentlyViewed';

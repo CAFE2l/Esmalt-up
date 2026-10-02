@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { formatPrice, getProductSync } from "./products";
+import { formatPrice, getProductSync, type Product } from "./products";
 import {
   couponDiscountCents,
   type AppliedCoupon,
@@ -19,6 +19,23 @@ import {
 export interface CartLine {
   productId: string;
   quantity: number;
+  product?: CartProductSummary;
+}
+
+export interface CartProductSummary {
+  id: string;
+  slug: string;
+  kind: "kit" | "peca";
+  name: string;
+  priceCents: number;
+  imageUrl: string;
+  stock: number;
+}
+
+export interface CartItemOptions {
+  variantId?: string;
+  variantName?: string;
+  product?: CartProductSummary;
 }
 
 export interface CouponState {
@@ -37,7 +54,7 @@ interface CartContextValue {
   couponState: CouponState;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (productId: string, quantity?: number) => void;
+  addItem: (productId: string, quantity?: number, options?: CartItemOptions) => void;
   removeItem: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -51,6 +68,18 @@ const STORAGE_KEY = "esmaltup-cart";
 const SESSION_KEY = "esmaltup-session";
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
+
+function asCartProduct(product: Product): CartProductSummary {
+  return {
+    id: product.id,
+    slug: product.slug,
+    kind: product.kind,
+    name: product.name,
+    priceCents: product.priceCents,
+    imageUrl: product.images[0] ?? "",
+    stock: product.stock,
+  };
+}
 
 function readStored<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
@@ -98,7 +127,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const stored = readStored<CartLine[]>(STORAGE_KEY);
     if (Array.isArray(stored)) {
-      setItems(stored.filter((line) => line && getProduct(line.productId)));
+      setItems(
+        stored
+          .filter((line) => line && (line.product || getProductSync(line.productId)))
+          .map((line) => ({
+            ...line,
+            product:
+              line.product ??
+              (getProductSync(line.productId)
+                ? asCartProduct(getProductSync(line.productId)!)
+                : undefined),
+          })),
+      );
     }
     setLoaded(true);
   }, []);
@@ -137,19 +177,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [loaded, user, syncWithAccount]);
 
   const addItem = useCallback(
-    (productId: string, quantity = 1) => {
-      const product = getProductSync(productId);
+    (productId: string, quantity = 1, options?: CartItemOptions) => {
+      const staticProduct = getProductSync(productId);
+      const product = options?.product ?? (staticProduct ? asCartProduct(staticProduct) : null);
       if (!product || quantity < 1) return;
       setItems((current) => {
         const existing = current.find((line) => line.productId === productId);
         if (existing) {
           return current.map((line) =>
             line.productId === productId
-              ? { ...line, quantity: Math.min(99, line.quantity + quantity) }
+              ? { ...line, product, quantity: Math.min(99, line.quantity + quantity) }
               : line,
           );
         }
-        return [...current, { productId, quantity }];
+        return [...current, { productId, quantity, product }];
       });
       setIsOpen(true);
     },
@@ -183,7 +224,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     let count = 0;
     let subtotal = 0;
     for (const line of items) {
-      const product = getProduct(line.productId);
+      const product = line.product ?? (getProductSync(line.productId) ? asCartProduct(getProductSync(line.productId)!) : null);
       if (!product) continue;
       count += line.quantity;
       subtotal += product.priceCents * line.quantity;
@@ -244,9 +285,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const linePrice = useCallback((productId: string) => {
-    const product = getProductSync(productId);
+    const product =
+      items.find((line) => line.productId === productId)?.product ??
+      (getProductSync(productId) ? asCartProduct(getProductSync(productId)!) : null);
     return product ? formatPrice(product.priceCents) : "";
-  }, []);
+  }, [items]);
 
   const value: CartContextValue = {
     items,

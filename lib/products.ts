@@ -63,6 +63,18 @@ export function formatPrice(cents: number): string {
   }).format(cents / 100);
 }
 
+export function getPrimaryProductImage(
+  product: Pick<Product, "slug" | "name" | "category" | "images">,
+): string {
+  if (
+    product.category === "tips" &&
+    (product.name === "Tips Almond 500 un" || product.slug === "peca-tips")
+  ) {
+    return "/produtos/produtos_separados/tips_almond.jpg";
+  }
+  return product.images[0] ?? "";
+}
+
 // Server-side async functions
 export async function getFeatured(kind: ProductKind): Promise<Product[]> {
   const products = await prisma.product.findMany({

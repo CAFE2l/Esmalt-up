@@ -2,19 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Heart, Eye, ShoppingCart, Star, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { Eye, ShoppingCart, Star, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CATEGORY_LABELS, LEVEL_LABELS, formatPrice, type Product } from "@/lib/catalogData";
 import ProductArt from "./ProductArt";
 import { trackEvent } from "@/components/showcase/analytics";
+import { FavoritesButton } from "@/lib/wishlist";
 
 // Product Card Component
 function ProductCard({
   product,
   index,
   isHero = false,
-  onFavoriteToggle,
-  isFavorite = false,
   onQuickView,
   showRating = true,
   showBadges = true,
@@ -22,19 +21,10 @@ function ProductCard({
   product: Product;
   index?: number;
   isHero?: boolean;
-  onFavoriteToggle?: (productId: string, isFavorite: boolean) => void;
-  isFavorite?: boolean;
   onQuickView?: (product: Product) => void;
   showRating?: boolean;
   showBadges?: boolean;
 }) {
-  const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onFavoriteToggle?.(product.id, !isFavorite);
-    trackEvent("add_to_wishlist", { item_id: product.id, item_name: product.name });
-  }, [product.id, product.name, isFavorite, onFavoriteToggle]);
-
   const handleQuickViewClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -100,18 +90,8 @@ function ProductCard({
         )}
 
         {/* Action Buttons */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button
-            onClick={handleFavoriteClick}
-            aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-            className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-200 ${
-              isFavorite 
-                ? "border-rose-gold bg-rose-gold text-white hover:bg-rosa-blush" 
-                : "border-rose-gold/30 bg-branco text-rose-gold hover:bg-rosa-claro/50"
-            }`}
-          >
-            <Heart className={`h-4 w-4 transition-all ${isFavorite ? "fill-current" : ""}`} />
-          </button>
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-20">
+          <FavoritesButton product={product} className="h-9 w-9" size="sm" />
           
           <button
             onClick={handleQuickViewClick}
@@ -185,15 +165,11 @@ function ProductRail({
   products,
   title,
   showTitle = true,
-  onFavoriteToggle,
-  favorites = new Set(),
   onQuickView,
 }: {
   products: Product[];
   title?: string;
   showTitle?: boolean;
-  onFavoriteToggle?: (productId: string, isFavorite: boolean) => void;
-  favorites?: Set<string>;
   onQuickView?: (product: Product) => void;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
@@ -301,8 +277,6 @@ function ProductRail({
                 <ProductCard
                   product={product}
                   index={index}
-                  isFavorite={favorites.has(product.id)}
-                  onFavoriteToggle={onFavoriteToggle}
                   onQuickView={onQuickView}
                   showRating={true}
                   showBadges={true}
@@ -320,15 +294,11 @@ function ProductRail({
 function FeaturedProductGridView({
   products,
   title,
-  onFavoriteToggle,
-  favorites = new Set(),
   onQuickView,
   showHero = true,
 }: {
   products: Product[];
   title?: string;
-  onFavoriteToggle?: (productId: string, isFavorite: boolean) => void;
-  favorites?: Set<string>;
   onQuickView?: (product: Product) => void;
   showHero?: boolean;
 }) {
@@ -373,8 +343,6 @@ function FeaturedProductGridView({
               <ProductCard
                 product={heroProduct}
                 isHero={true}
-                isFavorite={favorites.has(heroProduct.id)}
-                onFavoriteToggle={onFavoriteToggle}
                 onQuickView={onQuickView}
                 showRating={true}
                 showBadges={true}
@@ -389,8 +357,6 @@ function FeaturedProductGridView({
                 key={product.id}
                 product={product}
                 index={index}
-                isFavorite={favorites.has(product.id)}
-                onFavoriteToggle={onFavoriteToggle}
                 onQuickView={onQuickView}
                 showRating={true}
                 showBadges={true}
@@ -407,8 +373,6 @@ function FeaturedProductGridView({
                 key={product.id}
                 product={product}
                 index={index}
-                isFavorite={favorites.has(product.id)}
-                onFavoriteToggle={onFavoriteToggle}
                 onQuickView={onQuickView}
                 showRating={true}
                 showBadges={true}
@@ -425,15 +389,11 @@ function FeaturedProductGridView({
 function QuickViewModal({
   product,
   onClose,
-  isFavorite,
-  onFavoriteToggle,
   relatedProducts = [],
   onQuickView,
 }: {
   product: Product | null;
   onClose: () => void;
-  isFavorite: boolean;
-  onFavoriteToggle: () => void;
   relatedProducts?: Product[];
   onQuickView?: (product: Product) => void;
 }) {
@@ -550,20 +510,7 @@ function QuickViewModal({
 
                   <div className="space-y-3">
                     <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          onFavoriteToggle();
-                          trackEvent("add_to_wishlist", { item_id: product.id, item_name: product.name });
-                        }}
-                        className={`flex-1 flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-colors ${
-                          isFavorite
-                            ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
-                            : "border-2 border-rose-gold/30 text-rose-gold hover:bg-rosa-claro/50"
-                        }`}
-                      >
-                        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-                        {isFavorite ? "Favoritado" : "Adicionar aos favoritos"}
-                      </button>
+                      <FavoritesButton product={product} showText className="flex-1" />
                     </div>
 
                     <Link
@@ -627,8 +574,6 @@ export interface FeaturedProductGridProps {
   title?: string;
   layout?: "grid" | "rail";
   showHero?: boolean;
-  initialFavorites?: Set<string>;
-  onToggleFavorite?: (productId: string, isFavorite: boolean) => void;
 }
 
 // Main Component
@@ -637,45 +582,8 @@ export default function FeaturedProductGrid({
   title,
   layout = "grid",
   showHero = true,
-  initialFavorites = new Set(),
-  onToggleFavorite,
 }: FeaturedProductGridProps) {
-  const [favorites, setFavorites] = useState<Set<string>>(initialFavorites);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-
-  // Load favorites from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("esmaltup-favorites");
-      if (saved) {
-        setFavorites(new Set(JSON.parse(saved)));
-      }
-    } catch {
-      // Silently fail if localStorage is unavailable
-    }
-  }, []);
-
-  // Save favorites to localStorage when they change
-  useEffect(() => {
-    try {
-      localStorage.setItem("esmaltup-favorites", JSON.stringify(Array.from(favorites)));
-    } catch {
-      // Silently fail if localStorage is unavailable
-    }
-  }, [favorites]);
-
-  const handleToggleFavorite = useCallback((productId: string, isFavorite: boolean) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (isFavorite) {
-        next.add(productId);
-      } else {
-        next.delete(productId);
-      }
-      return next;
-    });
-    onToggleFavorite?.(productId, isFavorite);
-  }, [onToggleFavorite]);
 
   const handleQuickView = useCallback((product: Product) => {
     setQuickViewProduct(product);
@@ -709,8 +617,6 @@ export default function FeaturedProductGrid({
         <ProductRail
           products={products}
           title={title}
-          onFavoriteToggle={handleToggleFavorite}
-          favorites={favorites}
           onQuickView={handleQuickView}
         />
         
@@ -718,12 +624,6 @@ export default function FeaturedProductGrid({
           product={quickViewProduct}
           onClose={() => setQuickViewProduct(null)}
           onQuickView={handleQuickView}
-          isFavorite={quickViewProduct ? favorites.has(quickViewProduct.id) : false}
-          onFavoriteToggle={() => {
-            if (quickViewProduct) {
-              handleToggleFavorite(quickViewProduct.id, !favorites.has(quickViewProduct.id));
-            }
-          }}
           relatedProducts={relatedProducts}
         />
       </>
@@ -736,8 +636,6 @@ export default function FeaturedProductGrid({
       <FeaturedProductGridView
         products={products}
         title={title}
-        onFavoriteToggle={handleToggleFavorite}
-        favorites={favorites}
         onQuickView={handleQuickView}
         showHero={showHero}
       />
@@ -746,12 +644,6 @@ export default function FeaturedProductGrid({
         product={quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
         onQuickView={handleQuickView}
-        isFavorite={quickViewProduct ? favorites.has(quickViewProduct.id) : false}
-        onFavoriteToggle={() => {
-          if (quickViewProduct) {
-            handleToggleFavorite(quickViewProduct.id, !favorites.has(quickViewProduct.id));
-          }
-        }}
         relatedProducts={relatedProducts}
       />
     </>

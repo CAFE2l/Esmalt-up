@@ -1,4 +1,5 @@
-import type { Product as DatabaseProduct } from "@/lib/products";
+import { useState } from "react";
+import { getPrimaryProductImage, type Product as DatabaseProduct } from "@/lib/products";
 import type { Product as StaticProduct } from "@/lib/catalogData.static";
 
 // Unified product type that can be either database or static
@@ -146,23 +147,24 @@ export default function ProductArt({
   product,
   className = "",
 }: ProductArtProps) {
-  // Try to get image URL - works with both static and database products
+  const [imageFailed, setImageFailed] = useState(false);
   let imageUrl: string | null = null;
   
   if (hasImageUrl(product)) {
     imageUrl = product.imageUrl;
   } else if (hasImagesArray(product)) {
-    imageUrl = product.images[0];
+    imageUrl = getPrimaryProductImage(product);
   }
   
-  if (imageUrl) {
+  if (imageUrl && !imageFailed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={imageUrl}
-        alt=""
+        alt={product.name}
         loading="lazy"
         decoding="async"
+        onError={() => setImageFailed(true)}
         className={`h-full w-full object-cover ${className}`}
       />
     );

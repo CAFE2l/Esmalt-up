@@ -8,12 +8,12 @@ export { useFavorites };
  * Hook to check if a product is favorited and toggle it
  */
 export function useFavoriteToggle(productId: string) {
-  const { isFavorite, toggleFavorite, isLoading } = useFavorites();
+  const { isFavorite, toggleFavorite, isLoading, pendingIds } = useFavorites();
   
   return {
     isFavorite: isFavorite(productId),
     toggleFavorite,
-    isLoading,
+    isLoading: isLoading || pendingIds.has(productId),
   };
 }
 

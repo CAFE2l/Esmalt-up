@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Heart, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   SHOWCASE_TABS,
@@ -19,27 +19,22 @@ import ProductPhoto from "./ProductPhoto";
 import ShowcaseTabs from "./ShowcaseTabs";
 import ShowcaseThumb from "./ShowcaseThumb";
 import { useMediaQuery, useTilt } from "./useTilt";
+import { FavoritesButton } from "@/lib/wishlist";
 
 const DEFAULT_TAB: ShowcaseTabId = "pecas";
 
 interface ProductShowcaseProps {
   initialTab?: ShowcaseTabId;
-  onToggleFavorite?: (productId: string, isFavorite: boolean) => void;
-  initialFavorites?: Set<string>;
 }
 
 export default function ProductShowcase({
   initialTab = DEFAULT_TAB,
-  onToggleFavorite,
-  initialFavorites = new Set(),
 }: ProductShowcaseProps) {
   const reduceMotion = useReducedMotion();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const sectionRef = useRef<HTMLElement>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [favorites, setFavorites] = useState(initialFavorites);
-  const [storageLoaded, setStorageLoaded] = useState(false);
   const [hoverPaused, setHoverPaused] = useState(false);
   const [inView, setInView] = useState(true);
   const [playing, setPlaying] = useState(true);
@@ -60,25 +55,6 @@ export default function ProductShowcase({
       return nextIndex;
     });
   }, [products.length]);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("esmaltup-favorites");
-      if (saved) setFavorites(new Set(JSON.parse(saved) as string[]));
-    } catch {
-      // localStorage may be unavailable or contain invalid JSON.
-    }
-    setStorageLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!storageLoaded) return;
-    try {
-      localStorage.setItem("esmaltup-favorites", JSON.stringify(Array.from(favorites)));
-    } catch {
-      // localStorage may be unavailable.
-    }
-  }, [favorites, storageLoaded]);
 
   useEffect(() => {
     const element = sectionRef.current;
@@ -132,22 +108,6 @@ export default function ProductShowcase({
     });
     trackEvent("carousel_interact", { action: "thumb", index });
   }, [products]);
-
-  const toggleFavorite = useCallback(() => {
-    if (!currentProduct) return;
-    const isFavorite = favorites.has(currentProduct.id);
-    setFavorites((previous) => {
-      const next = new Set(previous);
-      if (isFavorite) next.delete(currentProduct.id);
-      else next.add(currentProduct.id);
-      return next;
-    });
-    onToggleFavorite?.(currentProduct.id, !isFavorite);
-    trackEvent("add_to_wishlist", {
-      item_id: currentProduct.id,
-      item_name: currentProduct.name,
-    });
-  }, [currentProduct, favorites, onToggleFavorite]);
 
   const handleDragEnd = useCallback((_event: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
     if (info.offset.x < -50 || info.velocity.x < -400) go(1);
@@ -238,18 +198,18 @@ export default function ProductShowcase({
                   >
                     Ver detalhes
                   </Link>
-                  <button
-                    type="button"
-                    onClick={toggleFavorite}
-                    aria-label={favorites.has(currentProduct.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                    className={cn(
-                      "grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/10 text-white",
-                      focusRing,
-                      favorites.has(currentProduct.id) && "text-[#e8a0b4]",
-                    )}
-                  >
-                    <Heart className={cn("h-5 w-5", favorites.has(currentProduct.id) && "fill-current")} />
-                  </button>
+                  <FavoritesButton
+                    product={{
+                      id: currentProduct.id,
+                      slug: currentProduct.slug,
+                      name: currentProduct.name,
+                      kind: currentProduct.tab === "kits" ? "kit" : "peca",
+                      category: currentProduct.category,
+                      priceCents: Math.round(currentProduct.price * 100),
+                      imageUrl: currentProduct.image,
+                    }}
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/20"
+                  />
                 </div>
                 <p className="text-xs text-white/40">Frete grátis acima de R$ 199</p>
               </div>

@@ -28,6 +28,8 @@ async function authenticate(req: Request): Promise<AuthResult> {
 }
 
 const editableFields = [
+  "name",
+  "bio",
   "profilePhotoUrl",
   "bannerUrl",
   "isEntrepreneur",
@@ -135,9 +137,10 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ profile });
   } catch (error) {
-    console.error("[api/profile] PUT", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[api/profile] PUT", msg);
     return NextResponse.json(
-      { error: "Não foi possível salvar o perfil." },
+      { error: `Não foi possível salvar o perfil. Detalhe: ${msg}` },
       { status: 500 },
     );
   }

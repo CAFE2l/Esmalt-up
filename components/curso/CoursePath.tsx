@@ -320,8 +320,8 @@ export default function CoursePath() {
         onClaimed={(data) => {
           setClaimedName(data.recipientName);
           setClaimedIssuedAt(data.issuedAt);
-          setClaimedPublicCode((data as { recipientName: string; issuedAt: string; publicCode?: string }).publicCode ?? null);
-          setClaimedCompletedAt((data as { recipientName: string; issuedAt: string; completedAt?: string }).completedAt ?? null);
+          setClaimedPublicCode(data.publicCode ?? null);
+          setClaimedCompletedAt(data.completedAt ?? null);
           issueCertificate();
           setShowClaim(false);
           setShowCertificate(true);

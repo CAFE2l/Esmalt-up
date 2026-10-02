@@ -1274,29 +1274,30 @@ export default function PerfilPage() {
                   htmlFor="tags"
                 >
                   <div className="flex flex-wrap gap-2">
-                    {stylePresets.map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          const current = localProfile?.interests || [];
-                          const newInterests = current.includes(preset)
-                            ? current.filter((i) => i !== preset)
-                            : [...current, preset];
-                          set("interests", newInterests);
-                        }}
-                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                          current.includes(preset)
-                            ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
-                            : "border border-rose-gold/40 bg-rosa-claro/40 text-rose-gold hover:bg-rosa-claro/60"
-                        }`}
-                      >
-                        {(localProfile?.interests || []).includes(preset) && (
-                          <Check className="h-3 w-3" />
-                        )}
-                        {preset}
-                      </button>
-                    ))}
+                    {stylePresets.map((preset) => {
+                      const interests = localProfile?.interests || [];
+                      const active = interests.includes(preset);
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            const newInterests = active
+                              ? interests.filter((i) => i !== preset)
+                              : [...interests, preset];
+                            set("interests", newInterests);
+                          }}
+                          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            active
+                              ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
+                              : "border border-rose-gold/40 bg-rosa-claro/40 text-rose-gold hover:bg-rosa-claro/60"
+                          }`}
+                        >
+                          {active && <Check className="h-3 w-3" />}
+                          {preset}
+                        </button>
+                      );
+                    })}
                   </div>
                 </FormRow>
               </FormSection>

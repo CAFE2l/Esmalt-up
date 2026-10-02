@@ -585,6 +585,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
   const [sort, setSort] = useState<SortOption>("recent");
   const [page, setPage] = useState(1);
   const [openForm, setOpenForm] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Media gallery state
   const [galleryMedia, setGalleryMedia] = useState<ReviewMedia[]>([]);
@@ -598,7 +599,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
     async (sortKey: SortOption, pageNumber: number, append = false) => {
       const url = `/api/reviews?productId=${encodeURIComponent(productId)}&sort=${sortKey}&page=${pageNumber}&sessionId=${encodeURIComponent(sessionId ?? "")}`;
       try {
-        const token = user?.getIdToken().catch(() => null);
+        const token = user ? await user.getIdToken().catch(() => null) : null;
         const response = await fetch(url, {
           headers: token ? { authorization: `Bearer ${token}` } : undefined,
         });
@@ -683,11 +684,12 @@ export default function ReviewsSection({ productId }: { productId: string }) {
   );
 
   const loadMore = useCallback(() => {
-    if (state.hasMore && !state.loading) {
+    if (state.hasMore && !loadingMore) {
+      setLoadingMore(true);
       setPage((p) => p + 1);
-      void load(sort, page + 1, true);
+      void load(sort, page + 1, true).finally(() => setLoadingMore(false));
     }
-  }, [state, sort, page, load]);
+  }, [state.hasMore, loadingMore, sort, page, load]);
 
   // Media gallery handlers
   const openGallery = useCallback((media: ReviewMedia[], index: number) => {
@@ -700,7 +702,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
     setGalleryIndex(0);
   }, []);
 
-  if (state.items.length === 0 && !state.loading) {
+  if (state.items.length === 0) {
     return (
       <section className="py-12">
         <h2 className="text-2xl font-bold tracking-tight text-foreground mb-6">
