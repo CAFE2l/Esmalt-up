@@ -1,6 +1,33 @@
-import { getByKind, getFeatured, type ProductKind } from "@/lib/products";
-import HeroCarousel from "./HeroCarousel";
+import { getByKind, getFeatured, type ProductKind, type Product } from "@/lib/products";
+import FeaturedProductGrid from "./FeaturedProductGrid";
 import CatalogGrid from "./CatalogGrid";
+
+// Client component wrapper for the marketplace
+function MarketplaceClient({ 
+  featuredProducts, 
+  allProducts, 
+  title, 
+  catalogTitle 
+}: { 
+  featuredProducts: Product[], 
+  allProducts: Product[], 
+  title: string, 
+  catalogTitle: string 
+}) {
+  return (
+    <div className="bg-bege">
+      <FeaturedProductGrid 
+        products={featuredProducts} 
+        title={title} 
+        layout="grid" 
+        showHero={true}
+      />
+      <div id="catalogo" className="scroll-mt-24">
+        <CatalogGrid products={allProducts} title={catalogTitle} />
+      </div>
+    </div>
+  );
+}
 
 export default async function MarketplacePage({ kind }: { kind: ProductKind }) {
   const [featured, all] = await Promise.all([
@@ -11,11 +38,11 @@ export default async function MarketplacePage({ kind }: { kind: ProductKind }) {
   const catalogTitle = kind === "kit" ? "Todos os kits" : "Todas as peças";
 
   return (
-    <div className="bg-bege">
-      <HeroCarousel products={featured} title={title} catalogHref="#catalogo" />
-      <div id="catalogo" className="scroll-mt-24">
-        <CatalogGrid products={all} title={catalogTitle} />
-      </div>
-    </div>
+    <MarketplaceClient 
+      featuredProducts={featured} 
+      allProducts={all} 
+      title={title} 
+      catalogTitle={catalogTitle}
+    />
   );
 }

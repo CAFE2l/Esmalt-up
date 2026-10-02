@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useProfilePhoto } from "@/lib/profile/ProfileContext";
 import { primaryButton, outlineButton } from "@/components/buttonStyles";
 
+// Type definitions
 type ProfileForm = {
   name: string;
   bio: string;
@@ -95,6 +96,7 @@ const emptyProfile: ProfileForm = {
 const inputClasses =
   "w-full rounded-2xl border border-cinza-suave bg-rosa-claro/40 px-4 py-3 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:border-rose-gold focus:outline-none focus:ring-1 focus:ring-rose-gold/40";
 
+// Helper functions
 function initialsOf(name: string | null | undefined): string {
   if (!name) return "E";
   const parts = name.trim().split(/\s+/);
@@ -119,6 +121,7 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+// Social Icons
 function InstagramIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className ?? "h-4 w-4"}>
@@ -152,6 +155,7 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
+// Navigation Items
 interface NavItem {
   id: string;
   label: string;
@@ -170,6 +174,7 @@ const navItems: NavItem[] = [
   { id: "notificacoes", label: "Notificações", icon: Bell, disabled: true, badge: "Em breve" },
 ];
 
+// Reusable Components
 function FormRow({
   label,
   helper,
@@ -224,6 +229,343 @@ function FormSection({
   );
 }
 
+// NEW: Floating Save Button Component
+function FloatingSaveButton({
+  isDirty,
+  saving,
+  onSave,
+}: {
+  isDirty: boolean;
+  saving: boolean;
+  onSave: () => void;
+}) {
+  if (!isDirty) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving}
+      className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-6 py-3 text-sm font-semibold text-white shadow-card-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-card active:translate-y-0 active:shadow-pressed ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
+      style={{
+        transform: isDirty ? 'translateY(0)' : 'translateY(100px)',
+        opacity: isDirty ? 1 : 0,
+      }}
+    >
+      {saving ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Salvando...
+        </>
+      ) : (
+        <>
+          <Check className="h-4 w-4" />
+          Salvar alterações
+        </>
+      )}
+    </button>
+  );
+}
+
+// NEW: Status Indicator Badge
+function StatusBadge({
+  status,
+  onClick,
+}: {
+  status: string;
+  onClick?: () => void;
+}) {
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case "Disponível para atendimentos":
+        return {
+          color: "emerald",
+          label: "Disponível",
+          dotColor: "bg-emerald-400",
+          bgColor: "bg-emerald-500/10",
+          textColor: "text-emerald-400",
+          hoverBg: "hover:bg-emerald-500/20",
+          pulse: true,
+        };
+      case "Só estudando":
+        return {
+          color: "rose-gold",
+          label: "Estudando",
+          dotColor: "bg-rose-gold",
+          bgColor: "bg-rosa-blush/15",
+          textColor: "text-rose-gold",
+          hoverBg: "hover:bg-rosa-blush/25",
+          pulse: false,
+        };
+      default:
+        return {
+          color: "gray",
+          label: "Indisponível",
+          dotColor: "bg-foreground/40",
+          bgColor: "bg-rosa-claro/50",
+          textColor: "text-foreground/70",
+          hoverBg: "hover:bg-rosa-claro",
+          pulse: false,
+        };
+    }
+  };
+
+  const config = getStatusConfig(status);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium border border-${config.color}-500/40 ${config.bgColor} ${config.textColor} transition-colors ${config.hoverBg}`}
+      title="Clique para alterar status"
+    >
+      <span
+        className={`h-2 w-2 rounded-full ${config.dotColor} ${config.pulse ? 'animate-pulse' : ''}`}
+      />
+      <span>{status}</span>
+    </button>
+  );
+}
+
+// NEW: Avatar Component with proper positioning
+function ProfileAvatar({
+  src,
+  alt,
+  initials,
+  size = "lg",
+  onUploadClick,
+  uploading,
+  onRemove,
+}: {
+  src?: string | null;
+  alt: string;
+  initials: string;
+  size?: "sm" | "md" | "lg";
+  onUploadClick?: () => void;
+  uploading?: boolean;
+  onRemove?: () => void;
+}) {
+  const sizeClasses = {
+    sm: "h-16 w-16 text-lg",
+    md: "h-20 w-20 text-xl",
+    lg: "h-24 w-24 sm:h-28 sm:w-28 text-2xl sm:text-3xl",
+  };
+
+  return (
+    <div className="relative group shrink-0">
+      <div
+        className={`relative rounded-full ring-4 ring-branco overflow-hidden bg-gradient-to-br from-rosa-blush to-rose-gold shadow-card-lg ${sizeClasses[size]}`}
+      >
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={alt}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center font-bold text-white">
+            {initials}
+          </span>
+        )}
+        {uploading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-xs">
+            <Loader2 className="h-6 w-6 animate-spin text-white" />
+          </div>
+        )}
+      </div>
+      
+      {onUploadClick && (
+        <button
+          type="button"
+          onClick={onUploadClick}
+          disabled={uploading}
+          aria-label="Alterar foto de perfil"
+          title="Alterar foto de perfil"
+          className="absolute bottom-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-branco bg-rose-gold text-white shadow-card transition-all hover:bg-rosa-blush hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          <Camera className="h-4 w-4" />
+        </button>
+      )}
+      
+      {onRemove && src && (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={uploading}
+          aria-label="Remover foto"
+          title="Remover foto"
+          className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-branco bg-red-400 text-white shadow-card transition-all hover:bg-red-500 hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// NEW: Profile Header Component
+function ProfileHeader({
+  bannerUrl,
+  avatarSrc,
+  avatarInitials,
+  displayName,
+  email,
+  status,
+  isEntrepreneur,
+  onBannerUpload,
+  onBannerRemove,
+  bannerUploading,
+  onAvatarUpload,
+  onAvatarRemove,
+  avatarUploading,
+  onStatusClick,
+}: {
+  bannerUrl?: string | null;
+  avatarSrc?: string | null;
+  avatarInitials: string;
+  displayName: string;
+  email: string;
+  status: string;
+  isEntrepreneur: boolean;
+  onBannerUpload: () => void;
+  onBannerRemove: () => void;
+  bannerUploading: boolean;
+  onAvatarUpload: () => void;
+  onAvatarRemove: () => void;
+  avatarUploading: boolean;
+  onStatusClick: () => void;
+}) {
+  return (
+    <div className="relative">
+      {/* Banner Section */}
+      <div className="relative h-48 sm:h-64 md:h-80 w-full overflow-hidden bg-gradient-to-br from-rosa-blush/25 via-rose-gold/15 to-rosa-medio/25">
+        {bannerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={bannerUrl}
+            alt="Banner do perfil"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center p-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rosa-blush/20 text-rose-gold">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <p className="text-xs sm:text-sm font-medium text-foreground/50 max-w-xs">
+              Adicione um banner para personalizar seu perfil
+            </p>
+          </div>
+        )}
+
+        {/* Banner Action Buttons */}
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onBannerUpload}
+            disabled={bannerUploading}
+            aria-label={bannerUrl ? "Alterar banner" : "Adicionar banner"}
+            title={bannerUrl ? "Alterar banner" : "Adicionar banner"}
+            className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/60 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur-md shadow-card transition-all hover:bg-black/80 hover:scale-105 active:scale-95 disabled:opacity-50"
+          >
+            {bannerUploading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Camera className="h-3.5 w-3.5" />
+            )}
+            <span>{bannerUrl ? "Alterar" : "Adicionar"}</span>
+          </button>
+
+          {bannerUrl && (
+            <button
+              type="button"
+              onClick={onBannerRemove}
+              disabled={bannerUploading}
+              aria-label="Remover banner"
+              title="Remover banner"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-black/60 text-white backdrop-blur-md shadow-card transition-all hover:bg-black/80 hover:text-red-300 active:scale-95 disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Profile Info Section - positioned below banner with proper spacing */}
+      <div className="px-6 sm:px-8 pb-6 sm:pb-8">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8">
+          {/* Avatar Section */}
+          <div className="flex-shrink-0 flex justify-center lg:justify-start -mt-16 sm:-mt-20 lg:-mt-24">
+            <ProfileAvatar
+              src={avatarSrc}
+              alt={displayName}
+              initials={avatarInitials}
+              size="lg"
+              onUploadClick={onAvatarUpload}
+              uploading={avatarUploading}
+              onRemove={onAvatarRemove}
+            />
+          </div>
+
+          {/* Info Section - properly aligned and spaced */}
+          <div className="flex-1 min-w-0 pt-4 lg:pt-8">
+            <div className="space-y-4">
+              {/* Identity Block */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground break-words">
+                      {displayName}
+                    </h1>
+                    {isEntrepreneur && (
+                      <span
+                        title="Profissional Ativa"
+                        className="inline-flex items-center gap-1 rounded-full border border-rose-gold/50 bg-gradient-to-r from-rosa-blush to-rose-gold px-3 py-1 text-xs sm:text-sm font-semibold text-white shadow-card"
+                      >
+                        ✦ Pro
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm sm:text-base text-foreground/60 break-words">
+                    {email}
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Block */}
+              <div className="flex items-center gap-3">
+                <StatusBadge status={status} onClick={onStatusClick} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// NEW: Stats Card Component
+function StatsCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-cinza-suave/70 bg-branco p-4 shadow-card text-center">
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <span className="text-rose-gold">{icon}</span>
+        <span className="text-xl sm:text-2xl font-bold text-foreground">{value}</span>
+      </div>
+      <p className="text-xs text-foreground/50 uppercase tracking-wider font-medium">{label}</p>
+    </div>
+  );
+}
+
+// Main Profile Page Component
 export default function PerfilPage() {
   const { user, loading } = useAuth();
   const { setPhotoUrl } = useProfilePhoto();
@@ -465,7 +807,12 @@ export default function PerfilPage() {
     }
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerUpload = async () => {
+    if (!bannerInputRef.current) return;
+    bannerInputRef.current.click();
+  };
+
+  const handleBannerUploadChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
@@ -578,7 +925,7 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
       {/* Decorative ambient gradients */}
       <div
         aria-hidden
@@ -590,7 +937,7 @@ export default function PerfilPage() {
       />
 
       {/* Breadcrumb Header */}
-      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-8 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <nav aria-label="Navegação da área" className="flex items-center gap-2 text-xs font-semibold text-foreground/50 uppercase tracking-wider">
             <span>Minha Área</span>
@@ -603,12 +950,12 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* Main Layout: Sidebar + Card */}
-      <div className="flex flex-col gap-8 md:flex-row md:items-start">
+      {/* Main Layout: Sidebar + Content */}
+      <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
         {/* Left Sidebar Navigation */}
-        <aside className="w-full md:w-60 shrink-0">
+        <aside className="w-full lg:w-64 shrink-0">
           {/* Mobile Tab Bar */}
-          <div className="md:hidden flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+          <div className="lg:hidden flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
             {navItems.map((item) => {
               const Icon = item.icon;
               if (item.disabled) {
@@ -648,7 +995,7 @@ export default function PerfilPage() {
           </div>
 
           {/* Desktop Sidebar Card */}
-          <div className="hidden md:block rounded-3xl border border-cinza-suave/70 bg-branco p-4 shadow-card">
+          <div className="hidden lg:block rounded-3xl border border-cinza-suave/70 bg-branco p-4 shadow-card">
             <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
               Menu da conta
             </p>
@@ -699,665 +1046,475 @@ export default function PerfilPage() {
           </div>
         </aside>
 
-        {/* Main Content Card: ONE clean container */}
+        {/* Main Content Area */}
         <main className="flex-1 min-w-0">
+          {/* Main Content Card */}
           <div className="rounded-3xl border border-cinza-suave/70 bg-branco shadow-card overflow-hidden">
-            {/* Banner Section */}
-            <div className="relative h-44 sm:h-56 md:h-64 w-full overflow-hidden bg-gradient-to-br from-rosa-blush/25 via-rose-gold/15 to-rosa-medio/25">
-              {profile.bannerUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profile.bannerUrl}
-                  alt="Banner do perfil"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center p-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rosa-blush/20 text-rose-gold">
-                    <Sparkles className="h-6 w-6" />
-                  </div>
-                  <p className="text-xs sm:text-sm font-medium text-foreground/50 max-w-xs">
-                    Adicione um banner para dar o seu toque pessoal ao perfil
+            {/* NEW: Redesigned Profile Header */}
+            <ProfileHeader
+              bannerUrl={profile.bannerUrl || null}
+              avatarSrc={effectivePhotoUrl}
+              avatarInitials={initialsOf(displayName)}
+              displayName={displayName}
+              email={user.email || ""}
+              status={profile.status}
+              isEntrepreneur={profile.isEntrepreneur}
+              onBannerUpload={() => bannerInputRef.current?.click()}
+              onBannerRemove={handleBannerRemove}
+              bannerUploading={bannerUploading}
+              onAvatarUpload={() => avatarInputRef.current?.click()}
+              onAvatarRemove={handleAvatarRemove}
+              avatarUploading={avatarUploading}
+              onStatusClick={() => setStatusMenuOpen(true)}
+            />
+
+            {/* Input File Refs */}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleAvatarUpload}
+              className="sr-only"
+              aria-label="Upload de foto de perfil"
+            />
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleBannerUploadChange}
+              className="sr-only"
+              aria-label="Upload de banner"
+            />
+
+            {/* Status Menu Dropdown */}
+            {statusMenuOpen && (
+              <div className="relative z-20 px-6 sm:px-8 pb-4" ref={statusMenuRef}>
+                <div className="absolute top-0 right-0 mt-2 z-30 w-64 rounded-2xl border border-cinza-suave/70 bg-branco p-1.5 shadow-card-lg backdrop-blur-xl">
+                  <p className="px-3 py-1.5 text-[11px] font-semibold text-foreground/50 uppercase tracking-wider">
+                    Alterar disponibilidade
                   </p>
+                  {statusOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        set("status", opt);
+                        setStatusMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
+                        profile.status === opt
+                          ? "bg-rosa-claro/70 text-rose-gold font-semibold"
+                          : "text-foreground/80 hover:bg-rosa-claro/40"
+                      }`}
+                    >
+                      <span>{opt}</span>
+                      {profile.status === opt && <Check className="h-3.5 w-3.5 text-rose-gold" />}
+                    </button>
+                  ))}
                 </div>
-              )}
-
-              {/* Banner Action Buttons */}
-              <div className="absolute top-4 right-4 flex items-center gap-2">
-                <input
-                  ref={bannerInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleBannerUpload}
-                  className="sr-only"
-                  aria-label="Upload de banner"
-                />
-                <button
-                  type="button"
-                  onClick={() => bannerInputRef.current?.click()}
-                  disabled={bannerUploading}
-                  aria-label={profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}
-                  title={profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/60 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur-md shadow-card transition-all hover:bg-black/80 hover:scale-105 active:scale-95 disabled:opacity-50"
-                >
-                  {bannerUploading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Camera className="h-3.5 w-3.5" />
-                  )}
-                  <span>{profile.bannerUrl ? "Alterar banner" : "Adicionar banner"}</span>
-                </button>
-
-                {profile.bannerUrl && (
-                  <button
-                    type="button"
-                    onClick={handleBannerRemove}
-                    disabled={bannerUploading}
-                    aria-label="Remover banner"
-                    title="Remover banner"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-black/60 text-white backdrop-blur-md shadow-card transition-all hover:bg-black/80 hover:text-red-300 active:scale-95 disabled:opacity-50"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
               </div>
+            )}
+
+            {/* NEW: Primary Save Button - Sticky */}
+            <div className="px-6 sm:px-8 pb-4">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!isDirty || saving}
+                className={`${primaryButton} w-full sm:w-auto px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-card`}
+              >
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Salvando...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    {isDirty && <Check className="h-4 w-4" />}
+                    {isDirty ? "Salvar alterações" : "Perfil atualizado"}
+                  </span>
+                )}
+              </button>
             </div>
 
-            {/* Profile Identity & Action Header */}
-            <div className="px-6 sm:px-8 pb-6 sm:pb-8">
-              <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-14 sm:-mt-16 mb-8">
-                {/* Avatar + User Info */}
-                <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-                  {/* Avatar overlapping banner */}
-                  <div className="relative group shrink-0 self-start sm:self-auto">
-                    <input
-                      ref={avatarInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleAvatarUpload}
-                      className="sr-only"
-                      aria-label="Upload de foto de perfil"
+            {/* Form Content */}
+            <div className="px-6 sm:px-8 pb-8">
+              {/* SECTION 1: SOBRE VOCÊ */}
+              <FormSection
+                title="Sobre você"
+                description="Informações básicas de identificação exibidas no seu perfil público."
+              >
+                <FormRow
+                  label="Nome de exibição"
+                  helper="Como você prefere ser chamada na comunidade e certificados."
+                  htmlFor="nome"
+                >
+                  <input
+                    id="nome"
+                    type="text"
+                    value={profile.name}
+                    onChange={(e) => set("name", e.target.value)}
+                    placeholder="Ex.: Mariana Silva"
+                    className={inputClasses}
+                  />
+                </FormRow>
+
+                <FormRow
+                  label="Bio"
+                  helper="Uma breve descrição sobre você, seu estilo ou seu trabalho com unhas."
+                  htmlFor="bio"
+                >
+                  <div className="relative">
+                    <textarea
+                      id="bio"
+                      rows={3}
+                      maxLength={160}
+                      value={profile.bio}
+                      onChange={(e) => set("bio", e.target.value)}
+                      placeholder="Conte um pouco sobre sua paixão por unhas, técnicas que adora e seu momento profissional..."
+                      className={`${inputClasses} resize-none`}
                     />
-                    <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full ring-4 ring-branco overflow-hidden bg-gradient-to-br from-rosa-blush to-rose-gold shadow-card-lg">
-                      {effectivePhotoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={effectivePhotoUrl}
-                          alt={displayName}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-2xl sm:text-3xl font-bold text-white">
-                          {initialsOf(displayName)}
-                        </span>
-                      )}
-                      {avatarUploading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-xs">
-                          <Loader2 className="h-6 w-6 animate-spin text-white" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Small camera icon button */}
-                    <button
-                      type="button"
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={avatarUploading}
-                      aria-label="Alterar foto de perfil"
-                      title="Alterar foto de perfil"
-                      className="absolute bottom-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-branco bg-rose-gold text-white shadow-card transition-all hover:bg-rosa-blush hover:scale-105 active:scale-95 disabled:opacity-50"
-                    >
-                      <Camera className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {/* Name, Email, Status Badge */}
-                  <div className="sm:mb-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                        {displayName}
-                      </h2>
-                      {profile.isEntrepreneur && (
-                        <span
-                          title="Profissional Ativa"
-                          className="inline-flex items-center gap-1 rounded-full border border-rose-gold/50 bg-gradient-to-r from-rosa-blush to-rose-gold px-2.5 py-0.5 text-[11px] font-semibold text-white shadow-card"
-                        >
-                          ✦ Pro
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs sm:text-sm text-foreground/60">{user.email}</p>
-
-                    {/* Status Badge with quick picker */}
-                    <div className="relative mt-2.5" ref={statusMenuRef}>
-                      <button
-                        type="button"
-                        onClick={() => setStatusMenuOpen((prev) => !prev)}
-                        className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-medium border transition-all ${
-                          profile.status === "Disponível para atendimentos"
-                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-                            : profile.status === "Só estudando"
-                            ? "border-rose-gold/40 bg-rosa-blush/15 text-rose-gold hover:bg-rosa-blush/25"
-                            : "border-cinza-suave bg-rosa-claro/50 text-foreground/70 hover:bg-rosa-claro"
+                    <div className="mt-1 flex justify-end">
+                      <span
+                        className={`text-xs ${
+                          profile.bio.length >= 150
+                            ? "text-rose-gold font-semibold"
+                            : "text-foreground/40"
                         }`}
-                        title="Clique para alterar status de atendimento"
                       >
-                        <span
-                          className={`h-2 w-2 rounded-full ${
-                            profile.status === "Disponível para atendimentos"
-                              ? "bg-emerald-400 animate-pulse"
-                              : profile.status === "Só estudando"
-                              ? "bg-rose-gold"
-                              : "bg-foreground/40"
-                          }`}
-                        />
-                        <span>{profile.status}</span>
-                      </button>
-
-                      {statusMenuOpen && (
-                        <div className="absolute left-0 mt-2 z-20 w-64 rounded-2xl border border-cinza-suave/70 bg-branco p-1.5 shadow-card-lg backdrop-blur-xl">
-                          <p className="px-3 py-1.5 text-[11px] font-semibold text-foreground/50 uppercase tracking-wider">
-                            Alterar disponibilidade
-                          </p>
-                          {statusOptions.map((opt) => (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => {
-                                set("status", opt);
-                                setStatusMenuOpen(false);
-                              }}
-                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${
-                                profile.status === opt
-                                  ? "bg-rosa-claro/70 text-rose-gold font-semibold"
-                                  : "text-foreground/80 hover:bg-rosa-claro/40"
-                              }`}
-                            >
-                              <span>{opt}</span>
-                              {profile.status === opt && <Check className="h-3.5 w-3.5 text-rose-gold" />}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                        {profile.bio.length} / 160 caracteres
+                      </span>
                     </div>
                   </div>
-                </div>
+                </FormRow>
 
-                {/* Primary Save Changes Button (Header) */}
-                <div className="sm:self-end pt-2 sm:pt-0">
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={!isDirty || saving}
-                    className={`${primaryButton} w-full sm:w-auto px-6 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-card`}
-                  >
-                    {saving ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Salvando...
-                      </span>
-                    ) : (
-                      "Salvar alterações"
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Form Sections */}
-              <div className="space-y-8">
-                {/* 1. SOBRE VOCÊ */}
-                <FormSection
-                  title="Sobre você"
-                  description="Informações básicas de identificação exibidas no seu perfil público."
+                <FormRow
+                  label="Cidade"
+                  helper="Ajuda clientes locais e colegas a encontrarem você."
+                  htmlFor="cidade"
                 >
-                  <FormRow
-                    label="Nome de exibição"
-                    helper="Como você prefere ser chamada na comunidade e certificados."
-                    htmlFor="nome"
-                  >
-                    <input
-                      id="nome"
-                      type="text"
-                      value={profile.name}
-                      onChange={(e) => set("name", e.target.value)}
-                      placeholder="Ex.: Mariana Silva"
-                      className={inputClasses}
-                    />
-                  </FormRow>
+                  <input
+                    id="cidade"
+                    type="text"
+                    value={profile.city}
+                    onChange={(e) => set("city", e.target.value)}
+                    placeholder="Ex.: Curitiba, PR"
+                    className={inputClasses}
+                  />
+                </FormRow>
+              </FormSection>
 
-                  <FormRow
-                    label="Bio"
-                    helper="Uma breve descrição sobre você, seu estilo ou seu trabalho com unhas."
-                    htmlFor="bio"
-                  >
-                    <div className="relative">
-                      <textarea
-                        id="bio"
-                        rows={3}
-                        maxLength={160}
-                        value={profile.bio}
-                        onChange={(e) => set("bio", e.target.value)}
-                        placeholder="Conte um pouco sobre sua paixão por unhas, técnicas que adora e seu momento profissional..."
-                        className={`${inputClasses} resize-none`}
-                      />
-                      <div className="mt-1 flex justify-end">
-                        <span
-                          className={`text-xs ${
-                            profile.bio.length >= 150
-                              ? "text-rose-gold font-semibold"
-                              : "text-foreground/40"
-                          }`}
-                        >
-                          {profile.bio.length} / 160 caracteres
-                        </span>
-                      </div>
-                    </div>
-                  </FormRow>
-
-                  <FormRow
-                    label="Cidade"
-                    helper="Ajuda clientes locais e colegas a encontrarem você."
-                    htmlFor="cidade"
-                  >
-                    <input
-                      id="cidade"
-                      type="text"
-                      value={profile.city}
-                      onChange={(e) => set("city", e.target.value)}
-                      placeholder="Ex.: Curitiba, PR"
-                      className={inputClasses}
-                    />
-                  </FormRow>
-                </FormSection>
-
-                {/* 2. EXPERIÊNCIA */}
-                <FormSection
-                  title="Experiência"
-                  description="Seu nível técnico, histórico e instrumentos de trabalho."
+              {/* SECTION 2: EXPERIÊNCIA */}
+              <FormSection
+                title="Experiência"
+                description="Seu nível técnico, histórico e instrumentos de trabalho."
+              >
+                <FormRow
+                  label="Meu Nível"
+                  helper="Indique em qual estágio você se encontra atualmente."
+                  htmlFor="nivel"
                 >
-                  <FormRow
-                    label="Meu Nível"
-                    helper="Indique em qual estágio você se encontra atualmente."
-                    htmlFor="nivel"
+                  <select
+                    id="nivel"
+                    value={profile.level}
+                    onChange={(e) => set("level", e.target.value)}
+                    className={`${inputClasses} appearance-none bg-no-repeat bg-right-4 pr-10`}
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' strokeWidth='2' stroke='%23${encodeURIComponent("currentColor")}' class='w-4 h-4'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E")`,
+                    }}
                   >
-                    <div className="flex flex-wrap gap-2.5">
-                      {levelOptions.map((lvl) => {
-                        const active = profile.level.toLowerCase() === lvl.toLowerCase();
-                        return (
-                          <button
-                            key={lvl}
-                            type="button"
-                            onClick={() => set("level", lvl)}
-                            aria-pressed={active}
-                            className={`rounded-2xl px-4 py-2 text-xs font-semibold transition-all ${
-                              active
-                                ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
-                                : "border border-cinza-suave bg-rosa-claro/30 text-foreground/80 hover:border-rose-gold/60 hover:text-rose-gold"
-                            }`}
-                          >
-                            {lvl}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {/* Hidden input to preserve name/id compatibility */}
-                    <input
-                      id="nivel"
-                      type="hidden"
-                      value={profile.level}
-                    />
-                  </FormRow>
+                    {levelOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </FormRow>
 
-                  <FormRow
-                    label="Tempo de Experiência"
-                    helper="Há quanto tempo você estuda ou atua com manicure."
-                    htmlFor="experiencia"
-                  >
-                    <input
-                      id="experiencia"
-                      type="text"
-                      value={profile.experienceYears}
-                      onChange={(e) => set("experienceYears", e.target.value)}
-                      placeholder="Ex.: 2 anos, 6 meses, Iniciando agora"
-                      className={inputClasses}
-                    />
-                  </FormRow>
-
-                  <FormRow
-                    label="Equipamentos que Uso"
-                    helper="Ferramentas e aparelhos que fazem parte do seu kit."
-                    htmlFor="equipamentos"
-                  >
-                    <input
-                      id="equipamentos"
-                      type="text"
-                      value={profile.equipment}
-                      onChange={(e) => set("equipment", e.target.value)}
-                      placeholder="Ex.: Cabine UV/LED, Lixa elétrica, Brocas de cerâmica"
-                      className={inputClasses}
-                    />
-                  </FormRow>
-
-                  <FormRow
-                    label="Curso em Andamento"
-                    helper="Qual módulo ou especialização você está concluindo."
-                    htmlFor="curso"
-                  >
-                    <input
-                      id="curso"
-                      type="text"
-                      value={profile.courseInProgress}
-                      onChange={(e) => set("courseInProgress", e.target.value)}
-                      placeholder="Ex.: Módulo 2 — Nail Art & Esmaltação em Gel"
-                      className={inputClasses}
-                    />
-                  </FormRow>
-                </FormSection>
-
-                {/* 3. PREFERÊNCIAS */}
-                <FormSection
-                  title="Preferências"
-                  description="Seus estilos favoritos, técnicas preferidas e marcas do coração."
+                <FormRow
+                  label="Anos de experiência"
+                  helper="Quantos anos você já atua na área de unhas?"
+                  htmlFor="experiencia"
                 >
-                  <FormRow
-                    label="Marcas & Cores Favoritas"
-                    helper="Separe por vírgulas para criar tags automáticas."
-                    htmlFor="marcas"
-                  >
-                    <input
-                      id="marcas"
-                      type="text"
-                      value={profile.favoriteBrands}
-                      onChange={(e) => set("favoriteBrands", e.target.value)}
-                      placeholder="Ex.: Risqué, Dailus, Impala, Colorama"
-                      className={inputClasses}
-                    />
-                    {profile.favoriteBrands && (
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {parseTags(profile.favoriteBrands).map((brand) => (
-                          <span
-                            key={brand}
-                            className="inline-flex items-center rounded-full border border-rose-gold/40 bg-rosa-claro/60 px-3 py-1 text-xs font-medium text-rose-gold"
-                          >
-                            {brand}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </FormRow>
+                  <input
+                    id="experiencia"
+                    type="number"
+                    value={profile.experienceYears}
+                    onChange={(e) => set("experienceYears", e.target.value)}
+                    placeholder="Ex.: 3"
+                    min="0"
+                    max="50"
+                    className={inputClasses}
+                  />
+                </FormRow>
 
-                  <FormRow
-                    label="Estilo Preferido"
-                    helper="Selecione um estilo em destaque ou digite o seu preferido."
-                    htmlFor="estilo"
-                  >
-                    <div className="space-y-2.5">
-                      <div className="flex flex-wrap gap-2">
-                        {stylePresets.map((style) => {
-                          const active = profile.favoriteStyles
-                            .toLowerCase()
-                            .includes(style.toLowerCase());
-                          return (
-                            <button
-                              key={style}
-                              type="button"
-                              onClick={() => {
-                                const current = parseTags(profile.favoriteStyles);
-                                const exists = current.some(
-                                  (s) => s.toLowerCase() === style.toLowerCase()
-                                );
-                                const next = exists
-                                  ? current.filter(
-                                      (s) => s.toLowerCase() !== style.toLowerCase()
-                                    )
-                                  : [...current, style];
-                                set("favoriteStyles", next.join(", "));
-                              }}
-                              className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                                active
-                                  ? "border border-rose-gold bg-rosa-blush/20 text-rose-gold font-semibold"
-                                  : "border border-cinza-suave bg-rosa-claro/30 text-foreground/70 hover:border-rose-gold/50 hover:text-foreground"
-                              }`}
-                            >
-                              {active ? `✓ ${style}` : `+ ${style}`}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <input
-                        id="estilo"
-                        type="text"
-                        value={profile.favoriteStyles}
-                        onChange={(e) => set("favoriteStyles", e.target.value)}
-                        placeholder="Ex.: Francesinha, Nail Art delicada"
-                        className={inputClasses}
-                      />
-                    </div>
-                  </FormRow>
-
-                  <FormRow
-                    label="Interesses"
-                    helper="Tags e tópicos que você mais gosta de acompanhar."
-                    htmlFor="interesses"
-                  >
-                    <input
-                      id="interesses"
-                      type="text"
-                      value={profile.interests.join(", ")}
-                      onChange={(e) => set("interests", parseTags(e.target.value))}
-                      placeholder="#NailArt, #Francesinha, #AlongamentoEmGel"
-                      className={inputClasses}
-                    />
-                    {profile.interests.length > 0 && (
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {profile.interests.map((interest) => (
-                          <span
-                            key={interest}
-                            className="inline-flex items-center rounded-full border border-rose-gold/30 bg-rosa-claro/50 px-2.5 py-0.5 text-xs text-rose-gold"
-                          >
-                            {interest}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </FormRow>
-                </FormSection>
-
-                {/* 4. FOTO DE PERFIL */}
-                <FormSection
-                  title="Foto de Perfil"
-                  description="Sua imagem de exibição para a comunidade e clientes da plataforma."
+                <FormRow
+                  label="Marcas favoritas"
+                  helper="Quais marcas de produtos você mais utiliza?"
+                  htmlFor="marcas"
                 >
-                  <FormRow
-                    label="Foto atual"
-                    helper="JPG, PNG ou WebP com tamanho de até 5 MB."
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      {/* Avatar preview */}
-                      <div className="relative h-16 w-16 shrink-0 rounded-full ring-2 ring-rose-gold/40 overflow-hidden bg-gradient-to-br from-rosa-blush to-rose-gold shadow-card">
-                        {effectivePhotoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={effectivePhotoUrl}
-                            alt={displayName}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center text-lg font-bold text-white">
-                            {initialsOf(displayName)}
-                          </span>
+                  <input
+                    id="marcas"
+                    type="text"
+                    value={profile.favoriteBrands}
+                    onChange={(e) => set("favoriteBrands", e.target.value)}
+                    placeholder="Ex.: CND, OPI, Gelish"
+                    className={inputClasses}
+                  />
+                </FormRow>
+
+                <FormRow
+                  label="Estilos favoritos"
+                  helper="Quais estilos de design você prefere fazer?"
+                  htmlFor="estilos"
+                >
+                  <input
+                    id="estilos"
+                    type="text"
+                    value={profile.favoriteStyles}
+                    onChange={(e) => set("favoriteStyles", e.target.value)}
+                    placeholder="Ex.: Nail Art, Francesinha"
+                    className={inputClasses}
+                  />
+                </FormRow>
+
+                <FormRow
+                  label="Equipamentos"
+                  helper="Quais equipamentos você possui?"
+                  htmlFor="equipamentos"
+                >
+                  <input
+                    id="equipamentos"
+                    type="text"
+                    value={profile.equipment}
+                    onChange={(e) => set("equipment", e.target.value)}
+                    placeholder="Ex.: Lâmpada UV, Drill, Pincéis"
+                    className={inputClasses}
+                  />
+                </FormRow>
+
+                <FormRow
+                  label="Curso em andamento"
+                  helper="Você está fazendo algum curso atualmente?"
+                  htmlFor="curso"
+                >
+                  <input
+                    id="curso"
+                    type="text"
+                    value={profile.courseInProgress}
+                    onChange={(e) => set("courseInProgress", e.target.value)}
+                    placeholder="Ex.: Curso Avançado de Nail Art"
+                    className={inputClasses}
+                  />
+                </FormRow>
+              </FormSection>
+
+              {/* SECTION 3: PREFERÊNCIAS E INTERESES */}
+              <FormSection
+                title="Preferências e Interesses"
+                description="Personalize seu perfil com seus interesses e preferências."
+              >
+                <FormRow
+                  label="Interesses"
+                  helper="Seus interesses dentro do universo das unhas (separe por vírgula)."
+                  htmlFor="interesses"
+                >
+                  <input
+                    id="interesses"
+                    type="text"
+                    value={profile.interests.join(", ")}
+                    onChange={(e) => set("interests", parseTags(e.target.value))}
+                    placeholder="Ex.: Novidades, Tutorial, Tendências"
+                    className={inputClasses}
+                  />
+                </FormRow>
+
+                <FormRow
+                  label="Tags de estilo"
+                  helper="Escolha ou adicione tags que representem seu estilo."
+                  htmlFor="tags"
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {stylePresets.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          const current = profile.interests;
+                          const newInterests = current.includes(preset)
+                            ? current.filter((i) => i !== preset)
+                            : [...current, preset];
+                          set("interests", newInterests);
+                        }}
+                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          profile.interests.includes(preset)
+                            ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
+                            : "border border-rose-gold/40 bg-rosa-claro/40 text-rose-gold hover:bg-rosa-claro/60"
+                        }`}
+                      >
+                        {profile.interests.includes(preset) && (
+                          <Check className="h-3 w-3" />
                         )}
-                        {avatarUploading && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                            <Loader2 className="h-4 w-4 animate-spin text-white" />
-                          </div>
-                        )}
-                      </div>
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </FormRow>
+              </FormSection>
 
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => avatarInputRef.current?.click()}
-                          disabled={avatarUploading}
-                          className={`${outlineButton} px-4 py-2 text-xs font-semibold`}
-                        >
-                          <Upload className="h-3.5 w-3.5 mr-1.5" />
-                          Atualizar foto
-                        </button>
-
-                        {effectivePhotoUrl && (
-                          <button
-                            type="button"
-                            onClick={handleAvatarRemove}
-                            disabled={avatarUploading}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors disabled:opacity-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Remover
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </FormRow>
-                </FormSection>
-
-                {/* 5. REDES SOCIAIS */}
+              {/* SECTION 4: PROFISSIONAL (Conditional) */}
+              {profile.isEntrepreneur && (
                 <FormSection
-                  title="Redes Sociais"
-                  description="Compartilhe seu portfólio no Instagram, YouTube e TikTok."
+                  title="Informações Profissionais"
+                  description="Configurações para profissionais que oferecem serviços."
                 >
                   <FormRow
-                    label="Instagram"
-                    helper="Seu perfil profissional ou pessoal de nail art."
-                    htmlFor="instagram"
+                    label="Serviços oferecidos"
+                    helper="Quais serviços você oferece? (separe por vírgula)"
+                    htmlFor="servicos"
                   >
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
-                        <InstagramIcon className="h-4 w-4" />
-                      </span>
-                      <input
-                        id="instagram"
-                        type="url"
-                        value={profile.instagram}
-                        onChange={(e) => set("instagram", e.target.value)}
-                        placeholder="instagram.com/seu_perfil"
-                        className={`${inputClasses} pl-11`}
-                      />
-                    </div>
+                    <input
+                      id="servicos"
+                      type="text"
+                      value={profile.services.join(", ")}
+                      onChange={(e) => set("services", parseTags(e.target.value))}
+                      placeholder="Ex.: Manicure, Pedicure, Alongamento"
+                      className={inputClasses}
+                    />
                   </FormRow>
 
                   <FormRow
-                    label="YouTube"
-                    helper="Seu canal com tutoriais ou demonstrações."
-                    htmlFor="youtube"
+                    label="Preço médio"
+                    helper="Preço médio dos seus serviços."
+                    htmlFor="preco"
                   >
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
-                        <YoutubeIcon className="h-4 w-4" />
-                      </span>
-                      <input
-                        id="youtube"
-                        type="url"
-                        value={profile.youtube}
-                        onChange={(e) => set("youtube", e.target.value)}
-                        placeholder="youtube.com/@seu_canal"
-                        className={`${inputClasses} pl-11`}
-                      />
-                    </div>
+                    <input
+                      id="preco"
+                      type="text"
+                      value={profile.pricing}
+                      onChange={(e) => set("pricing", e.target.value)}
+                      placeholder="Ex.: R$ 50 - R$ 200"
+                      className={inputClasses}
+                    />
                   </FormRow>
 
                   <FormRow
-                    label="TikTok"
-                    helper="Vídeos curtos, dicas e bastidores do seu atendimento."
-                    htmlFor="tiktok"
+                    label="Link para agendamento"
+                    helper="Link para sua agenda online (Google Calendar, Booksy, etc.)."
+                    htmlFor="agendamento"
                   >
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-foreground/45">
-                        <TikTokIcon className="h-4 w-4" />
-                      </span>
-                      <input
-                        id="tiktok"
-                        type="url"
-                        value={profile.tiktok}
-                        onChange={(e) => set("tiktok", e.target.value)}
-                        placeholder="tiktok.com/@seu_perfil"
-                        className={`${inputClasses} pl-11`}
-                      />
-                    </div>
+                    <input
+                      id="agendamento"
+                      type="url"
+                      value={profile.bookingLink}
+                      onChange={(e) => set("bookingLink", e.target.value)}
+                      placeholder="Ex.: https://booksy.com/minha-agenda"
+                      className={inputClasses}
+                    />
                   </FormRow>
                 </FormSection>
-              </div>
+              )}
 
-              {/* Bottom Footer Save Action */}
-              <div className="mt-10 pt-6 border-t border-cinza-suave/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p className="text-xs text-foreground/50 text-center sm:text-left">
-                  {isDirty ? (
-                    <span className="text-rose-gold font-medium">
-                      ● Você tem alterações não salvas
-                    </span>
-                  ) : (
-                    "Todas as alterações foram salvas."
-                  )}
-                </p>
+              {/* SECTION 5: REDES SOCIAIS */}
+              <FormSection
+                title="Redes Sociais"
+                description="Adicione seus links para que clientes possam te encontrar."
+              >
+                <FormRow
+                  label="Instagram"
+                  htmlFor="instagram"
+                >
+                  <div className="flex items-center gap-3">
+                    <InstagramIcon className="h-5 w-5 text-foreground/60" />
+                    <input
+                      id="instagram"
+                      type="text"
+                      value={profile.instagram}
+                      onChange={(e) => set("instagram", e.target.value)}
+                      placeholder="Ex.: @seuinstagram"
+                      className={inputClasses}
+                    />
+                  </div>
+                </FormRow>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={!isDirty || saving}
-                    className={`${primaryButton} w-full sm:w-auto px-8 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-card`}
-                  >
-                    {saving ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Salvando...
-                      </span>
-                    ) : (
-                      "Salvar alterações"
-                    )}
-                  </button>
-                </div>
-              </div>
+                <FormRow
+                  label="YouTube"
+                  htmlFor="youtube"
+                >
+                  <div className="flex items-center gap-3">
+                    <YoutubeIcon className="h-5 w-5 text-foreground/60" />
+                    <input
+                      id="youtube"
+                      type="text"
+                      value={profile.youtube}
+                      onChange={(e) => set("youtube", e.target.value)}
+                      placeholder="Ex.: https://youtube.com/c/voerchannel"
+                      className={inputClasses}
+                    />
+                  </div>
+                </FormRow>
+
+                <FormRow
+                  label="TikTok"
+                  htmlFor="tiktok"
+                >
+                  <div className="flex items-center gap-3">
+                    <TikTokIcon className="h-5 w-5 text-foreground/60" />
+                    <input
+                      id="tiktok"
+                      type="text"
+                      value={profile.tiktok}
+                      onChange={(e) => set("tiktok", e.target.value)}
+                      placeholder="Ex.: @seutiktok"
+                      className={inputClasses}
+                    />
+                  </div>
+                </FormRow>
+              </FormSection>
             </div>
           </div>
         </main>
       </div>
 
-      {/* Floating Toast Notification */}
+      {/* Toast Notification */}
       {toast && (
         <div
-          role="status"
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl px-5 py-3.5 shadow-card-lg backdrop-blur-xl border transition-all animate-fadeIn ${
+          className={`fixed bottom-6 left-6 right-6 z-50 rounded-2xl border shadow-card-lg transition-all duration-300 ${
             toast.type === "success"
-              ? "border-rose-gold/60 bg-branco/95 text-foreground"
-              : "border-red-500/50 bg-branco/95 text-red-300"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+              : "border-red-500/40 bg-red-500/10 text-red-400"
           }`}
         >
-          <div
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-              toast.type === "success"
-                ? "bg-rose-gold text-white"
-                : "bg-red-500 text-white"
-            }`}
-          >
-            {toast.type === "success" ? (
-              <Check className="h-3.5 w-3.5" />
-            ) : (
-              <X className="h-3.5 w-3.5" />
-            )}
+          <div className="flex items-center gap-3 p-4">
+            <div
+              className={`h-6 w-6 rounded-full flex items-center justify-center ${
+                toast.type === "success" ? "bg-emerald-500/20" : "bg-red-500/20"
+              }`}
+            >
+              {toast.type === "success" ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
+            </div>
+            <span className="flex-1 text-sm font-medium">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-black/5 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <p className="text-sm font-semibold">{toast.message}</p>
-          <button
-            type="button"
-            onClick={() => setToast(null)}
-            className="ml-2 text-foreground/50 hover:text-foreground"
-            aria-label="Fechar notificação"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
+
+      {/* NEW: Floating Save Button */}
+      <FloatingSaveButton
+        isDirty={isDirty}
+        saving={saving}
+        onSave={handleSave}
+      />
     </div>
   );
 }
