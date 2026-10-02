@@ -14,7 +14,7 @@ export function getAdminStorage() {
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
   }
-  return getStorage().bucket();
+  return getStorage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
 }
 
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB

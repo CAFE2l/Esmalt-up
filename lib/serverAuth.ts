@@ -17,7 +17,10 @@ const firebaseAdminConfig = {
 };
 
 if (!getApps().length) {
-  initializeApp({ credential: cert(firebaseAdminConfig) });
+  initializeApp({
+    credential: cert(firebaseAdminConfig),
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  });
 }
 
 export const adminAuth = getAuth();

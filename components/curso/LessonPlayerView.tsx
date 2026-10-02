@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   Lock,
   Play,
@@ -20,6 +21,7 @@ import {
   getUnitOfLesson,
   getNextLesson,
   getPrevLesson,
+  type CourseUnit,
 } from "@/data/course";
 import { useCourseProgress } from "@/lib/useCourseProgress";
 import { useAuth } from "@/lib/AuthContext";
@@ -83,6 +85,246 @@ function loadYouTubeApi(): Promise<void> {
 
 interface Props {
   slug: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* UnitSidebar                                                         */
+/* ------------------------------------------------------------------ */
+
+interface UnitSidebarProps {
+  unit: CourseUnit;
+  currentSlug: string;
+  isLessonCompleted: (slug: string) => boolean;
+  isLessonUnlocked: (slug: string) => boolean;
+}
+
+function UnitSidebar({ unit, currentSlug, isLessonCompleted, isLessonUnlocked }: UnitSidebarProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLAnchorElement | HTMLDivElement | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(true);
+
+  const publishedLessons = unit.lessons.filter((l) => l.status !== "coming_soon");
+  const doneCount = publishedLessons.filter((l) => isLessonCompleted(l.slug)).length;
+  const totalCount = publishedLessons.length;
+  const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+  // Scroll active lesson into view inside the list only (never the page).
+  useEffect(() => {
+    const list = listRef.current;
+    const active = activeRef.current as HTMLElement | null;
+    if (!list || !active) return;
+    const listTop = list.scrollTop;
+    const listBottom = listTop + list.clientHeight;
+    const elTop = active.offsetTop;
+    const elBottom = elTop + active.offsetHeight;
+    if (elTop < listTop || elBottom > listBottom) {
+      list.scrollTo({ top: elTop - list.clientHeight / 2 + active.offsetHeight / 2, behavior: "smooth" });
+    }
+  }, [currentSlug]);
+
+  const header = (
+    <div className="px-4 pt-4 pb-3">
+      {/* Unit badge */}
+      <span className="inline-flex items-center rounded-full bg-rosa-blush/20 px-3 py-0.5 text-[11px] font-black uppercase tracking-widest text-rose-gold">
+        Unidade {unit.unitNumber} de 5
+      </span>
+      <h2 className="mt-1.5 text-base font-bold leading-snug text-foreground">
+        {unit.title}
+      </h2>
+      {/* Unit progress bar */}
+      <div className="mt-2.5">
+        <div className="mb-1 flex items-center justify-between text-[11px] text-foreground/60">
+          <span>{doneCount} de {totalCount} aulas concluídas</span>
+          <span className="font-semibold text-rose-gold">{pct}%</span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-cinza-suave/40">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold transition-all duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const lessonList = (
+    <div
+      ref={listRef}
+      className="flex flex-col gap-0.5 overflow-y-auto px-3 pb-3"
+      style={{ maxHeight: "min(60vh, 480px)" }}
+    >
+      {unit.lessons.map((item, idx) => {
+        const itemCompleted = isLessonCompleted(item.slug);
+        const itemUnlocked = isLessonUnlocked(item.slug);
+        const isCurrentItem = item.slug === currentSlug;
+        const isComingSoon = item.status === "coming_soon";
+
+        const baseRow = "relative flex items-center gap-3 rounded-xl py-2.5 pr-3 text-xs transition-colors duration-150";
+        const accentBar = isCurrentItem
+          ? "pl-3 border-l-2 border-rose-gold"
+          : "pl-3 border-l-2 border-transparent";
+
+        if (!itemUnlocked || isComingSoon) {
+          return (
+            <div
+              key={item.id}
+              className={`${baseRow} ${accentBar} cursor-not-allowed select-none bg-rosa-claro/5 text-foreground/35`}
+            >
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cinza-suave/20">
+                <Lock className="h-3 w-3" />
+              </div>
+              <span className="min-w-0 flex-1 truncate">
+                {idx + 1}. {item.title}
+                {isComingSoon && (
+                  <span className="ml-1.5 rounded-full bg-cinza-suave/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+                    Em breve
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <Link
+            key={item.id}
+            href={`/curso/aula/${item.slug}`}
+            aria-current={isCurrentItem ? "step" : undefined}
+            ref={isCurrentItem ? (activeRef as React.RefObject<HTMLAnchorElement>) : undefined}
+            className={`${baseRow} ${accentBar} ${
+              isCurrentItem
+                ? "bg-rosa-claro/40 font-semibold text-foreground"
+                : itemCompleted
+                ? "text-foreground/70 hover:bg-rosa-claro/20"
+                : "text-foreground hover:bg-rosa-claro/20"
+            } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rosa-blush`}
+          >
+            <div
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                itemCompleted
+                  ? "bg-gradient-to-br from-rosa-blush to-rose-gold text-white"
+                  : isCurrentItem
+                  ? "bg-rosa-blush text-white"
+                  : "bg-cinza-suave/30 text-foreground/60"
+              }`}
+            >
+              {itemCompleted ? (
+                <Check className="h-3 w-3 stroke-[2.5]" />
+              ) : (
+                <Play className="h-2.5 w-2.5 fill-current ml-0.5" />
+              )}
+            </div>
+            <span className="min-w-0 flex-1 line-clamp-2 leading-snug">
+              {idx + 1}. {item.title}
+            </span>
+          </Link>
+        );
+      })}
+
+      {/* Bonus chest row */}
+      {unit.bonusChest && (() => {
+        const bonusSlug = unit.bonusChest.lesson.slug;
+        const bonusUnlocked = isLessonUnlocked(bonusSlug);
+        const isCurrentBonus = bonusSlug === currentSlug;
+        const baseRow2 = "relative flex items-center gap-3 rounded-xl py-2.5 pr-3 text-xs transition-colors duration-150";
+        const accentBar2 = isCurrentBonus
+          ? "pl-3 border-l-2 border-yellow-500"
+          : "pl-3 border-l-2 border-transparent";
+
+        if (!bonusUnlocked) {
+          return (
+            <div className={`mt-1 border-t border-cinza-suave/20 pt-1`}>
+              <div className={`${baseRow2} ${accentBar2} cursor-not-allowed text-foreground/35 bg-rosa-claro/5`}>
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cinza-suave/20">
+                  <Gift className="h-3 w-3" />
+                </div>
+                <span className="min-w-0 flex-1 truncate">[Bônus] {unit.bonusChest.title}</span>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="mt-1 border-t border-cinza-suave/20 pt-1">
+            <Link
+              href={`/curso/aula/${bonusSlug}`}
+              aria-current={isCurrentBonus ? "step" : undefined}
+              ref={isCurrentBonus ? (activeRef as React.RefObject<HTMLAnchorElement>) : undefined}
+              className={`${baseRow2} ${accentBar2} ${
+                isCurrentBonus
+                  ? "bg-yellow-500/10 font-semibold text-yellow-200"
+                  : "text-yellow-300/80 hover:bg-yellow-500/10"
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400`}
+            >
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-yellow-500 to-amber-400 text-white">
+                <Gift className="h-3 w-3" />
+              </div>
+              <span className="min-w-0 flex-1 truncate">[Bônus] {unit.bonusChest.title}</span>
+            </Link>
+          </div>
+        );
+      })()}
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop: sticky sidebar */}
+      <aside
+        aria-label="Aulas desta unidade"
+        className="hidden lg:col-span-4 lg:flex lg:flex-col"
+        style={{ position: "sticky", top: "5rem", alignSelf: "flex-start" }}
+      >
+        <div className="rounded-3xl border border-cinza-suave/40 bg-branco shadow-card overflow-hidden">
+          {header}
+          <div className="border-t border-cinza-suave/20" />
+          {lessonList}
+        </div>
+      </aside>
+
+      {/* Mobile: collapsible section below video */}
+      <div className="lg:hidden col-span-1">
+        <div className="rounded-3xl border border-cinza-suave/40 bg-branco shadow-card overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-expanded={mobileOpen}
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-rosa-blush/20 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-rose-gold">
+                Unidade {unit.unitNumber}
+              </span>
+              <span className="text-sm font-semibold text-foreground">{unit.title}</span>
+            </div>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-foreground/50 transition-transform duration-200 ${
+                mobileOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+          {mobileOpen && (
+            <>
+              <div className="border-t border-cinza-suave/20" />
+              <div className="px-4 pb-2 pt-2">
+                <div className="mb-1 flex items-center justify-between text-[11px] text-foreground/60">
+                  <span>{doneCount} de {totalCount} aulas concluídas</span>
+                  <span className="font-semibold text-rose-gold">{pct}%</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-cinza-suave/40">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+              <div className="border-t border-cinza-suave/20" />
+              {lessonList}
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
 }
 
 export default function LessonPlayerView({ slug }: Props) {
@@ -407,11 +649,12 @@ export default function LessonPlayerView({ slug }: Props) {
             <button
               type="button"
               onClick={handleToggleComplete}
-              className={`${
+              aria-pressed={isCompleted}
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold shadow-card transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                 isCompleted
-                  ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white"
-                  : primaryButton
-              } inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold shadow-card transition-all active:scale-95`}
+                  ? "border border-emerald-600/40 bg-emerald-900/60 text-emerald-300 hover:bg-emerald-900/80 focus-visible:ring-emerald-500"
+                  : `${primaryButton} focus-visible:ring-rosa-blush`
+              }`}
             >
               {isCompleted ? (
                 <>
@@ -483,127 +726,13 @@ export default function LessonPlayerView({ slug }: Props) {
           </div>
         </div>
 
-        {/* Right Column: Compact Unit Lessons List (col-span-4) */}
-        <aside
-          aria-label="Aulas desta unidade"
-          className="lg:col-span-4 flex flex-col gap-3"
-        >
-          <div className="rounded-3xl border border-cinza-suave/40 bg-branco p-4 shadow-card">
-            <div className="mb-3 px-2">
-              <span className="text-[11px] font-black uppercase tracking-widest text-rose-gold">
-                Unidade {unit.unitNumber}
-              </span>
-              <h2 className="text-base font-bold text-foreground">
-                {unit.title}
-              </h2>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              {unit.lessons.map((item, idx) => {
-                const itemCompleted = isLessonCompleted(item.slug);
-                const itemUnlocked = isLessonUnlocked(item.slug);
-                const isCurrentItem = item.slug === slug;
-
-                if (!itemUnlocked) {
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 rounded-2xl border border-transparent p-3 text-xs text-foreground/40 bg-rosa-claro/10 cursor-not-allowed select-none"
-                    >
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cinza-suave/30">
-                        <Lock className="h-3.5 w-3.5 text-foreground/40" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">
-                          {idx + 1}. {item.title}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/curso/aula/${item.slug}`}
-                    className={`flex items-center gap-3 rounded-2xl border p-3 text-xs transition-all ${
-                      isCurrentItem
-                        ? "border-rose-gold/60 bg-rosa-claro/60 text-white font-semibold shadow-sm"
-                        : itemCompleted
-                        ? "border-transparent bg-branco text-foreground/80 hover:bg-rosa-claro/30"
-                        : "border-transparent bg-branco text-foreground hover:bg-rosa-claro/30"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                        itemCompleted
-                          ? "bg-gradient-to-br from-rosa-blush to-rose-gold text-white"
-                          : isCurrentItem
-                          ? "bg-rosa-blush text-white ring-2 ring-rosa-blush/40"
-                          : "bg-cinza-suave/40 text-foreground/70"
-                      }`}
-                    >
-                      {itemCompleted ? (
-                        <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                      ) : (
-                        <Play className="h-3 w-3 fill-current ml-0.5" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate">
-                        {idx + 1}. {item.title}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-
-              {/* Bonus chest item if present */}
-              {unit.bonusChest && (
-                <div className="mt-2 pt-2 border-t border-cinza-suave/20">
-                  {(() => {
-                    const bonusSlug = unit.bonusChest.lesson.slug;
-                    const _bonusCompleted = isLessonCompleted(bonusSlug);
-                    const bonusUnlocked = isLessonUnlocked(bonusSlug);
-                    const isCurrentBonus = bonusSlug === slug;
-
-                    if (!bonusUnlocked) {
-                      return (
-                        <div className="flex items-center gap-3 rounded-2xl p-3 text-xs text-foreground/40 bg-rosa-claro/10 cursor-not-allowed">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cinza-suave/30">
-                            <Gift className="h-3.5 w-3.5 text-foreground/40" />
-                          </div>
-                          <span className="truncate">
-                            [Bônus] {unit.bonusChest.title}
-                          </span>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <Link
-                        href={`/curso/aula/${bonusSlug}`}
-                        className={`flex items-center gap-3 rounded-2xl border p-3 text-xs transition-all ${
-                          isCurrentBonus
-                            ? "border-yellow-500/60 bg-yellow-500/10 text-white font-semibold"
-                            : "border-yellow-500/30 bg-yellow-500/5 text-yellow-200 hover:bg-yellow-500/15"
-                        }`}
-                      >
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-yellow-500 to-amber-400 text-white">
-                          <Gift className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="truncate">
-                          [Bônus] {unit.bonusChest.title}
-                        </span>
-                      </Link>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
+        {/* Right Column: Unit Sidebar (col-span-4) */}
+        <UnitSidebar
+          unit={unit}
+          currentSlug={slug}
+          isLessonCompleted={isLessonCompleted}
+          isLessonUnlocked={isLessonUnlocked}
+        />
       </div>
     </div>
   );

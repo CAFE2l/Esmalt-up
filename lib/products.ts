@@ -73,6 +73,12 @@ export async function getFeatured(kind: ProductKind): Promise<Product[]> {
     },
     orderBy: { createdAt: "desc" },
   });
+  
+  // Fallback to static data if database is empty
+  if (products.length === 0) {
+    return getFeaturedSync(kind);
+  }
+  
   return products.map(transformDbProduct);
 }
 
@@ -84,6 +90,12 @@ export async function getByKind(kind: ProductKind): Promise<Product[]> {
     },
     orderBy: { createdAt: "desc" },
   });
+  
+  // Fallback to static data if database is empty
+  if (products.length === 0) {
+    return getByKindSync(kind);
+  }
+  
   return products.map(transformDbProduct);
 }
 

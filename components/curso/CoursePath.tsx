@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Play, UserCheck, AlertTriangle, Sparkles } from "lucide-react";
+import { Play, UserCheck, AlertTriangle, Sparkles, Award } from "lucide-react";
 import { COURSE_UNITS, type BonusChest, type CourseLesson } from "@/data/course";
 import { useCourseProgress } from "@/lib/useCourseProgress";
 import { useAuth } from "@/lib/AuthContext";
 import CoursePathNode, { type NodeState } from "./CoursePathNode";
 import BonusChestModal from "./BonusChestModal";
+import CertificateModal from "./CertificateModal";
+import CertificateClaimModal from "./CertificateClaimModal";
 import CourseSkeleton from "./CourseSkeleton";
 import CourseErrorState from "./CourseErrorState";
 import { primaryButton, outlineButton } from "../buttonStyles";
@@ -29,6 +31,10 @@ export default function CoursePath() {
   const { user } = useAuth();
   const [selectedChest, setSelectedChest] = useState<BonusChest | null>(null);
   const [showLockedAlert, setShowLockedAlert] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const [showClaim, setShowClaim] = useState(false);
+  const [claimedName, setClaimedName] = useState<string | null>(null);
+  const [claimedIssuedAt, setClaimedIssuedAt] = useState<string | null>(null);
 
   const {
     isLessonCompleted,
@@ -36,10 +42,11 @@ export default function CoursePath() {
     isLessonCurrent,
     isChestUnlocked,
     openChest,
-    _currentLesson,
     completedCount,
     totalLessons,
     progressPercent,
+    certificateIssuedAt,
+    issueCertificate,
     isLoading,
     hasError,
     reload,
@@ -158,6 +165,18 @@ export default function CoursePath() {
             <Play className="h-3.5 w-3.5 fill-current" />
             Continuar de onde parei
           </button>
+
+          {/* Certificate button — only when all published lessons done */}
+          {progressPercent >= 100 && (
+            <button
+              type="button"
+              onClick={() => setShowClaim(true)}
+              className={`${outlineButton} inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm`}
+            >
+              <Award className="h-3.5 w-3.5" />
+              Resgatar certificado
+            </button>
+          )}
         </div>
       </section>
 
@@ -253,6 +272,27 @@ export default function CoursePath() {
         })}
       </div>
 
+      {/* Certificate node — end of trail */}
+      <div className="flex flex-col items-center mt-8">
+        <div
+          className={`relative flex h-20 w-20 items-center justify-center rounded-full border-b-[6px] transition-all duration-200 select-none ${
+            progressPercent >= 100
+              ? "bg-gradient-to-b from-[#f7c873] to-[#e5a03d] border-[#a8681e] shadow-[0_6px_0_#945813] cursor-pointer hover:brightness-110 active:translate-y-1"
+              : "bg-[#2d2227] border-[#1c1519] shadow-[0_6px_0_#140f12] cursor-not-allowed"
+          }`}
+          role={progressPercent >= 100 ? "button" : undefined}
+          tabIndex={progressPercent >= 100 ? 0 : undefined}
+          aria-label={progressPercent >= 100 ? "Resgatar certificado" : "Conclua todas as aulas para liberar o certificado"}
+          onClick={progressPercent >= 100 ? () => setShowClaim(true) : undefined}
+          onKeyDown={progressPercent >= 100 ? (e) => { if (e.key === "Enter" || e.key === " ") { setShowClaim(true); } } : undefined}
+        >
+          <Award className={`h-9 w-9 ${ progressPercent >= 100 ? "text-white" : "text-foreground/25" }`} />
+        </div>
+        <span className="mt-2 max-w-[140px] text-center text-xs font-medium leading-tight text-foreground/75">
+          {progressPercent >= 100 ? "Certificado" : "Conclua todas as aulas para liberar"}
+        </span>
+      </div>
+
       {/* Bonus Chest Celebration Modal */}
       {selectedChest && (
         <BonusChestModal
@@ -260,6 +300,39 @@ export default function CoursePath() {
           isOpen={Boolean(selectedChest)}
           onClose={() => setSelectedChest(null)}
         />
+      )}
+
+      {/* Certificate claim flow: full name + wall visibility */}
+      <CertificateClaimModal
+        isOpen={showClaim}
+        onClose={() => setShowClaim(false)}
+        onClaimed={(data) => {
+          setClaimedName(data.recipientName);
+          setClaimedIssuedAt(data.issuedAt);
+          issueCertificate();
+          setShowClaim(false);
+          setShowCertificate(true);
+        }}
+      />
+
+      {/* Certificate Modal */}
+      <CertificateModal
+        isOpen={showCertificate}
+        onClose={() => setShowCertificate(false)}
+        userName={claimedName || user?.displayName || "Aluna Esmalt'up"}
+        issuedAt={claimedIssuedAt || certificateIssuedAt || new Date().toISOString()}
+      />
+
+      {/* Wall link after issuing */}
+      {certificateIssuedAt && (
+        <div className="mt-6 flex justify-center">
+          <Link
+            href="/formados"
+            className="text-sm font-medium text-rose-gold underline-offset-4 hover:underline"
+          >
+            Ver o mural de formados
+          </Link>
+        </div>
       )}
     </div>
   );

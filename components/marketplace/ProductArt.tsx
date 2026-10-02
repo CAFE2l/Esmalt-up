@@ -1,4 +1,23 @@
-import type { Product } from "@/lib/catalogData";
+import type { Product as DatabaseProduct } from "@/lib/products";
+import type { Product as StaticProduct } from "@/lib/catalogData.static";
+
+// Unified product type that can be either database or static
+type Product = DatabaseProduct | StaticProduct;
+
+interface ProductArtProps {
+  product: Product;
+  className?: string;
+}
+
+// Type guard to check if product has imageUrl (static format)
+function hasImageUrl(product: any): product is StaticProduct {
+  return product && typeof product.imageUrl === 'string';
+}
+
+// Type guard to check if product has images array (database format)
+function hasImagesArray(product: any): product is DatabaseProduct {
+  return product && Array.isArray(product.images) && product.images.length > 0;
+}
 
 function Sparkles() {
   return (
@@ -126,16 +145,21 @@ function artFor(category: string, kind: Product["kind"]) {
 export default function ProductArt({
   product,
   className = "",
-}: {
-  product: Product;
-  className?: string;
-}) {
-  if (product.imageUrl) {
+}: ProductArtProps) {
+  // Try to get image URL - works with both static and database products
+  let imageUrl: string | null = null;
+  
+  if (hasImageUrl(product)) {
+    imageUrl = product.imageUrl;
+  } else if (hasImagesArray(product)) {
+    imageUrl = product.images[0];
+  }
+  
+  if (imageUrl) {
     return (
-      // Cloudinary (or other CDN) URLs land here once assets exist.
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={product.imageUrl}
+        src={imageUrl}
         alt=""
         loading="lazy"
         decoding="async"

@@ -16,6 +16,7 @@ const navLinks = [
   { href: "/kits", label: "Kits" },
   { href: "/pecas-avulsas", label: "Peças Avulsas" },
   { href: "/curso", label: "Curso" },
+  { href: "/formados", label: "Formados" },
 ];
 
 function isActivePath(pathname: string, href: string) {

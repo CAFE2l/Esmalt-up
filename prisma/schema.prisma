@@ -45,6 +45,7 @@ model UserProfile {
   notifications    Notification[]
   badgesEarned     UserBadge[]
   lessonProgress   LessonProgress[]
+  certificates     Certificate[]
 
   @@map("user_profiles")
 }
@@ -375,4 +376,26 @@ model CourseProgress {
 
   @@index([userId])
   @@map("course_progress")
+}
+
+model Certificate {
+  id              String    @id @default(cuid())
+  publicCode      String    @unique
+  userId          String
+  courseId        String    @default("nail-designer-iniciante")
+  recipientName   String
+  issuedAt        DateTime  @default(now())
+  curriculumVersion Int     @default(1)
+  status          String    @default("valid") // "valid" | "revoked"
+  showOnWall      Boolean   @default(true) @map("show_on_wall")
+  user            UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([publicCode])
+  @@index([userId])
+  @@index([status])
+  @@index([status, showOnWall, issuedAt], map: "certificates_wall_idx")
+  @@map("certificates")
 }

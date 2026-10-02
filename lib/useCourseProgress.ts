@@ -3,11 +3,9 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   COURSE_UNITS,
-  _getAllLessons,
   getMainTrackLessons,
   getLessonBySlug,
   type CourseLesson,
-  type _CourseUnit,
 } from "@/data/course";
 import { useAuth } from "./AuthContext";
 
@@ -19,6 +17,7 @@ export interface ProgressData {
   openedChests: Record<string, boolean>; // chestId -> true
   lastSlug?: string;
   timestamps: Record<string, string>; // slug -> ISO string
+  certificateIssuedAt?: string; // ISO string, set once on first completion
 }
 
 const EMPTY_PROGRESS: ProgressData = {
@@ -28,6 +27,7 @@ const EMPTY_PROGRESS: ProgressData = {
   positions: {},
   openedChests: {},
   timestamps: {},
+  certificateIssuedAt: undefined,
 };
 
 function getStorageKey(uid?: string | null): string {
@@ -49,6 +49,7 @@ function loadLocalProgress(storageKey: string): ProgressData {
         openedChests: parsed.openedChests ?? {},
         lastSlug: typeof parsed.lastSlug === "string" ? parsed.lastSlug : undefined,
         timestamps: parsed.timestamps ?? {},
+        certificateIssuedAt: typeof parsed.certificateIssuedAt === "string" ? parsed.certificateIssuedAt : undefined,
       };
     }
   } catch (err) {
@@ -341,6 +342,18 @@ export function useCourseProgress() {
     [storageKey, user, getToken]
   );
 
+  const issueCertificate = useCallback(() => {
+    setData((prev) => {
+      if (prev.certificateIssuedAt) return prev; // already issued — keep original date
+      const updated: ProgressData = {
+        ...prev,
+        certificateIssuedAt: new Date().toISOString(),
+      };
+      saveLocalProgress(storageKey, updated);
+      return updated;
+    });
+  }, [storageKey]);
+
   const completedCount = useMemo(() => {
     return mainTrackLessons.filter((l) => isLessonCompleted(l.slug)).length;
   }, [mainTrackLessons, isLessonCompleted]);
@@ -371,6 +384,8 @@ export function useCourseProgress() {
     completedCount,
     totalLessons,
     progressPercent,
+    certificateIssuedAt: data.certificateIssuedAt,
+    issueCertificate,
     isLoading,
     hasError,
     reload: loadInitialData,
