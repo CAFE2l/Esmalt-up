@@ -25,23 +25,24 @@ export default function RelatedProducts({ products }: { products: Product[] }) {
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {products.map((product) => {
-          const outOfStock = product.stockStatus === "out_of_stock";
+          const outOfStock = product.stock === 0;
+          const imageUrl = product.images[0] || "/placeholder-product.jpg";
           return (
             <article
               key={product.id}
               className="group flex flex-col overflow-hidden rounded-[1.5rem] border border-cinza-suave/40 bg-branco shadow-card transition-shadow hover:shadow-card-lg"
             >
               <Link
-                href={`/produto/${product.id}`}
+                href={`/produto/${product.slug}`}
                 className="relative aspect-square overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20"
               >
                 <div
                   aria-hidden
                   className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl brightness-[0.7] saturate-150"
-                  style={{ backgroundImage: `url("${product.imageUrl}")` }}
+                  style={{ backgroundImage: `url("${imageUrl}")` }}
                 />
                 <Image
-                  src={product.imageUrl}
+                  src={imageUrl}
                   alt={product.name}
                   fill
                   sizes="(max-width: 640px) 50vw, 25vw"
@@ -56,7 +57,7 @@ export default function RelatedProducts({ products }: { products: Product[] }) {
 
               <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
                 <Link
-                  href={`/produto/${product.id}`}
+                  href={`/produto/${product.slug}`}
                   className="line-clamp-2 text-sm font-semibold text-foreground hover:text-rose-gold"
                 >
                   {product.name}

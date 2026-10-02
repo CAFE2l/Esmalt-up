@@ -357,9 +357,9 @@ export default function HeroCarousel({
                         </LEDBorder>
                       )}
 
-                      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20 sm:h-auto sm:w-[46%]">
+                      <div className="relative h-56 overflow-hidden bg-gradient-to-br from-rosa-claro via-branco to-rosa-medio/20 sm:h-auto sm:w-[46%]">
                         <Pedestal aspectRatio="1 / 1">
-                          <ProductArt product={product} className="absolute inset-0 h-full w-full" />
+                          <ProductArt product={product} className="absolute inset-0 h-full w-full object-contain p-6" />
                         </Pedestal>
                         {isCurrent && !reduceMotion && (
                           <LightSweep disabled={!isCurrent}>
@@ -431,11 +431,11 @@ export default function HeroCarousel({
                         : "pointer-events-none transition-transform duration-300 hover:scale-[1.03] hover:brightness-105 sm:pointer-events-auto"
                     }`}
                   >
-                    <div className="relative h-44 overflow-hidden bg-branco/60 sm:h-auto sm:w-[46%]">
+                    <div className="relative h-56 overflow-hidden bg-branco/60 sm:h-auto sm:w-[46%]">
                       <Pedestal aspectRatio="1 / 1">
                         <ProductArt
                           product={suggestion.product}
-                          className="absolute inset-0 h-full w-full"
+                          className="absolute inset-0 h-full w-full object-contain p-6"
                         />
                       </Pedestal>
                       {isCurrent && !reduceMotion && (

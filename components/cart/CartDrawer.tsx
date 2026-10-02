@@ -108,12 +108,12 @@ export default function CartDrawer() {
                   className="flex gap-3 rounded-3xl border border-cinza-suave/40 bg-rosa-claro/30 p-3"
                 >
                   <Link
-                    href={`/produto/${product.id}`}
+                    href={`/produto/${product.slug}`}
                     onClick={closeCart}
                     className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-rosa-claro"
                   >
                     <Image
-                      src={product.imageUrl}
+                      src={product.images[0] || "/placeholder-product.jpg"}
                       alt={product.name}
                       fill
                       sizes="80px"
@@ -124,7 +124,7 @@ export default function CartDrawer() {
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <Link
-                        href={`/produto/${product.id}`}
+                        href={`/produto/${product.slug}`}
                         onClick={closeCart}
                         className="line-clamp-2 text-sm font-medium text-foreground hover:text-rose-gold"
                       >

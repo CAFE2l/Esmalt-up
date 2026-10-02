@@ -8,13 +8,18 @@
  *   npm run seed:curriculum
  */
 import { PrismaClient } from "@prisma/client";
-import { COURSE_UNITS, getAllLessons } from "../../data/course";
+import { buildCurriculum } from "../../lib/course/curriculum";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const allLessons = getAllLessons();
-  const activeSlugs = allLessons.map((l) => l.slug);
+  const { modules } = buildCurriculum();
+
+  // Collect all slugs active in the current curriculum.
+  const activeSlugs: string[] = [];
+  for (const mod of modules) {
+    for (const lesson of mod.lessons) activeSlugs.push(lesson.slug);
+  }
 
   // Soft-delete any DB lessons no longer in the curriculum.
   await prisma.lesson.updateMany({
@@ -22,56 +27,45 @@ async function main() {
     data: { isActive: false },
   });
 
-  for (const unit of COURSE_UNITS) {
+  for (const mod of modules) {
     const dbModule = await prisma.courseModule.upsert({
-      where: { slug: unit.id },
-      update: {
-        title: `Unidade ${unit.unitNumber} — ${unit.title}`,
-        description: unit.subtitle,
-        orderIndex: unit.unitNumber,
-      },
-      create: {
-        slug: unit.id,
-        title: `Unidade ${unit.unitNumber} — ${unit.title}`,
-        description: unit.subtitle,
-        orderIndex: unit.unitNumber,
-      },
+      where: { slug: mod.slug },
+      update: { title: mod.title, description: mod.description, orderIndex: mod.orderIndex },
+      create: { slug: mod.slug, title: mod.title, description: mod.description, orderIndex: mod.orderIndex },
     });
 
-    const unitLessons = [...unit.lessons];
-    if (unit.bonusChest) {
-      unitLessons.push(unit.bonusChest.lesson);
-    }
-
-    for (const lesson of unitLessons) {
-      const isPlaylist = lesson.type === "playlist";
+    for (const lesson of mod.lessons) {
       await prisma.lesson.upsert({
         where: { slug: lesson.slug },
         update: {
           title: lesson.title,
-          description: lesson.description || "",
-          youtubeVideoId: isPlaylist ? null : lesson.youtubeId,
-          youtubePlaylistId: isPlaylist ? lesson.youtubeId : null,
-          channel: lesson.creator,
-          orderIndex: lesson.order,
+          description: lesson.description,
+          youtubeVideoId: lesson.youtubeVideoId,
+          youtubePlaylistId: lesson.youtubePlaylistId,
+          channel: lesson.channel,
+          durationSec: lesson.durationSec,
+          thumbnailUrl: lesson.thumbnailUrl,
+          orderIndex: lesson.orderIndex,
           moduleId: dbModule.id,
           isActive: true,
         },
         create: {
           slug: lesson.slug,
           title: lesson.title,
-          description: lesson.description || "",
-          youtubeVideoId: isPlaylist ? null : lesson.youtubeId,
-          youtubePlaylistId: isPlaylist ? lesson.youtubeId : null,
-          channel: lesson.creator,
-          orderIndex: lesson.order,
+          description: lesson.description,
+          youtubeVideoId: lesson.youtubeVideoId,
+          youtubePlaylistId: lesson.youtubePlaylistId,
+          channel: lesson.channel,
+          durationSec: lesson.durationSec,
+          thumbnailUrl: lesson.thumbnailUrl,
+          orderIndex: lesson.orderIndex,
           moduleId: dbModule.id,
           isActive: true,
         },
       });
     }
 
-    console.log(`✓ Unidade ${unit.unitNumber}: ${unit.title} — ${unitLessons.length} aulas`);
+    console.log(`✓ ${mod.title} — ${mod.lessons.length} aulas`);
   }
 
   console.log("Curriculum seeded.");

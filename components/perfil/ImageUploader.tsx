@@ -24,7 +24,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
-const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_SIZE = 8 * 1024 * 1024; // 8 MB for banners
 
 function ErrorMessageIcon() {
   return (

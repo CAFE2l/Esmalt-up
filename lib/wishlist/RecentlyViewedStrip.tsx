@@ -120,7 +120,7 @@ export function RecentlyViewedStrip({
                 whileHover={{ y: -4 }}
               >
                 <Link
-                  href={`/produto/${product.id}`}
+                  href={`/produto/${product.slug}`}
                   aria-label={`Ver ${product.name}`}
                   className="block"
                   onClick={() => trackSelectItem(product, 'recently_viewed', index)}

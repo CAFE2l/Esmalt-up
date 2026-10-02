@@ -418,7 +418,10 @@ export default function PerfilPage() {
         body: JSON.stringify({ fileBase64, fileName: file.name, folder: "profiles" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Falha no envio da foto.");
+      if (!res.ok) {
+        console.error("[avatar upload] error:", data);
+        throw new Error(data.error || "Falha no envio da foto.");
+      }
 
       set("profilePhotoUrl", data.url);
       setPhotoUrl(data.url);
@@ -427,6 +430,7 @@ export default function PerfilPage() {
       }
       setToast({ type: "success", message: "Foto de perfil atualizada!" });
     } catch (err) {
+      console.error("[avatar upload] catch:", err);
       setToast({
         type: "error",
         message: err instanceof Error ? err.message : "Erro ao carregar a foto.",
@@ -469,8 +473,8 @@ export default function PerfilPage() {
       setToast({ type: "error", message: "Formato inválido. Use JPG, PNG ou WebP." });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setToast({ type: "error", message: "O banner deve ter no máximo 5 MB." });
+    if (file.size > 8 * 1024 * 1024) {
+      setToast({ type: "error", message: "O banner deve ter no máximo 8 MB." });
       return;
     }
 
@@ -487,7 +491,10 @@ export default function PerfilPage() {
         body: JSON.stringify({ fileBase64, fileName: file.name, folder: "banners" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Falha no envio do banner.");
+      if (!res.ok) {
+        console.error("[banner upload] error:", data);
+        throw new Error(data.error || "Falha no envio do banner.");
+      }
 
       set("bannerUrl", data.url);
       if (initialProfileRef.current) {
@@ -495,6 +502,7 @@ export default function PerfilPage() {
       }
       setToast({ type: "success", message: "Banner atualizado com sucesso!" });
     } catch (err) {
+      console.error("[banner upload] catch:", err);
       setToast({
         type: "error",
         message: err instanceof Error ? err.message : "Erro ao carregar o banner.",

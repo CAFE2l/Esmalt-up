@@ -94,7 +94,17 @@ export async function POST(req: Request) {
     const extension = mimeType.split("/")[1];
     const uniqueName = `${folder}/${auth.uid}_${Date.now()}.${extension}`;
 
-    const bucket = getAdminStorage();
+    let bucket;
+    try {
+      bucket = getAdminStorage();
+    } catch (storageError) {
+      console.error("[api/profile/upload] Storage init error:", storageError);
+      return NextResponse.json(
+        { error: "Erro de configuração do armazenamento. Contate o suporte." },
+        { status: 500 },
+      );
+    }
+
     const file = bucket.file(uniqueName);
 
     await file.save(fileBuffer, {
@@ -126,8 +136,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[api/profile/upload] POST", error);
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
     return NextResponse.json(
-      { error: "Não foi possível fazer o upload da imagem." },
+      { error: `Não foi possível fazer o upload da imagem: ${message}` },
       { status: 500 },
     );
   }

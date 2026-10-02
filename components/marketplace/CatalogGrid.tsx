@@ -294,7 +294,7 @@ export default function CatalogGrid({
                 withLed={false}
               >
                 <Link
-                  href={`/produto/${product.id}`}
+                  href={`/produto/${product.slug}`}
                   aria-label={`Ver ${product.name}`}
                   className="absolute inset-0 z-10"
                   onClick={() => trackSelectItem(product, listName, index)}

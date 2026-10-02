@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     const { items, customer, address, couponCode, payment } = parsed.data;
 
     // ---- Valida itens contra o catálogo (fonte da verdade de preço). ----
-    const lines: Array<{ item: typeof items[0]; product: Awaited<ReturnType<typeof getProduct>>; cents: number }> = [];
+    const lines: Array<{ item: typeof items[0]; product: NonNullable<Awaited<ReturnType<typeof getProduct>>>; cents: number }> = [];
     for (const item of items) {
       const product = await getProduct(item.productId);
       if (!product) continue;
