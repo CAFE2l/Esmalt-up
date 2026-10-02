@@ -82,9 +82,11 @@ export async function POST(req: Request) {
         prefix: auth.uid,
       });
     } catch (storageError) {
-      console.error("[api/profile/upload] Storage init error:", storageError);
+      console.error("[api/profile/upload] Storage error:", storageError);
+      const detail =
+        storageError instanceof Error ? storageError.message : String(storageError);
       return NextResponse.json(
-        { error: "Erro de configuração do armazenamento. Contate o suporte." },
+        { error: `Erro ao enviar imagem: ${detail}` },
         { status: 500 },
       );
     }
