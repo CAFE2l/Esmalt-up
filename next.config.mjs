@@ -8,6 +8,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    // The cloudinary Node SDK must not be bundled by webpack — bundling it
+    // causes "Maximum call stack size exceeded" at runtime in API routes.
+    serverComponentsExternalPackages: ["cloudinary"],
+  },
 };
 
 export default nextConfig;
