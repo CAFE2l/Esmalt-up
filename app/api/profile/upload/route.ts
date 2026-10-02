@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getStorage } from "firebase-admin/storage";
-import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { prisma } from "@/lib/prisma";
 import { verifyIdToken } from "@/lib/serverAuth";
+import { uploadBase64, MAX_UPLOAD_SIZE } from "@/lib/firebaseStorage";
 
 type AuthResult =
   | { ok: true; uid: string }
@@ -27,24 +26,7 @@ async function authenticate(req: Request): Promise<AuthResult> {
   }
 }
 
-function getAdminStorage() {
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert({
-        projectId:
-          process.env.FIREBASE_SERVICE_ACCOUNT_PROJECT_ID ?? "",
-        clientEmail:
-          process.env.FIREBASE_SERVICE_ACCOUNT_CLIENT_EMAIL ?? "",
-        privateKey: (process.env.FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY ?? "")
-          .replace(/\\n/g, "\n"),
-      }),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    });
-  }
-  return getStorage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
-}
-
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_SIZE = MAX_UPLOAD_SIZE; // 5 MB
 
 export async function POST(req: Request) {
   try {
@@ -91,12 +73,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const extension = mimeType.split("/")[1];
-    const uniqueName = `${folder}/${auth.uid}_${Date.now()}.${extension}`;
-
-    let bucket;
+    let publicUrl: string;
     try {
-      bucket = getAdminStorage();
+      publicUrl = await uploadBase64({
+        fileBase64,
+        fileName,
+        folder,
+        prefix: auth.uid,
+      });
     } catch (storageError) {
       console.error("[api/profile/upload] Storage init error:", storageError);
       return NextResponse.json(
@@ -104,22 +88,6 @@ export async function POST(req: Request) {
         { status: 500 },
       );
     }
-
-    const file = bucket.file(uniqueName);
-
-    await file.save(fileBuffer, {
-      metadata: {
-        contentType: mimeType,
-        metadata: {
-          uploadedBy: auth.uid,
-        },
-      },
-    });
-
-    // Torna o arquivo publicamente acessível
-    await file.makePublic();
-
-    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(uniqueName)}?alt=media`;
 
     // Atualiza o perfil com a nova URL (upsert para não falhar no primeiro upload)
     const updateField = folder === "banners" ? "bannerUrl" : "profilePhotoUrl";

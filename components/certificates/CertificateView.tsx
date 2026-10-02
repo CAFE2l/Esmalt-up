@@ -87,7 +87,7 @@ function CertificateName({
         fontSize: isMeasuring ? undefined : `${fontSize}px`,
         fontFamily: '"Georgia", "Times New Roman", serif',
         fontWeight: 600,
-        color: '#2d2227',
+        color: '#f7eef2',
         maxWidth: `${maxWidth}px`,
       }}
     >
@@ -148,7 +148,7 @@ function CertificateFrontView({
         className="absolute left-1/2 top-[20%] -translate-x-1/2 w-[80%] text-center font-semibold"
         style={{
           fontFamily: '"Georgia", "Times New Roman", serif',
-          color: '#2d2227',
+          color: '#f7eef2',
           fontSize: 'clamp(1.3rem, 4.5vw, 2.6rem)',
         }}
       >
@@ -167,7 +167,7 @@ function CertificateFrontView({
       {/* "Certificamos que": 38–42% */}
       <p
         className="absolute left-1/2 top-[39%] -translate-x-1/2"
-        style={{ color: '#6b4a52', fontSize: 'clamp(0.8rem, 2.2vw, 1.05rem)' }}
+        style={{ color: '#d8a7b3', fontSize: 'clamp(0.8rem, 2.2vw, 1.05rem)' }}
       >
         Certificamos que
       </p>
@@ -181,7 +181,7 @@ function CertificateFrontView({
       {/* Body text: 63–73% */}
       <p
         className="absolute left-1/2 top-[65%] -translate-x-1/2 w-[66%] text-center leading-relaxed"
-        style={{ color: '#4a343a', fontSize: 'clamp(0.7rem, 2vw, 0.95rem)' }}
+        style={{ color: '#e9d5db', fontSize: 'clamp(0.7rem, 2vw, 0.95rem)' }}
       >
         concluiu com êxito o curso <em>Nail Designer Iniciante</em>, com todas as aulas e projetos avaliados.
       </p>
@@ -191,11 +191,11 @@ function CertificateFrontView({
         <div className="w-[26%] text-center">
           <p
             className="border-t border-rose-gold/60 pt-1 font-medium"
-            style={{ color: '#2d2227', fontSize: 'clamp(0.7rem, 1.9vw, 0.95rem)' }}
+            style={{ color: '#f7eef2', fontSize: 'clamp(0.7rem, 1.9vw, 0.95rem)' }}
           >
             {issueDate}
           </p>
-          <p style={{ color: '#6b4a52', fontSize: 'clamp(0.6rem, 1.5vw, 0.8rem)' }}>Data</p>
+          <p style={{ color: '#d8a7b3', fontSize: 'clamp(0.6rem, 1.5vw, 0.8rem)' }}>Data</p>
         </div>
 
         <div className="w-[30%] flex flex-col items-center">
@@ -209,11 +209,11 @@ function CertificateFrontView({
           )}
           <p
             className="border-t border-rose-gold/60 pt-1 font-semibold"
-            style={{ color: '#2d2227', fontSize: 'clamp(0.65rem, 1.8vw, 0.9rem)' }}
+            style={{ color: '#f7eef2', fontSize: 'clamp(0.65rem, 1.8vw, 0.9rem)' }}
           >
             Esmalt&apos;up
           </p>
-          <p style={{ color: '#6b4a52', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}>Assinatura</p>
+          <p style={{ color: '#d8a7b3', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}>Assinatura</p>
         </div>
 
         <div className="w-[18%] flex flex-col items-center">
@@ -228,14 +228,14 @@ function CertificateFrontView({
           ) : (
             <span className="invisible h-14 w-14 sm:h-16 sm:w-16" aria-hidden />
           )}
-          <p style={{ color: '#6b4a52', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}>QR Code</p>
+          <p style={{ color: '#d8a7b3', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}>QR Code</p>
         </div>
       </div>
 
       {/* Footer note: ~90% */}
       <p
         className="absolute left-1/2 top-[90%] -translate-x-1/2 whitespace-nowrap"
-        style={{ color: '#8a6a72', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}
+        style={{ color: '#a97f89', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}
       >
         ID: {publicCode} · Verificação em {siteUrl.replace(/^https?:\/\//, '')}/verificar
       </p>
