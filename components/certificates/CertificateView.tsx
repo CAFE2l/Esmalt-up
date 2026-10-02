@@ -117,12 +117,12 @@ function CertificateFrontView({
   const qrCodeUrl = `${siteUrl}/verificar/${publicCode}`;
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      {/* Background image */}
+    <div className="relative w-full h-full overflow-hidden" style={{ aspectRatio: '1536/1024' }}>
+      {/* Background image — do not recolor/filter; safe zone x 10–90%, y 9–91% */}
       <img
-        src="/certificate-front.png"
+        src="/certificate-bg.png"
         alt="Fundo do certificado"
-        className="w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
           target.style.backgroundColor = '#fef7f8';
@@ -130,54 +130,115 @@ function CertificateFrontView({
         }}
       />
 
-      <div className="absolute inset-0 p-4 flex flex-col">
-        {/* Recipient Name */}
-        <div className="absolute left-1/2 top-[35%] -translate-x-1/2 w-[80%] text-center">
-          <CertificateName name={recipientName} maxWidth={400} />
-        </div>
+      {/* Brand row: 11–16% */}
+      <div className="absolute left-1/2 top-[12%] -translate-x-1/2 flex items-center gap-2">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="#c97a8f" strokeWidth="1.6" aria-hidden>
+          <path d="M9 2h6l1 7c0 4-2 6-4 13-2-7-4-9-4-13l1-7z" />
+        </svg>
+        <span
+          className="font-bold tracking-[0.3em] text-rose-gold"
+          style={{ fontSize: 'clamp(0.7rem, 2vw, 1rem)' }}
+        >
+          ESMALT&apos;UP
+        </span>
+      </div>
 
-        {/* Issue Date */}
-        <div className="absolute left-1/2 top-[45%] -translate-x-1/2 w-[80%] text-center">
-          <span className="text-rose-gold font-medium" style={{ fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' }}>
-            {issueDate}
-          </span>
-        </div>
+      {/* Title: 18–30% */}
+      <h2
+        className="absolute left-1/2 top-[20%] -translate-x-1/2 w-[80%] text-center font-semibold"
+        style={{
+          fontFamily: '"Georgia", "Times New Roman", serif',
+          color: '#2d2227',
+          fontSize: 'clamp(1.3rem, 4.5vw, 2.6rem)',
+        }}
+      >
+        Certificado de Conclusão
+      </h2>
 
-        {/* Certificate ID */}
-        <div className="absolute left-1/2 top-[85%] -translate-x-1/2">
-          <span className="text-sm" style={{ fontSize: 'clamp(0.75rem, 2vw, 0.875rem)' }}>
-            ID: {publicCode}
-          </span>
-        </div>
+      {/* Divider with sparkle: 32–35% */}
+      <div className="absolute left-1/2 top-[33%] -translate-x-1/2 flex items-center gap-2 w-[50%]">
+        <span className="h-px flex-1 bg-rose-gold/50" />
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="#d4a017" aria-hidden>
+          <path d="M12 2l2.2 6.3L21 10l-6.8 1.7L12 18l-2.2-6.3L3 10l6.8-1.7z" />
+        </svg>
+        <span className="h-px flex-1 bg-rose-gold/50" />
+      </div>
 
-        {/* Signature */}
-        {showSignature && (
-          <div
-            className="absolute left-[65%] top-[75%] w-[25%] h-[10%]"
+      {/* "Certificamos que": 38–42% */}
+      <p
+        className="absolute left-1/2 top-[39%] -translate-x-1/2"
+        style={{ color: '#6b4a52', fontSize: 'clamp(0.8rem, 2.2vw, 1.05rem)' }}
+      >
+        Certificamos que
+      </p>
+
+      {/* Recipient name + line: 46–58% */}
+      <div className="absolute left-1/2 top-[48%] -translate-x-1/2 w-[76%] text-center">
+        <CertificateName name={recipientName} maxWidth={520} />
+      </div>
+      <div className="absolute left-1/2 top-[58%] -translate-x-1/2 w-[60%] border-b border-rose-gold/60" />
+
+      {/* Body text: 63–73% */}
+      <p
+        className="absolute left-1/2 top-[65%] -translate-x-1/2 w-[66%] text-center leading-relaxed"
+        style={{ color: '#4a343a', fontSize: 'clamp(0.7rem, 2vw, 0.95rem)' }}
+      >
+        concluiu com êxito o curso <em>Nail Designer Iniciante</em>, com todas as aulas e projetos avaliados.
+      </p>
+
+      {/* Bottom row: 76–88%. Date left, signature center, QR right; keep ≥18% from side edges. */}
+      <div className="absolute inset-x-[18%] top-[78%] flex items-end justify-between">
+        <div className="w-[26%] text-center">
+          <p
+            className="border-t border-rose-gold/60 pt-1 font-medium"
+            style={{ color: '#2d2227', fontSize: 'clamp(0.7rem, 1.9vw, 0.95rem)' }}
           >
+            {issueDate}
+          </p>
+          <p style={{ color: '#6b4a52', fontSize: 'clamp(0.6rem, 1.5vw, 0.8rem)' }}>Data</p>
+        </div>
+
+        <div className="w-[30%] flex flex-col items-center">
+          {showSignature && (
             <img
               src="/signature-esmaltup.png"
               alt="Assinatura Esmalt'up"
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
+              className="h-10 w-auto object-contain sm:h-12"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
-          </div>
-        )}
+          )}
+          <p
+            className="border-t border-rose-gold/60 pt-1 font-semibold"
+            style={{ color: '#2d2227', fontSize: 'clamp(0.65rem, 1.8vw, 0.9rem)' }}
+          >
+            Esmalt&apos;up
+          </p>
+          <p style={{ color: '#6b4a52', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}>Assinatura</p>
+        </div>
 
-        {/* QR Code */}
-        {showQRCode && (
-          <div className="absolute right-4 top-4 w-24 h-24 bg-white p-1 rounded shadow-lg">
-            <img
-              src={getQRCodeImageURL(qrCodeUrl, 100)}
-              alt="Código QR"
-              className="w-full h-full object-contain"
-            />
-          </div>
-        )}
+        <div className="w-[18%] flex flex-col items-center">
+          {showQRCode ? (
+            <span className="inline-block rounded-md bg-white p-1 shadow">
+              <img
+                src={getQRCodeImageURL(qrCodeUrl, 90)}
+                alt="Código QR"
+                className="h-14 w-14 object-contain sm:h-16 sm:w-16"
+              />
+            </span>
+          ) : (
+            <span className="invisible h-14 w-14 sm:h-16 sm:w-16" aria-hidden />
+          )}
+          <p style={{ color: '#6b4a52', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}>QR Code</p>
+        </div>
       </div>
+
+      {/* Footer note: ~90% */}
+      <p
+        className="absolute left-1/2 top-[90%] -translate-x-1/2 whitespace-nowrap"
+        style={{ color: '#8a6a72', fontSize: 'clamp(0.55rem, 1.4vw, 0.75rem)' }}
+      >
+        ID: {publicCode} · Verificação em {siteUrl.replace(/^https?:\/\//, '')}/verificar
+      </p>
     </div>
   );
 }
@@ -385,6 +446,7 @@ export default function CertificateView({ certificate, siteUrl }: CertificateVie
             config={config}
             siteUrl={siteUrl}
             showSignature={true}
+            showQRCode={true}
           />
         </div>
 

@@ -10,13 +10,13 @@ interface ProductArtProps {
 }
 
 // Type guard to check if product has imageUrl (static format)
-function hasImageUrl(product: any): product is StaticProduct {
-  return product && typeof product.imageUrl === 'string';
+function hasImageUrl(product: Product): product is StaticProduct {
+  return product != null && typeof (product as StaticProduct).imageUrl === 'string';
 }
 
 // Type guard to check if product has images array (database format)
-function hasImagesArray(product: any): product is DatabaseProduct {
-  return product && Array.isArray(product.images) && product.images.length > 0;
+function hasImagesArray(product: Product): product is DatabaseProduct {
+  return product != null && Array.isArray((product as DatabaseProduct).images) && (product as DatabaseProduct).images!.length > 0;
 }
 
 function Sparkles() {
