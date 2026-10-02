@@ -26,6 +26,7 @@ import {
 import { useCourseProgress } from "@/lib/useCourseProgress";
 import { useAuth } from "@/lib/AuthContext";
 import { primaryButton, outlineButton } from "../buttonStyles";
+import { useAuthGate } from "@/components/AuthGateModal";
 
 /* ------------------------------------------------------------------ */
 /* YouTube IFrame API Loader (Singleton)                              */
@@ -330,6 +331,10 @@ function UnitSidebar({ unit, currentSlug, isLessonCompleted, isLessonUnlocked }:
 export default function LessonPlayerView({ slug }: Props) {
   const router = useRouter();
   const { user } = useAuth();
+  const { guard: authGuard, modal: authModal } = useAuthGate(
+    user,
+    "Faça login para salvar seu progresso e concluir aulas.",
+  );
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<YTPlayer | null>(null);
 
@@ -420,8 +425,12 @@ export default function LessonPlayerView({ slug }: Props) {
             onStateChange: (e) => {
               // 0 = ENDED
               if (e.data === 0) {
-                markCompleted(slug);
-                setShowCelebration(true);
+                if (user) {
+                  markCompleted(slug);
+                  setShowCelebration(true);
+                } else {
+                  setShowCelebration(true); // show banner but don't save
+                }
               }
               // Save position on pause
               if (e.data === 2 && e.target.getCurrentTime) {
@@ -460,22 +469,26 @@ export default function LessonPlayerView({ slug }: Props) {
   }, [lesson, slug, isUnlocked, hasVideoError, markCompleted, savePosition, positions]);
 
   const handleToggleComplete = () => {
-    if (isCompleted) {
-      unmarkCompleted(slug);
-      setShowCelebration(false);
-    } else {
-      markCompleted(slug);
-      setShowCelebration(true);
-    }
+    authGuard(() => {
+      if (isCompleted) {
+        unmarkCompleted(slug);
+        setShowCelebration(false);
+      } else {
+        markCompleted(slug);
+        setShowCelebration(true);
+      }
+    });
   };
 
   const handleSkip = () => {
-    skipLesson(slug);
-    if (nextLesson) {
-      router.push(`/curso/aula/${nextLesson.slug}`);
-    } else {
-      router.push("/curso");
-    }
+    authGuard(() => {
+      skipLesson(slug);
+      if (nextLesson) {
+        router.push(`/curso/aula/${nextLesson.slug}`);
+      } else {
+        router.push("/curso");
+      }
+    });
   };
 
   if (!lesson || !unit) {
@@ -502,6 +515,7 @@ export default function LessonPlayerView({ slug }: Props) {
 
   return (
     <div className="mx-auto min-h-screen max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      {authModal}
       {/* Top back breadcrumb */}
       <div className="mb-4 flex items-center justify-between">
         <Link

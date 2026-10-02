@@ -7,6 +7,7 @@ import { Play, UserCheck, AlertTriangle, Sparkles, Award } from "lucide-react";
 import { COURSE_UNITS, type BonusChest, type CourseLesson } from "@/data/course";
 import { useCourseProgress } from "@/lib/useCourseProgress";
 import { useAuth } from "@/lib/AuthContext";
+import { useUserProfile } from "@/lib/profile";
 import CoursePathNode, { type NodeState } from "./CoursePathNode";
 import BonusChestModal from "./BonusChestModal";
 import CertificateModal from "./CertificateModal";
@@ -29,6 +30,7 @@ const ZIG_ZAG_OFFSETS = [
 export default function CoursePath() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [selectedChest, setSelectedChest] = useState<BonusChest | null>(null);
   const [showLockedAlert, setShowLockedAlert] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
@@ -319,7 +321,7 @@ export default function CoursePath() {
       <CertificateModal
         isOpen={showCertificate}
         onClose={() => setShowCertificate(false)}
-        userName={claimedName || user?.displayName || "Aluna Esmalt'up"}
+        userName={claimedName || profile?.name?.trim() || user?.displayName?.trim() || "Aluna Esmalt'up"}
         issuedAt={claimedIssuedAt || certificateIssuedAt || new Date().toISOString()}
       />
 

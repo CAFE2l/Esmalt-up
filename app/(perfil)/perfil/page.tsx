@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { useProfilePhoto } from "@/lib/profile/ProfileContext";
+import { useUserProfile, useProfilePhoto } from "@/lib/profile";
 import { primaryButton, outlineButton } from "@/components/buttonStyles";
 
 // Type definitions
@@ -171,7 +171,7 @@ const navItems: NavItem[] = [
   { id: "pedidos", label: "Pedidos", icon: ShoppingBag, href: "/pedidos" },
   { id: "configuracoes", label: "Configurações", icon: Settings, href: "/configuracoes" },
   { id: "assinatura", label: "Assinatura / Plano", icon: CreditCard, disabled: true, badge: "Em breve" },
-  { id: "notificacoes", label: "Notificações", icon: Bell, disabled: true, badge: "Em breve" },
+  { id: "notificacoes", label: "Notificações", icon: Bell, href: "/notificacoes" },
 ];
 
 // Reusable Components
@@ -567,13 +567,18 @@ function StatsCard({
 
 // Main Profile Page Component
 export default function PerfilPage() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { 
+    profile: globalProfile, 
+    loading: profileLoading, 
+    updateProfile,
+    saveStatus,
+    saveError 
+  } = useUserProfile();
   const { setPhotoUrl } = useProfilePhoto();
 
-  const [profile, setProfile] = useState<ProfileForm>(emptyProfile);
+  const [localProfile, setLocalProfile] = useState<ProfileForm | null>(null);
   const initialProfileRef = useRef<ProfileForm | null>(null);
-
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -584,74 +589,49 @@ export default function PerfilPage() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
-  // Load profile data
+  // Sync global profile with local state
   useEffect(() => {
-    let active = true;
-
-    async function load() {
-      if (!user) return;
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch("/api/profile", {
-          headers: { authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
-        if (!active) return;
-
-        if (!response.ok) {
-          setToast({ type: "error", message: data.error || "Erro ao carregar dados do perfil." });
-          return;
-        }
-
-        // Restore saved bio from localStorage if available
-        let savedBio = "";
-        try {
-          savedBio = localStorage.getItem(`esmaltup_bio_${user.uid}`) || "";
-        } catch {
-          // ignore localStorage error
-        }
-
-        const loaded: ProfileForm = {
-          name: data.profile.name ?? user.displayName ?? "",
-          bio: savedBio,
-          city: data.profile.city ?? "",
-          level: data.profile.level || "Iniciante",
-          experienceYears: data.profile.experienceYears ?? "",
-          favoriteBrands: data.profile.favoriteBrands ?? "",
-          favoriteStyles: data.profile.favoriteStyles ?? "",
-          equipment: data.profile.equipment ?? "",
-          courseInProgress: data.profile.courseInProgress ?? "",
-          status: data.profile.status ?? "Disponível para atendimentos",
-          interests: data.profile.interests ?? [],
-          badges: data.profile.badges ?? [],
-          profilePhotoUrl: data.profile.profilePhotoUrl ?? user.photoURL ?? "",
-          bannerUrl: data.profile.bannerUrl ?? "",
-          isEntrepreneur: data.profile.isEntrepreneur ?? false,
-          services: data.profile.services ?? [],
-          pricing: data.profile.pricing ?? "",
-          bookingLink: data.profile.bookingLink ?? "",
-          youtube: data.profile.youtube ?? "",
-          instagram: data.profile.instagram ?? "",
-          tiktok: data.profile.tiktok ?? "",
-        };
-
-        setProfile(loaded);
-        initialProfileRef.current = loaded;
-      } catch {
-        if (active) {
-          setToast({
-            type: "error",
-            message: "Não foi possível carregar o perfil. Verifique sua conexão.",
-          });
-        }
-      }
+    if (!profileLoading && globalProfile) {
+      // Convert global profile to local format
+      const convertedProfile: ProfileForm = {
+        name: globalProfile.name || "",
+        bio: globalProfile.bio || "",
+        city: globalProfile.city || "",
+        level: globalProfile.level || "Iniciante",
+        experienceYears: globalProfile.experienceYears || "",
+        favoriteBrands: globalProfile.favoriteBrands || "",
+        favoriteStyles: globalProfile.favoriteStyles || "",
+        equipment: globalProfile.equipment || "",
+        courseInProgress: globalProfile.courseInProgress || "",
+        status: globalProfile.status || "Disponível para atendimentos",
+        interests: globalProfile.interests || [],
+        badges: globalProfile.badges || [],
+        profilePhotoUrl: globalProfile.profilePhotoUrl || "",
+        bannerUrl: globalProfile.bannerUrl || "",
+        isEntrepreneur: globalProfile.isEntrepreneur || false,
+        services: globalProfile.services || [],
+        pricing: globalProfile.pricing || "",
+        bookingLink: globalProfile.bookingLink || "",
+        youtube: globalProfile.youtube || "",
+        instagram: globalProfile.instagram || "",
+        tiktok: globalProfile.tiktok || "",
+      };
+      setLocalProfile(convertedProfile);
+      initialProfileRef.current = convertedProfile;
+    } else if (!profileLoading && !globalProfile && !authLoading && !user) {
+      setLocalProfile(null);
+      initialProfileRef.current = null;
     }
+  }, [globalProfile, profileLoading, authLoading, user]);
 
-    load();
-    return () => {
-      active = false;
-    };
-  }, [user]);
+  // Show global save status as toast
+  useEffect(() => {
+    if (saveError) {
+      setToast({ type: "error", message: saveError });
+    } else if (saveStatus === 'success') {
+      setToast({ type: "success", message: "Perfil atualizado com sucesso!" });
+    }
+  }, [saveStatus, saveError]);
 
   // Close status dropdown on outside click
   useEffect(() => {
@@ -666,9 +646,9 @@ export default function PerfilPage() {
 
   // Track if changes have been made
   const isDirty = useMemo(() => {
-    if (!initialProfileRef.current) return false;
-    return JSON.stringify(profile) !== JSON.stringify(initialProfileRef.current);
-  }, [profile]);
+    if (!localProfile || !initialProfileRef.current) return false;
+    return JSON.stringify(localProfile) !== JSON.stringify(initialProfileRef.current);
+  }, [localProfile]);
 
   // Warn if leaving with unsaved changes
   useEffect(() => {
@@ -690,47 +670,49 @@ export default function PerfilPage() {
   }, [toast]);
 
   const set = useCallback(<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
-    setProfile((prev) => ({ ...prev, [key]: value }));
+    setLocalProfile((prev) => prev ? ({ ...prev, [key]: value }) : null);
   }, []);
 
+  const saving = saveStatus === 'saving';
+
   const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
-    setToast(null);
+    if (!user || !localProfile) return;
 
     try {
       // Save bio client-side
       try {
-        localStorage.setItem(`esmaltup_bio_${user.uid}`, profile.bio);
+        localStorage.setItem(`esmaltup_bio_${user.uid}`, localProfile.bio);
       } catch {
         // ignore
       }
 
-      const token = await user.getIdToken();
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(profile),
+      // Update global profile context
+      await updateProfile({
+        name: localProfile.name,
+        bio: localProfile.bio,
+        city: localProfile.city,
+        level: localProfile.level,
+        experienceYears: localProfile.experienceYears,
+        favoriteBrands: localProfile.favoriteBrands,
+        favoriteStyles: localProfile.favoriteStyles,
+        equipment: localProfile.equipment,
+        courseInProgress: localProfile.courseInProgress,
+        status: localProfile.status,
+        interests: localProfile.interests,
+        badges: localProfile.badges,
+        isEntrepreneur: localProfile.isEntrepreneur,
+        services: localProfile.services,
+        pricing: localProfile.pricing,
+        bookingLink: localProfile.bookingLink,
+        youtube: localProfile.youtube,
+        instagram: localProfile.instagram,
+        tiktok: localProfile.tiktok,
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        setToast({ type: "error", message: data.error || "Erro ao salvar alterações." });
-        return;
-      }
-
-      initialProfileRef.current = profile;
-      setToast({ type: "success", message: "Perfil atualizado com sucesso!" });
+      // Update initial ref after successful save
+      initialProfileRef.current = localProfile;
     } catch {
-      setToast({
-        type: "error",
-        message: "Não foi possível salvar o perfil. Tente novamente.",
-      });
-    } finally {
-      setSaving(false);
+      // Errors are handled by the global context and will show toast via the effect
     }
   };
 
@@ -770,6 +752,8 @@ export default function PerfilPage() {
       if (initialProfileRef.current) {
         initialProfileRef.current = { ...initialProfileRef.current, profilePhotoUrl: data.url };
       }
+      // Also update global profile context
+      updateProfile({ profilePhotoUrl: data.url });
       setToast({ type: "success", message: "Foto de perfil atualizada!" });
     } catch (err) {
       console.error("[avatar upload] catch:", err);
@@ -799,6 +783,8 @@ export default function PerfilPage() {
       if (initialProfileRef.current) {
         initialProfileRef.current = { ...initialProfileRef.current, profilePhotoUrl: "" };
       }
+      // Also update global profile context
+      updateProfile({ profilePhotoUrl: null });
       setToast({ type: "success", message: "Foto removida com sucesso." });
     } catch {
       setToast({ type: "error", message: "Não foi possível remover a foto." });
@@ -847,6 +833,8 @@ export default function PerfilPage() {
       if (initialProfileRef.current) {
         initialProfileRef.current = { ...initialProfileRef.current, bannerUrl: data.url };
       }
+      // Also update global profile context
+      updateProfile({ bannerUrl: data.url });
       setToast({ type: "success", message: "Banner atualizado com sucesso!" });
     } catch (err) {
       console.error("[banner upload] catch:", err);
@@ -875,6 +863,8 @@ export default function PerfilPage() {
       if (initialProfileRef.current) {
         initialProfileRef.current = { ...initialProfileRef.current, bannerUrl: "" };
       }
+      // Also update global profile context
+      updateProfile({ bannerUrl: null });
       setToast({ type: "success", message: "Banner removido." });
     } catch {
       setToast({ type: "error", message: "Não foi possível remover o banner." });
@@ -883,10 +873,10 @@ export default function PerfilPage() {
     }
   };
 
-  const effectivePhotoUrl = profile.profilePhotoUrl || user?.photoURL || null;
-  const displayName = profile.name || user?.displayName || "Usuária Esmalt'up";
+  const effectivePhotoUrl = localProfile?.profilePhotoUrl || user?.photoURL || null;
+  const displayName = localProfile?.name || user?.displayName || "Usuária Esmalt'up";
 
-  if (loading) {
+  if (authLoading || profileLoading || !localProfile && !user) {
     return (
       <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-bege">
         <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-rosa-medio/30 blur-3xl" />
@@ -898,7 +888,7 @@ export default function PerfilPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !localProfile) {
     return (
       <section className="relative overflow-hidden bg-bege">
         <div aria-hidden className="pointer-events-none absolute -top-20 -left-20 h-64 w-64 rounded-full bg-rosa-medio/25 blur-3xl" />
@@ -1510,6 +1500,11 @@ export default function PerfilPage() {
       )}
 
       {/* NEW: Floating Save Button */}
+      {isDirty && (
+        <div className="fixed bottom-20 right-6 z-40 flex items-center gap-2 rounded-full bg-rose-gold/10 border border-rose-gold/30 px-4 py-2 text-sm text-rose-gold shadow-card">
+          <span className="text-xs">Você possui alterações não salvas</span>
+        </div>
+      )}
       <FloatingSaveButton
         isDirty={isDirty}
         saving={saving}

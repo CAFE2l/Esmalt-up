@@ -8,7 +8,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { CartProvider } from "@/lib/CartContext";
 import { FavoritesProvider } from "@/lib/wishlist";
 import { GA4Script, TrackRouteChanges, ScrollDepthTracker, ConsentProvider, ConsentBannerWrapper } from "@/lib/analytics/client";
-import { ProfileProvider } from "@/lib/profile/ProfileContext";
+import { UserProfileProvider, ProfileProvider } from "@/lib/profile";
 import MotionProvider from "@/components/providers/MotionProvider";
 import "./globals.css";
 
@@ -43,26 +43,28 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <FavoritesProvider>
-              <ProfileProvider>
-                <MotionProvider>
-                  <ConsentProvider>
-                    <div className="flex min-h-screen flex-col">
-                      <GA4Script />
-                      <Suspense>
-                        <Header />
-                      </Suspense>
-                      <main className="flex-1">{children}</main>
-                      <Footer />
-                    </div>
+              <UserProfileProvider>
+            <ProfileProvider>
+              <MotionProvider>
+                <ConsentProvider>
+                  <div className="flex min-h-screen flex-col">
+                    <GA4Script />
                     <Suspense>
-                      <TrackRouteChanges />
+                      <Header />
                     </Suspense>
-                    <ScrollDepthTracker />
-                    <ConsentBannerWrapper />
-                  </ConsentProvider>
-                </MotionProvider>
-                <CartDrawer />
-              </ProfileProvider>
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                  <Suspense>
+                    <TrackRouteChanges />
+                  </Suspense>
+                  <ScrollDepthTracker />
+                  <ConsentBannerWrapper />
+                </ConsentProvider>
+              </MotionProvider>
+              <CartDrawer />
+            </ProfileProvider>
+          </UserProfileProvider>
             </FavoritesProvider>
           </CartProvider>
         </AuthProvider>

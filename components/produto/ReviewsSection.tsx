@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useCart } from "@/lib/CartContext";
 import { Camera, PlayCircle, X, ChevronLeft, ChevronRight, Star, User, Check, Clock, MessageCircle, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
 import { primaryButton } from "@/components/buttonStyles";
+import { useAuthGate } from "@/components/AuthGateModal";
 
 interface ReviewMedia {
   id: string;
@@ -580,6 +581,7 @@ function ReviewForm({
 export default function ReviewsSection({ productId }: { productId: string }) {
   const { user } = useAuth();
   const { sessionId } = useCart();
+  const { guard: authGuard, modal: authModal } = useAuthGate(user, "Faça login para escrever uma avaliação.");
   const [state, setState] = useState<ReviewState>(LOADING);
   const [sort, setSort] = useState<SortOption>("recent");
   const [page, setPage] = useState(1);
@@ -749,6 +751,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
 
   return (
     <section className="py-12">
+      {authModal}
       <h2 className="text-2xl font-bold tracking-tight text-foreground mb-6">
         Avaliações
       </h2>
@@ -775,7 +778,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
             
             {canReview && !openForm && (
               <button
-                onClick={() => setOpenForm(true)}
+                onClick={() => authGuard(() => setOpenForm(true))}
                 className={`${primaryButton} mt-4 w-full`}
               >
                 <Star className="h-4 w-4" />

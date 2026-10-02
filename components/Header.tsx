@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { m, m as motion, useScroll, useMotionValue, useSpring } from "framer-motion";
-import { Bell } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import CartButton from "./cart/CartButton";
+import NotificationBell from "./notifications/NotificationBell";
 import { useAuth } from "@/lib/AuthContext";
 import { outlineButton, primaryButton } from "./buttonStyles";
 import { LEDUnderline } from "./ui/LED";
@@ -61,18 +61,14 @@ export default function Header() {
 
   return (
     <motion.header
-      className={`sticky top-0 z-40 bg-branco ${scrolled ? 'shadow-lg' : 'shadow-header'}`}
+      className={`sticky top-0 z-40 transition-[background-color,border-color,box-shadow] duration-300 ease-in-out ${
+        scrolled
+          ? 'bg-branco/95 shadow-lg border-b border-rose-gold/20'
+          : 'bg-branco shadow-header border-b border-cinza-suave/40'
+      }`}
       style={{
         backdropFilter: scrolled ? 'blur(20px) saturate(140%)' : 'none',
         WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(140%)' : 'none',
-      }}
-      animate={{
-        backgroundColor: scrolled ? 'rgba(35, 26, 31, 0.95)' : 'rgb(var(--branco))',
-        borderBottom: scrolled ? '1px solid rgba(211, 150, 160, 0.2)' : '1px solid rgba(60, 48, 54, 0.4)',
-      }}
-      transition={{
-        duration: 0.3,
-        ease: 'easeInOut',
       }}
     >
       {/* Scroll progress bar */}
@@ -118,17 +114,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {user && (
-            <button
-              type="button"
-              aria-label="Notificações"
-              title="Notificações"
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-rosa-claro"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rosa-blush" />
-            </button>
-          )}
+          <NotificationBell />
           <CartButton />
           <div className="flex items-center gap-2 lg:ml-4">
             {loading ? (

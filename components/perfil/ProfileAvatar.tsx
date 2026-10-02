@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { m as motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/lib/AuthContext";
-import { useProfilePhoto } from "@/lib/profile/ProfileContext";
+import { useUserProfile, useProfilePhoto } from "@/lib/profile";
 
 interface Props {
   completionPct: number; // 0-100
@@ -21,6 +21,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 
 export default function ProfileAvatar({ completionPct, size = 88 }: Props) {
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const { photoUrl, setPhotoUrl } = useProfilePhoto();
   const reduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,8 +34,8 @@ export default function ProfileAvatar({ completionPct, size = 88 }: Props) {
   const circumference = 2 * Math.PI * normalizedR;
   const dashOffset = circumference * (1 - completionPct / 100);
 
-  const effectivePhoto = photoUrl ?? user?.photoURL ?? null;
-  const displayName = user?.displayName ?? "Usuária";
+  const effectivePhoto = photoUrl ?? profile?.profilePhotoUrl ?? user?.photoURL ?? null;
+  const displayName = profile?.name?.trim() || user?.displayName?.trim() || "Usuária";
 
   const handleFile = async (file: File) => {
     setError(null);

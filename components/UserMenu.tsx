@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { useProfilePhoto } from "@/lib/profile/ProfileContext";
+import { useUserProfile, useProfilePhoto } from "@/lib/profile";
 import ConfirmDialog from "./ConfirmDialog";
 
 const ICON_SIZE = 18;
@@ -52,6 +52,7 @@ const itemStyle = {
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
   const { photoUrl } = useProfilePhoto();
   const pathname = usePathname();
 
@@ -177,8 +178,9 @@ export default function UserMenu() {
 
   if (!user) return null;
 
-  const displayName = user.displayName?.trim() || "Usuária Esmalt'up";
-  const avatarUrl = photoUrl ?? user.photoURL ?? null;
+  // Use profile context data first, fall back to Firebase user data
+  const displayName = profile?.name?.trim() || user.displayName?.trim() || "Usuária Esmalt'up";
+  const avatarUrl = photoUrl ?? profile?.profilePhotoUrl ?? user.photoURL ?? null;
 
   const handleConfirm = async () => {
     if (!user) return;

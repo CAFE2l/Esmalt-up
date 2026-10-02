@@ -29,6 +29,7 @@ import { formatPrice, getInstallments, type Product } from "@/lib/products";
 import { calculateFreight, isCepComplete, lookupCep, type CepAddress } from "@/lib/shipping";
 import { cn } from "@/lib/cn";
 import { primaryButton } from "@/components/buttonStyles";
+import { useAuthGate } from "@/components/AuthGateModal";
 
 // Define variant types for products
 interface ProductVariant {
@@ -428,6 +429,7 @@ export default function ProductBuyBox({
 }: ProductBuyBoxProps) {
   const { addItem } = useCart();
   const { user } = useAuth();
+  const { guard: authGuard, modal: authModal } = useAuthGate(user);
   
   const [quantity, setQuantity] = useState(1);
   const [cep, setCep] = useState("");
@@ -546,30 +548,35 @@ export default function ProductBuyBox({
 
   // Handle add to cart
   const handleAddToCart = () => {
-    if (outOfStock) return;
-    addItem(product.id, quantity, {
-      variantId: currentVariant?.id,
-      variantName: currentVariant?.name,
+    authGuard(() => {
+      if (outOfStock) return;
+      addItem(product.id, quantity, {
+        variantId: currentVariant?.id,
+        variantName: currentVariant?.name,
+      });
     });
   };
 
   // Handle buy now
   const handleBuyNowClick = () => {
-    if (outOfStock) return;
-    addItem(product.id, quantity, {
-      variantId: currentVariant?.id,
-      variantName: currentVariant?.name,
+    authGuard(() => {
+      if (outOfStock) return;
+      addItem(product.id, quantity, {
+        variantId: currentVariant?.id,
+        variantName: currentVariant?.name,
+      });
+      onBuyNow?.();
     });
-    onBuyNow?.();
   };
 
   // Handle favorite toggle
   const handleFavorite = () => {
-    setIsFavorite(!isFavorite);
+    authGuard(() => setIsFavorite((f) => !f));
   };
 
   return (
     <div className="space-y-6">
+      {authModal}
       {/* PRICE BLOCK - Enhanced with better hierarchy */}
       <div className="rounded-2xl border border-rose-gold/25 bg-rosa-claro/30 p-4">
         <div className="space-y-3">

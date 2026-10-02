@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useCart } from "@/lib/CartContext";
 import { primaryButton } from "@/components/buttonStyles";
+import { useAuthGate } from "@/components/AuthGateModal";
 
 interface AnswerItem {
   id: string;
@@ -37,6 +38,7 @@ function timeAgo(iso: string): string {
 export default function QuestionsSection({ productId }: { productId: string }) {
   const { user } = useAuth();
   const { sessionId } = useCart();
+  const { guard: authGuard, modal: authModal } = useAuthGate(user, "Faça login para enviar sua pergunta.");
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [openForm, setOpenForm] = useState(false);
@@ -128,6 +130,7 @@ export default function QuestionsSection({ productId }: { productId: string }) {
 
   return (
     <div className="rounded-[2rem] border border-cinza-suave/40 bg-branco p-7 shadow-card">
+      {authModal}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">
@@ -142,8 +145,10 @@ export default function QuestionsSection({ productId }: { productId: string }) {
         <button
           type="button"
           onClick={() => {
-            setMessage(null);
-            setOpenForm((value) => !value);
+            authGuard(() => {
+              setMessage(null);
+              setOpenForm((value) => !value);
+            });
           }}
           className={`${primaryButton} px-5 py-2.5 text-sm`}
         >

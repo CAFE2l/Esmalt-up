@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Heart, Eye, ShoppingCart, Star, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CATEGORY_LABELS, LEVEL_LABELS, formatPrice, type Product, type ProductKind } from "@/lib/catalogData";
+import { CATEGORY_LABELS, LEVEL_LABELS, formatPrice, type Product } from "@/lib/catalogData";
 import ProductArt from "./ProductArt";
-import { trackEvent, trackSelectItem, trackCTAClick, trackAddToWishlist } from "@/components/showcase/analytics";
+import { trackEvent } from "@/components/showcase/analytics";
 
 // Product Card Component
 function ProductCard({
@@ -32,7 +32,7 @@ function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     onFavoriteToggle?.(product.id, !isFavorite);
-    trackAddToWishlist(product.id, product.name, !isFavorite);
+    trackEvent("add_to_wishlist", { item_id: product.id, item_name: product.name });
   }, [product.id, product.name, isFavorite, onFavoriteToggle]);
 
   const handleQuickViewClick = useCallback((e: React.MouseEvent) => {
@@ -254,7 +254,7 @@ function ProductRail({
             <Link
               href={title.includes("Kits") ? "/kits" : "/pecas-avulsas"}
               className="shrink-0 text-sm font-semibold text-rose-gold transition-colors hover:text-rosa-blush"
-              onClick={() => trackCTAClick("view_all_link", "featured_products")}
+              onClick={() => trackEvent("cta_click", { cta_id: "view_all_link", location: "featured_products" })}
             >
               Ver todos
             </Link>
@@ -317,7 +317,7 @@ function ProductRail({
 }
 
 // Featured Product Grid with Hero + Small Cards
-function FeaturedProductGrid({
+function FeaturedProductGridView({
   products,
   title,
   onFavoriteToggle,
@@ -358,7 +358,7 @@ function FeaturedProductGrid({
             <Link
               href={title.includes("Kits") ? "/kits" : "/pecas-avulsas"}
               className="shrink-0 text-sm font-semibold text-rose-gold transition-colors hover:text-rosa-blush"
-              onClick={() => trackCTAClick("view_all_link", "featured_products")}
+              onClick={() => trackEvent("cta_click", { cta_id: "view_all_link", location: "featured_products" })}
             >
               Ver todos
             </Link>
@@ -428,12 +428,14 @@ function QuickViewModal({
   isFavorite,
   onFavoriteToggle,
   relatedProducts = [],
+  onQuickView,
 }: {
   product: Product | null;
   onClose: () => void;
   isFavorite: boolean;
   onFavoriteToggle: () => void;
   relatedProducts?: Product[];
+  onQuickView?: (product: Product) => void;
 }) {
   if (!product) return null;
 
@@ -551,7 +553,7 @@ function QuickViewModal({
                       <button
                         onClick={() => {
                           onFavoriteToggle();
-                          trackAddToWishlist(product.id, product.name, !isFavorite);
+                          trackEvent("add_to_wishlist", { item_id: product.id, item_name: product.name });
                         }}
                         className={`flex-1 flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-colors ${
                           isFavorite
@@ -566,7 +568,12 @@ function QuickViewModal({
 
                     <Link
                       href={`/produtos/${product.slug}`}
-                      onClick={() => trackSelectItem(product, "quick_view_detail", 0)}
+                      onClick={() => trackEvent("select_item", {
+                        item_id: product.id,
+                        item_name: product.name,
+                        item_list_name: "quick_view_detail",
+                        index: 0,
+                      })}
                       className="block w-full rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold py-3 text-center text-sm font-semibold text-white shadow-card hover:shadow-card-lg transition-shadow duration-200"
                     >
                       Ver detalhes
@@ -651,7 +658,7 @@ export default function FeaturedProductGrid({
   // Save favorites to localStorage when they change
   useEffect(() => {
     try {
-      localStorage.setItem("esmaltup-favorites", JSON.stringify([...favorites]));
+      localStorage.setItem("esmaltup-favorites", JSON.stringify(Array.from(favorites)));
     } catch {
       // Silently fail if localStorage is unavailable
     }
@@ -710,6 +717,7 @@ export default function FeaturedProductGrid({
         <QuickViewModal
           product={quickViewProduct}
           onClose={() => setQuickViewProduct(null)}
+          onQuickView={handleQuickView}
           isFavorite={quickViewProduct ? favorites.has(quickViewProduct.id) : false}
           onFavoriteToggle={() => {
             if (quickViewProduct) {
@@ -725,7 +733,7 @@ export default function FeaturedProductGrid({
   // Default: Grid layout
   return (
     <>
-      <FeaturedProductGrid
+      <FeaturedProductGridView
         products={products}
         title={title}
         onFavoriteToggle={handleToggleFavorite}
@@ -737,6 +745,7 @@ export default function FeaturedProductGrid({
       <QuickViewModal
         product={quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
+        onQuickView={handleQuickView}
         isFavorite={quickViewProduct ? favorites.has(quickViewProduct.id) : false}
         onFavoriteToggle={() => {
           if (quickViewProduct) {
