@@ -7,6 +7,7 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import { AuthProvider } from "@/lib/AuthContext";
 import { CartProvider } from "@/lib/CartContext";
 import { FavoritesProvider } from "@/lib/wishlist";
+import { FollowProvider } from "@/lib/FollowContext";
 import { GA4Script, TrackRouteChanges, ScrollDepthTracker, ConsentProvider, ConsentBannerWrapper } from "@/lib/analytics/client";
 import { UserProfileProvider, ProfileProvider } from "@/lib/profile";
 import MotionProvider from "@/components/providers/MotionProvider";
@@ -41,6 +42,7 @@ export default function RootLayout({
           }}
         />
         <AuthProvider>
+          <FollowProvider>
           <CartProvider>
             <FavoritesProvider>
               <UserProfileProvider>
@@ -67,6 +69,7 @@ export default function RootLayout({
           </UserProfileProvider>
             </FavoritesProvider>
           </CartProvider>
+          </FollowProvider>
         </AuthProvider>
       </body>
     </html>

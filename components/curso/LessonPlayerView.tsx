@@ -331,6 +331,8 @@ function UnitSidebar({ unit, currentSlug, isLessonCompleted, isLessonUnlocked }:
 export default function LessonPlayerView({ slug }: Props) {
   const router = useRouter();
   const { user } = useAuth();
+  const userRef = useRef(user);
+  userRef.current = user;
   const { guard: authGuard, modal: authModal } = useAuthGate(
     user,
     "Faça login para salvar seu progresso e concluir aulas.",
@@ -381,11 +383,12 @@ export default function LessonPlayerView({ slug }: Props) {
   useEffect(() => {
     if (!lesson || !isUnlocked || hasVideoError) return;
 
+    const container = playerContainerRef.current;
     let isCancelled = false;
     setIsPlayerReady(false);
 
     loadYouTubeApi().then(() => {
-      if (isCancelled || !playerContainerRef.current || !window.YT) return;
+      if (isCancelled || !container || !window.YT) return;
 
       try {
         const isPlaylist = lesson.type === "playlist";
@@ -394,7 +397,7 @@ export default function LessonPlayerView({ slug }: Props) {
         // it reconciles the tree. Mount on a fresh node instead.
         const mountEl = document.createElement("div");
         mountEl.className = "h-full w-full";
-        playerContainerRef.current.appendChild(mountEl);
+        container.appendChild(mountEl);
 
         const playerVars: Record<string, string | number | boolean> = {
           enablejsapi: 1,
@@ -425,7 +428,7 @@ export default function LessonPlayerView({ slug }: Props) {
             onStateChange: (e) => {
               // 0 = ENDED
               if (e.data === 0) {
-                if (user) {
+                if (userRef.current) {
                   markCompleted(slug);
                   setShowCelebration(true);
                 } else {
@@ -462,8 +465,8 @@ export default function LessonPlayerView({ slug }: Props) {
         playerInstanceRef.current = null;
       }
       // Remove any imperatively-added iframe/mount node so React owns a clean tree.
-      if (playerContainerRef.current) {
-        playerContainerRef.current.innerHTML = "";
+      if (container) {
+        container.innerHTML = "";
       }
     };
   }, [lesson, slug, isUnlocked, hasVideoError, markCompleted, savePosition, positions]);

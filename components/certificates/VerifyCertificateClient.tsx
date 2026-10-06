@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Check, X, Calendar, Code, ExternalLink, Search } from "lucide-react";
 import { formatDatePtBR } from "@/lib/formatDate";
 import { normalizePublicCode } from "@/lib/certificateCode";
+import { FollowButton, useFollow } from "@/lib/FollowContext";
 
 interface Props {
   initialCode?: string;
@@ -20,6 +21,18 @@ interface CertificateData {
   code?: string;
   status?: string;
   error?: string;
+  hasPublicProfile?: boolean;
+  publicProfileId?: string | null;
+  username?: string | null;
+  rankPosition?: number | null;
+  publicProfile?: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+    allowFollows: boolean;
+    followersCount: number;
+    followingCount: number;
+  } | null;
 }
 
 export default function VerifyCertificateClient({ initialCode }: Props) {
@@ -146,6 +159,29 @@ export default function VerifyCertificateClient({ initialCode }: Props) {
             </div>
             <h2 className="text-2xl font-bold text-success mb-2">Certificado válido</h2>
             <div className="space-y-4 text-left mt-6">
+              {certificate.hasPublicProfile && certificate.publicProfile && certificate.username && (
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-rose-gold/30 bg-rosa-claro/20 p-3">
+                  <PublicCertificateProfile profile={certificate.publicProfile} rank={certificate.rankPosition} />
+                  <div className="ml-auto flex flex-wrap gap-2">
+                    <Link
+                      href={`/u/${encodeURIComponent(certificate.username)}`}
+                      className="inline-flex items-center rounded-full border border-rose-gold/40 px-4 py-2 text-xs font-semibold text-rose-gold hover:bg-rose-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
+                    >
+                      Ver perfil
+                    </Link>
+                    <FollowButton
+                      username={certificate.username}
+                      displayName={certificate.publicProfile.displayName}
+                      initial={{
+                        followersCount: certificate.publicProfile.followersCount,
+                        followingCount: certificate.publicProfile.followingCount,
+                        allowFollows: certificate.publicProfile.allowFollows,
+                      }}
+                      compact
+                    />
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-branco/80 border border-cinza-suave/20">
                 <Code className="h-5 w-5 text-rose-gold shrink-0" />
                 <div>
@@ -249,6 +285,35 @@ export default function VerifyCertificateClient({ initialCode }: Props) {
           </Link>
         </div>
       )}
+    </div>
+  );
+}
+
+function PublicCertificateProfile({
+  profile,
+  rank,
+}: {
+  profile: NonNullable<CertificateData["publicProfile"]>;
+  rank?: number | null;
+}) {
+  const { followersCount } = useFollow(profile.username, {
+    followersCount: profile.followersCount,
+    followingCount: profile.followingCount,
+    allowFollows: profile.allowFollows,
+  });
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-rose-gold/70 bg-gradient-to-br from-rosa-blush to-rose-gold text-xs font-bold text-white">
+        {profile.avatarUrl
+          ? <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+          : profile.displayName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold text-foreground">{profile.displayName}</span>
+        <span className="block text-xs text-foreground/60">
+          @{profile.username}{rank ? ` · #${rank} no ranking` : ` · ${followersCount} seguidores`}
+        </span>
+      </span>
     </div>
   );
 }

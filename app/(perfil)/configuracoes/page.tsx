@@ -543,6 +543,7 @@ function PrivacidadePanel() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PublicProfileSettings />
       <PanelSection
         icon={Download}
         title="Exportar dados"
@@ -608,6 +609,147 @@ function PrivacidadePanel() {
               Você será desconectado assim que confirmar.
             </span>
           </>
+        }
+
+        function PublicProfileSettings() {
+          const { user } = useAuth();
+          const [settings, setSettings] = useState<{
+            username: string;
+            bio: string;
+            isPublic: boolean;
+            allowFollows: boolean;
+          } | null>(null);
+          const [loadingSettings, setLoadingSettings] = useState(true);
+          const [savingSettings, setSavingSettings] = useState(false);
+          const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+
+          useEffect(() => {
+            let active = true;
+            async function load() {
+              if (!user) {
+                setLoadingSettings(false);
+                return;
+              }
+              try {
+                const token = await user.getIdToken();
+                const response = await fetch("/api/public-profiles/settings", {
+                  headers: { authorization: `Bearer ${token}` },
+                  cache: "no-store",
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error ?? "Falha ao carregar.");
+                if (active) setSettings({
+                  username: data.settings.username,
+                  bio: data.settings.bio ?? "",
+                  isPublic: data.settings.isPublic,
+                  allowFollows: data.settings.allowFollows,
+                });
+              } catch {
+                if (active) setSettingsMessage("Não foi possível carregar as preferências do perfil.");
+              } finally {
+                if (active) setLoadingSettings(false);
+              }
+            }
+            void load();
+            return () => { active = false; };
+          }, [user]);
+
+          const saveSettings = async (changes: Partial<Pick<typeof settings, "isPublic" | "allowFollows" | "bio">>) => {
+            if (!user || !settings) return;
+            const previous = settings;
+            setSettings({ ...settings, ...changes });
+            setSavingSettings(true);
+            setSettingsMessage(null);
+            try {
+              const token = await user.getIdToken();
+              const response = await fetch("/api/public-profiles/settings", {
+                method: "PATCH",
+                headers: {
+                  authorization: `Bearer ${token}`,
+                  "content-type": "application/json",
+                },
+                body: JSON.stringify(changes),
+              });
+              const data = await response.json();
+              if (!response.ok) throw new Error(data.error ?? "Não foi possível salvar.");
+              setSettings({ ...settings, ...data.settings });
+              setSettingsMessage("Preferências salvas.");
+            } catch (cause) {
+              setSettings(previous);
+              setSettingsMessage(cause instanceof Error ? cause.message : "Não foi possível salvar.");
+            } finally {
+              setSavingSettings(false);
+            }
+          };
+
+          return (
+            <PanelSection
+              icon={Lock}
+              title="Perfil público e privacidade"
+              subtitle="Escolha como seu perfil aparece no Hall da Fama."
+            >
+              {loadingSettings ? (
+                <p className="animate-pulse text-sm text-foreground/60">Carregando preferências...</p>
+              ) : settings ? (
+                <div className="space-y-5">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={settings.isPublic}
+                      disabled={savingSettings}
+                      onChange={(event) => void saveSettings({ isPublic: event.target.checked })}
+                      className="mt-1 h-4 w-4 accent-rose-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-foreground">Mostrar meu perfil no Mural de Formados</span>
+                      <span className="mt-1 block text-xs leading-5 text-foreground/60">Desativado, seu nome e avatar ficam anônimos no mural e seu perfil público não pode ser acessado.</span>
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={settings.allowFollows}
+                      disabled={savingSettings || !settings.isPublic}
+                      onChange={(event) => void saveSettings({ allowFollows: event.target.checked })}
+                      className="mt-1 h-4 w-4 accent-rose-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-foreground">Permitir que me sigam</span>
+                      <span className="mt-1 block text-xs leading-5 text-foreground/60">Quando desativado, novas pessoas não podem começar a seguir seu perfil.</span>
+                    </span>
+                  </label>
+                  <div>
+                    <label htmlFor="public-profile-bio" className="mb-1.5 block text-sm font-semibold text-foreground">Bio pública (até 160 caracteres)</label>
+                    <textarea
+                      id="public-profile-bio"
+                      maxLength={160}
+                      value={settings.bio}
+                      onChange={(event) => setSettings({ ...settings, bio: event.target.value })}
+                      className={`${inputClasses} min-h-24 resize-y`}
+                      placeholder="Conte um pouco sobre sua trajetória"
+                    />
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-xs text-foreground/55">{settings.bio.length}/160</span>
+                      <button
+                        type="button"
+                        disabled={savingSettings}
+                        onClick={() => void saveSettings({ bio: settings.bio })}
+                        className="rounded-full border border-rose-gold/40 px-4 py-2 text-xs font-semibold text-rose-gold disabled:opacity-50"
+                      >
+                        {savingSettings ? "Salvando..." : "Salvar bio"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Link href={`/u/${encodeURIComponent(settings.username)}`} className="text-sm font-semibold text-rose-gold hover:underline">Ver meu perfil público</Link>
+                    {settingsMessage && <span role="status" className="text-xs text-foreground/65">{settingsMessage}</span>}
+                  </div>
+                </div>
+              ) : (
+                <p role="alert" className="text-sm text-red-300">{settingsMessage}</p>
+              )}
+            </PanelSection>
+          );
         }
         verifyText="EXCLUIR"
         confirmLabel="Excluir conta"

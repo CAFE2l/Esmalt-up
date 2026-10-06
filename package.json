@@ -12,7 +12,8 @@
     "seed:products": "npx tsx prisma/seed/products.ts",
     "seed:demo-reviews": "SEED_DEMO_REVIEWS=1 npx tsx prisma/seed/products.ts",
     "seed:curriculum": "npx tsx prisma/seed/curriculum.ts",
-    "validate:videos": "npx tsx scripts/validate-course-videos.ts"
+    "validate:videos": "npx tsx scripts/validate-course-videos.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -37,6 +38,7 @@
     "prisma": "^6.19.3",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
+    "vite": "^8.3.3",
     "vitest": "^5.0.3"
   }
 }

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyIdToken } from "@/lib/serverAuth";
+import { rethrowIfDynamicServerError } from "@/lib/dynamicServerError";
 import type { DecodedIdToken } from "firebase-admin/auth";
+
+export const dynamic = "force-dynamic";
 
 type AuthResult =
   | { ok: true; uid: string; decoded: DecodedIdToken }
@@ -95,6 +98,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ profile, orders, progress, badges });
   } catch (error) {
+    rethrowIfDynamicServerError(error);
     console.error("[api/profile] GET", error);
     return NextResponse.json(
       { error: "Não foi possível carregar o perfil." },

@@ -218,7 +218,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         setSaveError(null);
       }, 5000);
     }
-  }, [user, updateFirebaseProfile, refreshProfile]);
+  }, [user, updateFirebaseProfile]);
 
   // Dedicated method for photo URL updates (used by image uploaders)
   const updatePhotoUrl = useCallback(async (url: string | null) => {

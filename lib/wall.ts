@@ -1,66 +1,88 @@
-/**
- * Public "Mural de Formados" helpers.
- *
- * Privacy rule: the only fields that may ever leave the server for the wall
- * are recipientName, avatarUrl, issuedAt and publicCode. Never expose email,
- * user id, internal certificate id, nickname or progress.
- */
+export interface WallProfile {
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  followersCount: number;
+  followingCount: number;
+  allowFollows: boolean;
+}
 
 export interface WallEntry {
+  rankPosition: number;
   recipientName: string;
-  avatarUrl: string | null;
-  issuedAt: string; // ISO
+  issuedAt: string;
   publicCode: string;
+  profile: WallProfile | null;
+  isFollowing: boolean;
+  isOwn: boolean;
+}
+
+export interface WallStats {
+  total: number;
+  thisMonth: number;
+  today: number;
+  firstGraduate: string | null;
+  newestGraduate: string | null;
+  averagePerMonth: number;
 }
 
 export interface WallPage {
   entries: WallEntry[];
+  topThree: WallEntry[];
   total: number;
-  nextCursor: string | null;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  stats: WallStats;
 }
 
 interface CertificateRow {
   recipientName: string;
   issuedAt: Date;
   publicCode: string;
-  user: { profilePhotoUrl: string | null; avatarUrl: string | null } | null;
+  rankPosition: number | null;
+  userId: string;
+  user: {
+    publicProfile: (WallProfile & { userId: string; isPublic: boolean }) | null;
+  };
 }
 
-/** Only allow http(s) avatar URLs; anything else falls back to initials. */
 export function safeAvatarUrl(url: string | null | undefined): string | null {
-  if (!url || typeof url !== "string") return null;
+  if (!url) return null;
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
-    return url;
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? url : null;
   } catch {
     return null;
   }
 }
 
-export function toWallEntry(row: CertificateRow): WallEntry {
-  const raw = row.user?.profilePhotoUrl ?? row.user?.avatarUrl ?? null;
+export function toWallEntry(
+  row: CertificateRow,
+  isFollowing = false,
+  viewerId?: string,
+): WallEntry {
+  const publicProfile = row.user.publicProfile?.isPublic
+    ? {
+        username: row.user.publicProfile.username,
+        displayName: row.user.publicProfile.displayName,
+        avatarUrl: safeAvatarUrl(row.user.publicProfile.avatarUrl),
+        followersCount: row.user.publicProfile.followersCount,
+        followingCount: row.user.publicProfile.followingCount,
+        allowFollows: row.user.publicProfile.allowFollows,
+      }
+    : null;
   return {
-    recipientName: row.recipientName,
-    avatarUrl: safeAvatarUrl(raw),
+    rankPosition: row.rankPosition ?? 0,
+    recipientName: publicProfile?.displayName ?? "Formado(a) anônimo(a)",
     issuedAt: row.issuedAt.toISOString(),
     publicCode: row.publicCode,
+    profile: publicProfile,
+    isFollowing,
+    isOwn: Boolean(viewerId && row.userId === viewerId),
   };
 }
 
-const MONTHS_PT = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-];
-
-/** e.g. "OUTUBRO DE 2026" */
-export function monthLabel(iso: string): string {
-  const d = new Date(iso);
-  const month = MONTHS_PT[d.getMonth()] ?? "";
-  return `${month} DE ${d.getFullYear()}`.toUpperCase();
-}
-
-/** e.g. "2 de outubro de 2026" */
 export function longDatePtBR(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString("pt-BR", {
@@ -74,8 +96,7 @@ export function longDatePtBR(iso: string): string {
 }
 
 export function isNewGraduate(iso: string, now = Date.now()): boolean {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return false;
-  const diff = now - t;
-  return diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000;
+  const time = new Date(iso).getTime();
+  const age = now - time;
+  return Number.isFinite(time) && age >= 0 && age <= 7 * 24 * 60 * 60 * 1000;
 }

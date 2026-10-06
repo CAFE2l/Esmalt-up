@@ -97,6 +97,11 @@ export async function GET(
         code: certificate.publicCode,
         status: certificate.status,
         courseId: certificate.courseId,
+        rankPosition: certificate.rankPosition,
+        hasPublicProfile: Boolean(certificate.publicProfile),
+        publicProfileId: certificate.publicProfile?.username ?? null,
+        username: certificate.publicProfile?.username ?? null,
+        publicProfile: certificate.publicProfile,
       },
       { status: 200 }
     );

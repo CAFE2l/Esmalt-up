@@ -416,7 +416,7 @@ export default function CertificateView({ certificate, siteUrl }: CertificateVie
     } finally {
       setIsLoading(false);
     }
-  }, [certificate.recipientName]);
+  }, []);
 
   // Note: For screenshot functionality, we use browser print or external libraries
   // html2canvas would need to be added as a dependency for client-side rendering

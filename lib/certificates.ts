@@ -178,6 +178,15 @@ export async function getPublicCertificateByCode(code: string): Promise<{
   courseId: string;
   issuedAt: Date;
   status: string;
+  rankPosition: number | null;
+  publicProfile: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+    allowFollows: boolean;
+    followersCount: number;
+    followingCount: number;
+  } | null;
 } | null> {
   const normalizedCode = normalizePublicCode(code);
 
@@ -189,10 +198,45 @@ export async function getPublicCertificateByCode(code: string): Promise<{
       courseId: true,
       issuedAt: true,
       status: true,
+      rankPosition: true,
+      user: {
+        select: {
+          publicProfile: {
+            select: {
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              isPublic: true,
+              allowFollows: true,
+              followersCount: true,
+              followingCount: true,
+            },
+          },
+        },
+      },
     },
   });
 
-  return certificate;
+  if (!certificate) return null;
+  const profile = certificate.user.publicProfile;
+  return {
+    publicCode: certificate.publicCode,
+    recipientName: certificate.recipientName,
+    courseId: certificate.courseId,
+    issuedAt: certificate.issuedAt,
+    status: certificate.status,
+    rankPosition: certificate.rankPosition,
+    publicProfile: profile?.isPublic
+      ? {
+          username: profile.username,
+          displayName: profile.displayName,
+          avatarUrl: profile.avatarUrl,
+          allowFollows: profile.allowFollows,
+          followersCount: profile.followersCount,
+          followingCount: profile.followingCount,
+        }
+      : null,
+  };
 }
 
 /**

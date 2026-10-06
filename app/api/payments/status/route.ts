@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/authUtils";
 import { fetchPaymentStatus } from "@/lib/payments";
+import { rethrowIfDynamicServerError } from "@/lib/dynamicServerError";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
@@ -92,6 +94,7 @@ export async function GET(req: Request) {
       demo: order.gatewayPaymentId?.startsWith("DEMO-") ?? false,
     });
   } catch (error) {
+    rethrowIfDynamicServerError(error);
     console.error("[api/payments/status] GET", error);
     return NextResponse.json(
       { error: "Não foi possível consultar o pagamento." },

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyIdToken } from "@/lib/serverAuth";
 import { getMainTrackLessons } from "@/data/course";
 import { generatePublicCode, validateRecipientName } from "@/lib/certificates";
+import { ensurePublicProfile } from "@/lib/publicProfiles";
 
 async function getUid(req: Request): Promise<string | null> {
   const header = req.headers.get("authorization");
@@ -145,6 +146,10 @@ export async function POST(req: Request) {
   });
 
   if (existingCertificate) {
+    const publicProfile = await prisma.publicProfile.findUnique({
+      where: { userId: uid },
+      select: { username: true },
+    });
     // Return existing certificate (idempotent)
     return NextResponse.json({
       certificate: {
@@ -155,6 +160,7 @@ export async function POST(req: Request) {
         status: existingCertificate.status,
         completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
       },
+      publicProfile: publicProfile ? { username: publicProfile.username } : null,
       message: "Certificado já emitido. Aqui está o seu certificado existente.",
     });
   }
@@ -181,20 +187,36 @@ export async function POST(req: Request) {
     );
   }
 
-  // Create the certificate
+  // Allocate rank while holding the singleton counter row so concurrent issues
+  // receive distinct, permanent positions in issue order.
   try {
-    const certificate = await prisma.certificate.create({
-      data: {
-        publicCode,
-        userId: uid,
-        courseId: "nail-designer-iniciante",
-        recipientName: recipientName.trim(),
-        issuedAt: new Date(),
-        curriculumVersion: 1,
-        status: "valid",
-        showOnWall: typeof showOnWall === "boolean" ? showOnWall : true,
-      },
-    });
+    const publicProfile = await ensurePublicProfile(uid, recipientName.trim());
+    if (!publicProfile) {
+      return NextResponse.json(
+        { error: "Não foi possível preparar seu perfil público." },
+        { status: 404 },
+      );
+    }
+    const certificate = await prisma.$transaction(async (tx) => {
+      const counter = await tx.certificateRankCounter.update({
+        where: { id: 1 },
+        data: { lastRank: { increment: 1 } },
+        select: { lastRank: true },
+      });
+      return tx.certificate.create({
+        data: {
+          publicCode,
+          userId: uid,
+          courseId: "nail-designer-iniciante",
+          recipientName: recipientName.trim(),
+          issuedAt: new Date(),
+          curriculumVersion: 1,
+          status: "valid",
+          showOnWall: typeof showOnWall === "boolean" ? showOnWall : true,
+          rankPosition: counter.lastRank,
+        },
+      });
+    }, { isolationLevel: "Serializable" });
 
     return NextResponse.json({
       certificate: {
@@ -205,6 +227,7 @@ export async function POST(req: Request) {
         status: certificate.status,
         completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
       },
+      publicProfile: { username: publicProfile.username },
       message: "Certificado emitido com sucesso! O nome não poderá ser alterado depois.",
     });
   } catch (error) {

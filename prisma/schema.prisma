@@ -48,6 +48,7 @@ model UserProfile {
   lessonProgress   LessonProgress[]
   certificates     Certificate[]
   favorites        Favorite[]
+  publicProfile    PublicProfile?
 
   @@map("user_profiles")
 }
@@ -412,6 +413,8 @@ model Certificate {
   curriculumVersion Int     @default(1)
   status          String    @default("valid") // "valid" | "revoked"
   showOnWall      Boolean   @default(true) @map("show_on_wall")
+  rankPosition    Int?      @unique
+  isTestData      Boolean   @default(false)
   user            UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -421,5 +424,48 @@ model Certificate {
   @@index([userId])
   @@index([status])
   @@index([status, showOnWall, issuedAt], map: "certificates_wall_idx")
+  @@index([status, showOnWall, rankPosition], map: "certificates_rank_idx")
+  @@index([status, showOnWall, issuedAt, createdAt, publicCode], map: "certificates_issue_order_idx")
   @@map("certificates")
+}
+
+model PublicProfile {
+  userId          String   @id
+  username        String   @unique
+  displayName     String
+  avatarUrl       String?
+  bio             String?  @db.VarChar(160)
+  joinedAt        DateTime @default(now())
+  isPublic        Boolean  @default(true)
+  allowFollows    Boolean  @default(true)
+  followersCount  Int      @default(0)
+  followingCount  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            UserProfile @relation(fields: [userId], references: [uid], onDelete: Cascade)
+  followers       Follow[] @relation("FollowFollowing")
+  following       Follow[] @relation("FollowFollower")
+
+  @@index([isPublic, username])
+  @@map("public_profiles")
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    PublicProfile @relation("FollowFollower", fields: [followerId], references: [userId], onDelete: Cascade)
+  following   PublicProfile @relation("FollowFollowing", fields: [followingId], references: [userId], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId, createdAt])
+  @@index([followerId, createdAt])
+  @@map("follows")
+}
+
+model CertificateRankCounter {
+  id       Int @id
+  lastRank Int @default(0)
+
+  @@map("certificate_rank_counters")
 }
