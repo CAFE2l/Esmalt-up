@@ -41,6 +41,7 @@ interface ProductBuyBoxProps {
   userHasPurchased?: boolean; // For review eligibility
   reviewCount?: number;
   ratingAvg?: number | null;
+  compact?: boolean;
 }
 
 // NEW: Variant Selector Component
@@ -372,6 +373,7 @@ export default function ProductBuyBox({
   userHasPurchased = false,
   reviewCount = 0,
   ratingAvg = null,
+  compact = false,
 }: ProductBuyBoxProps) {
   const { addItem } = useCart();
   
@@ -707,35 +709,31 @@ export default function ProductBuyBox({
         )}
       </div>
 
-      {/* TRUST SECTION */}
-      <TrustSection />
-
-      {/* SOCIAL PROOF */}
-      <SocialProof
-        ratingAvg={ratingAvg}
-        reviewCount={reviewCount}
-      />
-
-      {/* REVIEW ELIGIBILITY NOTICE */}
-      <div className="p-4 rounded-2xl border border-rose-gold/25 bg-rosa-claro/30 text-center">
-        {canReview ? (
-          <p className="text-sm text-foreground">
-            <span className="font-semibold">Você comprou este produto!</span>
-            <br />
-            <button
-              onClick={() => document.getElementById("avaliacoes")?.scrollIntoView({ behavior: "smooth" })}
-              className="mt-2 inline-flex items-center gap-1 text-rose-gold font-medium hover:text-rosa-blush"
-            >
-              <Star className="h-4 w-4" />
-              Escrever avaliação
-            </button>
-          </p>
-        ) : (
-          <p className="text-xs text-foreground/60">
-            Somente clientes que compraram este produto podem avaliá-lo.
-          </p>
-        )}
-      </div>
+      {!compact && (
+        <>
+          <TrustSection />
+          <SocialProof ratingAvg={ratingAvg} reviewCount={reviewCount} />
+          <div className="rounded-2xl border border-rose-gold/25 bg-rosa-claro/30 p-4 text-center">
+            {canReview ? (
+              <p className="text-sm text-foreground">
+                <span className="font-semibold">Você comprou este produto!</span>
+                <br />
+                <button
+                  onClick={() => document.getElementById("avaliacoes")?.scrollIntoView({ behavior: "smooth" })}
+                  className="mt-2 inline-flex items-center gap-1 font-medium text-rose-gold hover:text-rosa-blush"
+                >
+                  <Star className="h-4 w-4" />
+                  Escrever avaliação
+                </button>
+              </p>
+            ) : (
+              <p className="text-xs text-foreground/60">
+                Somente clientes que compraram este produto podem avaliá-lo.
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

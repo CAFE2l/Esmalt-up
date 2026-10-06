@@ -120,14 +120,14 @@ export default function ProductView({
   return (
     <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:pt-10">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-xs text-foreground/60">
-        <a href="/" className="hover:text-rose-gold">
+      <nav aria-label="Navegação estrutural" className="mb-6 flex flex-wrap items-center gap-2 text-xs text-foreground/60">
+        <Link href="/" className="hover:text-rose-gold">
           Início
-        </a>
+        </Link>
         <span aria-hidden>/</span>
-        <a href={product.kind === "kit" ? "/kits" : "/pecas-avulsas"} className="hover:text-rose-gold">
+        <Link href={product.kind === "kit" ? "/kits" : "/pecas-avulsas"} className="hover:text-rose-gold">
           {product.kind === "kit" ? "Kits" : "Peças Avulsas"}
-        </a>
+        </Link>
         <span aria-hidden>/</span>
         <span className="max-w-[140px] truncate text-foreground/80">
           {categoryLabel}
@@ -139,9 +139,9 @@ export default function ProductView({
       </nav>
 
       {/* Main content */}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,.9fr)] lg:gap-12">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,.75fr)] lg:gap-8">
         {/* Left: Gallery */}
-        <div className="lg:col-span-1">
+        <div className="rounded-3xl border border-rose-gold/15 bg-branco/95 p-3 shadow-card sm:p-5">
           <ProductGallery
             images={galleryImages}
             videoUrl={product.videoUrl}
@@ -151,7 +151,7 @@ export default function ProductView({
         </div>
 
         {/* Purchase details */}
-        <div className="space-y-6">
+        <div className="space-y-5 lg:sticky lg:top-24">
           {/* Category and badges */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-rose-gold/30 bg-rosa-claro/50 px-3 py-1 text-xs font-medium text-rose-gold">
@@ -180,9 +180,10 @@ export default function ProductView({
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
             {product.name}
           </h1>
+          <p className="text-sm leading-6 text-foreground/65">{product.description}</p>
 
           {/* Rating */}
           {initialAverage ? (
@@ -207,7 +208,7 @@ export default function ProductView({
             </p>
           )}
 
-          <div className="rounded-3xl border border-cinza-suave/40 bg-branco p-4 shadow-card sm:p-6">
+          <div className="rounded-3xl border border-rose-gold/20 bg-branco p-4 shadow-[0_16px_45px_rgba(20,10,16,.2)] sm:p-6">
             <ProductBuyBox
               product={product}
               onBuyNow={handleBuyNow}
@@ -215,12 +216,18 @@ export default function ProductView({
               ratingAvg={initialAverage}
               userHasPurchased={hasPurchased}
               onVariantChange={setSelectedVariant}
+              compact
             />
           </div>
 
-          <div className="rounded-2xl border border-cinza-suave/30 bg-branco p-4">
-            <p className="font-semibold text-foreground">Vendido e entregue por Esmalt&apos;up</p>
-            <p className="mt-2 text-sm text-foreground/65">Compra segura · suporte especializado · devolução conforme a legislação vigente.</p>
+          <div className="rounded-2xl border border-cinza-suave/30 bg-branco/90 p-4">
+            <p className="font-semibold text-foreground">Vendido e enviado por Esmalt&apos;up</p>
+            <ul className="mt-3 grid gap-2 text-sm text-foreground/65 sm:grid-cols-2">
+              <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" /> Pagamento processado com segurança</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" /> Suporte especializado</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" /> Prazo calculado pelo seu CEP</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" /> Direito de arrependimento conforme a lei</li>
+            </ul>
           </div>
 
           <div className="relative">
@@ -248,7 +255,7 @@ export default function ProductView({
         </div>
       </div>
 
-      <section className="mt-12 grid gap-8 border-t border-cinza-suave/30 pt-10 lg:grid-cols-2">
+      <section className="mt-12 grid gap-8 rounded-3xl border border-rose-gold/15 bg-branco/95 p-5 pt-7 shadow-card sm:p-8 lg:grid-cols-2">
         <div id="descricao" className="space-y-4">
           <h2 className="text-2xl font-bold">Descrição</h2>
           <p className="leading-relaxed text-foreground/75">{product.description}</p>

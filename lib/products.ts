@@ -58,6 +58,38 @@ export type ProductKind = "kit" | "peca";
 export type StockStatus = "in_stock" | "out_of_stock";
 export type SkillLevel = "iniciante" | "medio" | "profissional";
 
+const productSelect = {
+  id: true,
+  slug: true,
+  kind: true,
+  name: true,
+  description: true,
+  brand: true,
+  sku: true,
+  priceCents: true,
+  oldPriceCents: true,
+  category: true,
+  stock: true,
+  featured: true,
+  videoUrl: true,
+  images: true,
+  highlights: true,
+  specs: true,
+  variants: true,
+  weightG: true,
+  heightCm: true,
+  widthCm: true,
+  lengthCm: true,
+  ratingAvg: true,
+  ratingCount: true,
+  level: true,
+  active: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.ProductSelect;
+
+type CatalogDbProduct = Prisma.ProductGetPayload<{ select: typeof productSelect }>;
+
 const CATEGORY_LABELS: Record<string, string> = {
   iniciante: "Iniciante",
   profissional: "Profissional",
@@ -107,6 +139,7 @@ export async function getFeatured(kind: ProductKind): Promise<Product[]> {
       active: true,
     },
     orderBy: { createdAt: "desc" },
+    select: productSelect,
   });
   
   // Fallback to static data if database is empty
@@ -124,6 +157,7 @@ export async function getByKind(kind: ProductKind): Promise<Product[]> {
       active: true,
     },
     orderBy: { createdAt: "desc" },
+    select: productSelect,
   });
   
   // Fallback to static data if database is empty
@@ -137,6 +171,7 @@ export async function getByKind(kind: ProductKind): Promise<Product[]> {
 export async function getProduct(id: string): Promise<Product | null> {
   const product = await prisma.product.findUnique({
     where: { id },
+    select: productSelect,
   });
   if (product) return transformDbProduct(product);
   const staticProduct = PRODUCTS.find((item) => item.id === id);
@@ -146,6 +181,7 @@ export async function getProduct(id: string): Promise<Product | null> {
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const product = await prisma.product.findUnique({
     where: { slug },
+    select: productSelect,
   });
   if (product) return transformDbProduct(product);
   const staticProduct = PRODUCTS.find((item) => item.id === slug);
@@ -155,6 +191,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 export async function ensureProductRecord(identifier: string): Promise<Product | null> {
   const existing = await prisma.product.findFirst({
     where: { OR: [{ id: identifier }, { slug: identifier }] },
+    select: productSelect,
   });
   if (existing) return existing.active ? transformDbProduct(existing) : null;
 
@@ -191,11 +228,11 @@ export async function ensureProductRecord(identifier: string): Promise<Product |
       lengthCm: catalogProduct.lengthCm,
       ratingAvg: catalogProduct.ratingAvg,
       ratingCount: catalogProduct.ratingCount,
-      soldCount: catalogProduct.soldCount,
       level: catalogProduct.level,
       active: true,
     },
     update: {},
+    select: productSelect,
   });
   return record.active ? transformDbProduct(record) : null;
 }
@@ -219,6 +256,7 @@ export async function getRelatedProducts(
       { featured: "desc" },
       { createdAt: "desc" },
     ],
+    select: productSelect,
   });
   if (products.length > 0) return products.map(transformDbProduct);
   const staticRelated = getByKindSync(product.kind).filter(
@@ -315,7 +353,7 @@ export function freeShippingThresholdCents(): number {
   return 9900;
 }
 
-function transformDbProduct(dbProduct: DbProduct): Product {
+function transformDbProduct(dbProduct: CatalogDbProduct | DbProduct): Product {
   const specs = dbProduct.specs as { specs?: { label: string; value: string }[] } | null;
   return {
     id: dbProduct.id,
@@ -342,7 +380,7 @@ function transformDbProduct(dbProduct: DbProduct): Product {
     lengthCm: dbProduct.lengthCm,
     ratingAvg: dbProduct.ratingAvg,
     ratingCount: dbProduct.ratingCount,
-    soldCount: dbProduct.soldCount,
+    soldCount: "soldCount" in dbProduct ? dbProduct.soldCount : 0,
     level: dbProduct.level,
     active: dbProduct.active,
     createdAt: dbProduct.createdAt,

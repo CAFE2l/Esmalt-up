@@ -69,7 +69,7 @@ export default function ProductGallery({
         {/* Main image/video */}
         <div
           className={cn(
-            "relative aspect-square min-w-0 flex-1 overflow-hidden rounded-[2rem] border border-cinza-suave/30 bg-rosa-claro",
+            "relative aspect-square min-w-0 flex-1 overflow-hidden rounded-[1.5rem] border border-cinza-suave/30 bg-white",
             zoom && "cursor-zoom-out",
           )}
           onMouseMove={handleMouseMove}
@@ -120,7 +120,7 @@ export default function ProductGallery({
                 priority={activeIndex === 0}
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className={cn(
-                  "object-cover transition-transform duration-300",
+                  "object-contain p-5 transition-transform duration-300 sm:p-8",
                   zoom && "scale-[2.2]",
                 )}
               />
@@ -177,7 +177,7 @@ export default function ProductGallery({
                     alt={item.label}
                     fill
                     sizes="80px"
-                    className="object-cover"
+                    className="bg-white object-contain p-1"
                   />
                 )}
               </button>
