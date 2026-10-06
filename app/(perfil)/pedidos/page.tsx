@@ -1,168 +1,585 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/AuthContext";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Package, Truck, ShoppingBag } from "lucide-react";
-import { outlineButton } from "@/components/buttonStyles";
+import { m as motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import {
+  ChevronDown,
+  CreditCard,
+  Heart,
+  Package,
+  RefreshCw,
+  ShoppingBag,
+  Truck,
+  Wallet,
+} from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
+import { useCart } from "@/lib/CartContext";
 import { formatPrice } from "@/lib/products";
+import { outlineButton, primaryButton } from "@/components/buttonStyles";
+import {
+  AmbientBackground,
+  GlassBadge,
+  GlassSkeleton,
+  GlowToast,
+  type GlowToastData,
+} from "@/components/ui";
+import { OrderTimeline } from "@/components/orders/OrderTimeline";
+import {
+  buildStatusTabs,
+  computeOrdersStats,
+  formatOrderDate,
+  getOrderStatus,
+  isCancelable,
+  shortOrderId,
+  type OrderStatus,
+  type OrderSummary,
+} from "@/lib/orders";
+import {
+  expandPanel,
+  fadeUpItem,
+  reducedMotionVariants,
+  staggerContainer,
+  staggerRow,
+} from "@/lib/motion/variants";
 
-interface OrderItem {
-  productName: string;
-  quantity: number;
-  priceCents: number;
-}
+type TabKey = "todos" | OrderStatus;
 
-interface Order {
-  id: string;
-  status: string;
-  paymentStatus: string;
-  totalCents: number;
-  kitName: string;
-  createdAt: string;
-  trackingCode: string | null;
-  items: OrderItem[];
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pago: { label: "Pago", color: "text-emerald-400", bg: "bg-emerald-500/20" },
-  aguardando_pagamento: { label: "Aguardando pagamento", color: "text-amber-400", bg: "bg-amber-500/20" },
-  falha_pagamento: { label: "Falha", color: "text-red-400", bg: "bg-red-500/20" },
-  em_preparo: { label: "Em preparo", color: "text-blue-400", bg: "bg-blue-500/20" },
-  enviado: { label: "Enviado", color: "text-purple-400", bg: "bg-purple-500/20" },
-  entregue: { label: "Entregue", color: "text-emerald-400", bg: "bg-emerald-500/20" },
-  cancelado: { label: "Cancelado", color: "text-gray-400", bg: "bg-gray-500/20" },
-};
-
-function SkeletonCard() {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: typeof Package;
+  label: string;
+  value: string;
+  accent: string;
+}) {
   return (
-    <div className="rounded-3xl border border-cinza-suave/40 bg-branco p-6 shadow-card animate-pulse">
-      <div className="h-4 w-32 rounded-full bg-cinza-suave/30 mb-3" />
-      <div className="h-3 w-24 rounded-full bg-cinza-suave/20 mb-4" />
-      <div className="space-y-2">
-        <div className="h-3 w-full rounded-full bg-cinza-suave/20" />
-        <div className="h-3 w-2/3 rounded-full bg-cinza-suave/20" />
+    <motion.div
+      variants={fadeUpItem}
+      className="glow-surface flex items-center gap-3 rounded-2xl p-4"
+    >
+      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${accent}`}>
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-foreground/50">{label}</p>
+        <p className="truncate text-lg font-bold text-foreground">{value}</p>
       </div>
-      <div className="mt-4 h-8 w-24 rounded-full bg-cinza-suave/20" />
+    </motion.div>
+  );
+}
+
+function OrderSkeleton() {
+  return (
+    <div className="glow-surface rounded-3xl p-6" aria-hidden="true">
+      <div className="flex justify-between">
+        <GlassSkeleton className="h-5 w-44 rounded-full" />
+        <GlassSkeleton className="h-6 w-24 rounded-full" />
+      </div>
+      <div className="mt-4">
+        <GlassSkeleton className="h-4 w-full rounded-full" count={2} />
+      </div>
+      <div className="mt-5">
+        <GlassSkeleton className="h-9 w-32 rounded-full" />
+      </div>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="rounded-3xl border border-cinza-suave/40 bg-branco p-12 text-center shadow-card">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rosa-claro/30">
-        <ShoppingBag className="h-10 w-10 text-rose-gold" />
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="glow-surface rounded-3xl px-6 py-14 text-center"
+    >
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-rosa-claro/50">
+        <ShoppingBag className="h-10 w-10 text-rose-gold" aria-hidden="true" />
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-foreground">
+      <h3 className="mt-5 text-lg font-semibold text-foreground">
         Nenhum pedido ainda
       </h3>
       <p className="mt-2 text-sm text-foreground/60">
         Explore nossos kits e peças e faça seu primeiro pedido!
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <Link href="/kits" className={`${outlineButton} px-6 py-2.5 text-sm`}>Explorar kits</Link>
-        <Link href="/pecas-avulsas" className={`${outlineButton} px-6 py-2.5 text-sm`}>Ver peças avulsas</Link>
+        <Link href="/kits" className={`${primaryButton} px-6 py-2.5 text-sm`}>
+          Explorar kits
+        </Link>
+        <Link href="/pecas-avulsas" className={`${outlineButton} px-6 py-2.5 text-sm`}>
+          Ver peças avulsas
+        </Link>
       </div>
-    </div>
+    </motion.div>
+  );
+}
+
+function OrderCard({
+  order,
+  expanded,
+  onToggle,
+  onReorder,
+  onCancel,
+  busy,
+}: {
+  order: OrderSummary;
+  expanded: boolean;
+  onToggle: () => void;
+  onReorder: () => void;
+  onCancel: () => void;
+  busy: boolean;
+}) {
+  const status = getOrderStatus(order.status);
+  const reducedMotion = useReducedMotion();
+
+  return (
+    <motion.article
+      layout
+      variants={fadeUpItem}
+      className="glow-surface overflow-hidden rounded-3xl"
+    >
+      <div className="flex flex-wrap items-center gap-3 p-5 sm:p-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs font-semibold text-foreground/80">
+              <Package className="h-3.5 w-3.5 text-rose-gold" aria-hidden="true" />
+              {shortOrderId(order.id)}
+            </span>
+            <GlassBadge className={status.chip} dotClassName={status.dot}>
+              {status.label}
+            </GlassBadge>
+          </div>
+          <p className="mt-2 truncate font-semibold text-foreground">{order.kitName}</p>
+          <p className="mt-0.5 text-xs text-foreground/50">
+            {formatOrderDate(order.createdAt)} · {order.items.length}{" "}
+            {order.items.length === 1 ? "item" : "itens"}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-bold text-rose-gold">
+            {formatPrice(order.totalCents)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          aria-controls={`order-panel-${order.id}`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-cinza-suave/60 px-3.5 py-2 text-xs font-semibold text-foreground/70 transition-colors hover:border-rose-gold/60 hover:text-rose-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-gold"
+        >
+          Detalhes
+          <motion.span
+            animate={{ rotate: expanded ? 180 : 0 }}
+            transition={{ duration: reducedMotion ? 0 : 0.25 }}
+          >
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          </motion.span>
+        </button>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            id={`order-panel-${order.id}`}
+            key="panel"
+            variants={reducedMotion ? reducedMotionVariants.expand : expandPanel}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className="overflow-hidden"
+          >
+            <div className="grid gap-6 border-t border-cinza-suave/40 p-5 sm:p-6 lg:grid-cols-2">
+              <div>
+                <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                  Andamento
+                </h4>
+                <OrderTimeline order={order} />
+              </div>
+              <div>
+                <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                  Itens
+                </h4>
+                <ul className="space-y-2">
+                  {order.items.map((item) => (
+                    <li
+                      key={`${item.productId}-${item.variant ?? ""}`}
+                      className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2.5 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-foreground/80">
+                        {item.productName}
+                        {item.variant && (
+                          <span className="text-foreground/40"> · {item.variant}</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-foreground/50">
+                        ×{item.quantity}
+                      </span>
+                      <span className="shrink-0 font-semibold text-foreground">
+                        {formatPrice(item.priceCents * item.quantity)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    href={`/pedidos/${order.id}`}
+                    className={`${outlineButton} px-4 py-2 text-xs`}
+                  >
+                    Ver pedido completo
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={onReorder}
+                    disabled={busy}
+                    className={`${primaryButton} gap-2 px-4 py-2 text-xs disabled:opacity-50`}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                    Comprar novamente
+                  </button>
+                  {isCancelable(order.status) && (
+                    <button
+                      type="button"
+                      onClick={onCancel}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-red-400/40 px-4 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400 disabled:opacity-50"
+                    >
+                      Cancelar pedido
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.article>
   );
 }
 
 export default function PedidosPage() {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const { addItem } = useCart();
+  const reducedMotion = useReducedMotion();
+
+  const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [tab, setTab] = useState<TabKey>("todos");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [toast, setToast] = useState<GlowToastData | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      if (!user) { setLoading(false); return; }
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch("/api/orders", { headers: { authorization: `Bearer ${token}` } });
-        if (!response.ok) { setError("Não foi possível carregar os pedidos."); return; }
-        const data = await response.json();
-        setOrders(data.orders);
-      } catch { setError("Erro ao carregar pedidos."); }
-      finally { setLoading(false); }
+  const loadOrders = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/orders", {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        orders?: OrderSummary[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Não foi possível carregar seus pedidos.");
+      }
+      setOrders(data.orders ?? []);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Não foi possível carregar seus pedidos.",
+      );
+    } finally {
+      setLoading(false);
     }
-    void load();
   }, [user]);
 
-  const filteredOrders = statusFilter === "todos" ? orders : orders.filter((o) => o.status === statusFilter);
-  const statusOptions = ["todos", "pago", "aguardando_pagamento", "falha_pagamento", "em_preparo", "enviado", "entregue", "cancelado"];
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    void loadOrders();
+  }, [authLoading, user, loadOrders]);
 
-  if (!user) {
+  const stats = useMemo(() => computeOrdersStats(orders), [orders]);
+  const tabs = useMemo(() => buildStatusTabs(orders), [orders]);
+  const visibleOrders = useMemo(
+    () => (tab === "todos" ? orders : orders.filter((order) => order.status === tab)),
+    [orders, tab],
+  );
+
+  const handleReorder = (order: OrderSummary) => {
+    for (const item of order.items) {
+      addItem(item.productId, item.quantity, {
+        variantName: item.variant ?? undefined,
+        product: {
+          id: item.productId,
+          slug: item.productId,
+          kind: "peca",
+          name: item.productName,
+          priceCents: item.priceCents,
+          imageUrl: "",
+          stock: 99,
+        },
+      });
+    }
+    setToast({
+      id: Date.now(),
+      message: `Itens de ${shortOrderId(order.id)} adicionados à sacola.`,
+    });
+  };
+
+  const handleCancel = async (order: OrderSummary) => {
+    if (!user) return;
+    setBusyId(order.id);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Não foi possível cancelar o pedido.");
+      }
+      setOrders((current) =>
+        current.map((item) =>
+          item.id === order.id ? { ...item, status: "cancelado" } : item,
+        ),
+      );
+      setToast({
+        id: Date.now(),
+        message: `Pedido ${shortOrderId(order.id)} cancelado.`,
+      });
+    } catch (requestError) {
+      setToast({
+        id: Date.now(),
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : "Não foi possível cancelar o pedido.",
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const containerVariants = reducedMotion
+    ? reducedMotionVariants.stagger
+    : staggerContainer;
+  const rowVariants = reducedMotion ? reducedMotionVariants.stagger : staggerRow;
+
+  if (authLoading || loading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <div className="rounded-3xl border border-cinza-suave/40 bg-branco p-8 text-center shadow-card">
-          <Package className="mx-auto h-16 w-16 text-rose-gold" />
-          <h1 className="mt-4 text-2xl font-bold text-foreground">Meus Pedidos</h1>
-          <p className="mt-2 text-foreground/60">Faça login para ver seus pedidos.</p>
-          <Link href="/login?redirect=%2Fpedidos" className="mt-6 inline-block rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-6 py-3 text-sm font-semibold text-white shadow-card">Fazer login</Link>
+      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6" aria-busy="true">
+        <GlassSkeleton className="h-8 w-56 rounded-full" />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <GlassSkeleton className="h-24 rounded-2xl" count={4} />
+        </div>
+        <div className="mt-8 space-y-4">
+          {Array.from({ length: 3 }, (_, index) => (
+            <OrderSkeleton key={index} />
+          ))}
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <nav className="mb-4 flex items-center gap-2 text-xs text-foreground/60">
-        <Link href="/perfil" className="hover:text-rose-gold">MINHA ÁREA</Link>
-        <span aria-hidden>/</span>
-        <span className="text-foreground/80">Pedidos</span>
-      </nav>
-      <h1 className="text-2xl font-bold text-foreground">Meus Pedidos</h1>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {statusOptions.map((opt) => (
-          <button key={opt} type="button" onClick={() => setStatusFilter(opt)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${statusFilter === opt ? "bg-rosa-blush/20 text-rose-gold" : "border border-cinza-suave/50 text-foreground/60 hover:text-foreground"}`}>
-            {opt === "todos" ? "Todos" : STATUS_CONFIG[opt]?.label || opt}
-          </button>
-        ))}
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <ShoppingBag className="mx-auto h-12 w-12 text-rose-gold" aria-hidden="true" />
+        <h1 className="mt-4 text-2xl font-bold">Meus Pedidos</h1>
+        <p className="mt-2 text-foreground/60">
+          Entre para acompanhar seus pedidos.
+        </p>
+        <Link
+          href="/login?redirect=%2Fpedidos"
+          className={`${primaryButton} mt-6 px-6 py-3 text-sm`}
+        >
+          Entrar
+        </Link>
       </div>
+    );
+  }
 
-      {loading && <div className="mt-6 space-y-4"><SkeletonCard /><SkeletonCard /></div>}
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-      {!loading && orders.length === 0 && <EmptyState />}
-      {!loading && filteredOrders.length === 0 && <p className="mt-4 text-foreground/60">Nenhum pedido com esse status.</p>}
+  return (
+    <>
+      <AmbientBackground />
+      <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <nav
+          aria-label="Trilha de navegação"
+          className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground/50"
+        >
+          <Link href="/perfil" className="hover:text-rose-gold">
+            Minha Área
+          </Link>
+          <span aria-hidden="true">/</span>
+          <span className="text-rose-gold">Meus Pedidos</span>
+        </nav>
 
-      <ul className="mt-6 space-y-4">
-        {filteredOrders.map((order) => {
-          const sc = STATUS_CONFIG[order.status] || STATUS_CONFIG["aguardando_pagamento"];
-          return (
-            <li key={order.id} className="rounded-3xl border border-cinza-suave/40 bg-branco p-6 shadow-card">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{order.kitName}</p>
-                  <p className="text-xs text-foreground/50">{new Date(order.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} · {order.id.slice(0, 8)}...</p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${sc.bg} ${sc.color}`}>{sc.label}</span>
-              </div>
-              <div className="mt-4 space-y-2">
-                {order.items.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground/70">{item.productName} x{item.quantity}</span>
-                    <span className="font-medium text-foreground">{formatPrice(item.priceCents * item.quantity)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 flex items-center justify-between border-t border-cinza-suave/30 pt-4">
-                <span className="text-sm font-semibold text-foreground">Total</span>
-                <span className="text-lg font-bold text-rose-gold">{formatPrice(order.totalCents)}</span>
-              </div>
-              {order.trackingCode && (
-                <div className="mt-3 flex items-center gap-2 text-sm text-foreground/60">
-                  <Truck className="h-4 w-4" />
-                  <span>Rastreio: {order.trackingCode}</span>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+        <motion.header
+          initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 160, damping: 24 }}
+          className="relative overflow-hidden rounded-3xl border border-rose-gold/20 bg-branco/40 p-6 backdrop-blur-xl sm:p-8"
+        >
+          <span
+            aria-hidden="true"
+            className="glow-led-line absolute inset-x-0 top-0 h-0.5 opacity-70"
+          />
+          <p className="inline-flex items-center gap-1.5 rounded-full border border-rose-gold/30 bg-rosa-claro/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-rose-gold">
+            <Truck className="h-3.5 w-3.5" aria-hidden="true" />
+            Acompanhamento
+          </p>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Meus Pedidos
+          </h1>
+          <p className="mt-1 text-sm text-foreground/60">
+            Tudo o que você comprou, em um só lugar.
+          </p>
+
+          <motion.div
+            variants={rowVariants}
+            initial="hidden"
+            animate="show"
+            className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            <StatCard
+              icon={Package}
+              label="Total de pedidos"
+              value={String(stats.total)}
+              accent="bg-rosa-claro/60 text-rose-gold"
+            />
+            <StatCard
+              icon={Truck}
+              label="Em andamento"
+              value={String(stats.inProgress)}
+              accent="bg-sky-500/15 text-sky-300"
+            />
+            <StatCard
+              icon={CreditCard}
+              label="Entregues"
+              value={String(stats.delivered)}
+              accent="bg-emerald-500/15 text-emerald-300"
+            />
+            <StatCard
+              icon={Wallet}
+              label="Total investido"
+              value={formatPrice(stats.spentCents)}
+              accent="bg-amber-500/15 text-amber-300"
+            />
+          </motion.div>
+        </motion.header>
+
+        {error && (
+          <div
+            role="alert"
+            className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          >
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => void loadOrders()}
+              className={`${outlineButton} border-red-400/50 px-4 py-1.5 text-xs text-red-300`}
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {!error && orders.length > 0 && tabs.length > 0 && (
+          <div
+            role="tablist"
+            aria-label="Filtrar pedidos por status"
+            className="mt-6 flex flex-wrap gap-2"
+          >
+            {(["todos", ...tabs] as TabKey[]).map((key) => {
+              const active = tab === key;
+              const label =
+                key === "todos" ? "Todos" : getOrderStatus(key).label;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(key)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-gold ${
+                    active
+                      ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
+                      : "border border-cinza-suave/60 text-foreground/60 hover:border-rose-gold/60 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-6">
+          {!error && visibleOrders.length === 0 ? (
+            orders.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <p className="glow-surface rounded-3xl px-6 py-10 text-center text-sm text-foreground/60">
+                Nenhum pedido com esse status.
+              </p>
+            )
+          ) : (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="space-y-4"
+            >
+              {visibleOrders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  expanded={expandedId === order.id}
+                  onToggle={() =>
+                    setExpandedId((current) =>
+                      current === order.id ? null : order.id,
+                    )
+                  }
+                  onReorder={() => handleReorder(order)}
+                  onCancel={() => void handleCancel(order)}
+                  busy={busyId === order.id}
+                />
+              ))}
+            </motion.div>
+          )}
+        </div>
+
+        {orders.length > 0 && (
+          <div className="mt-8 flex justify-center">
+            <Link
+              href="/favoritos"
+              className={`${outlineButton} gap-2 px-5 py-2.5 text-sm`}
+            >
+              <Heart className="h-4 w-4" aria-hidden="true" />
+              Ver meus favoritos
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <GlowToast toast={toast} onDismiss={() => setToast(null)} />
+    </>
   );
 }
+

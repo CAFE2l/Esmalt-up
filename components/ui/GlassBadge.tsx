@@ -38,6 +38,8 @@ interface GlassBadgeProps {
   children: ReactNode;
   /** Esconde a bolota LED (para badges sem semântica de status). */
   hideDot?: boolean;
+  /** Classes extras para a bolota LED (sobrepõe o tom). */
+  dotClassName?: string;
   className?: string;
 }
 
@@ -45,6 +47,7 @@ export function GlassBadge({
   tone = "pink",
   children,
   hideDot = false,
+  dotClassName = "",
   className = "",
 }: GlassBadgeProps) {
   return (
@@ -54,7 +57,7 @@ export function GlassBadge({
       {!hideDot && (
         <span
           aria-hidden="true"
-          className={`h-1.5 w-1.5 rounded-full ${TONE_DOTS[tone]}`}
+          className={`h-1.5 w-1.5 rounded-full ${dotClassName || TONE_DOTS[tone]}`}
         />
       )}
       {children}

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { createHash } from "crypto";
 
 function slugify(value: string): string {
   return value
@@ -29,7 +30,8 @@ export async function ensurePublicProfile(
   if (!source) return null;
 
   const name = displayName?.trim() || source.name?.trim() || "Formada(o)";
-  const username = `${slugify(name).slice(0, 24)}-${userId.slice(-6).toLowerCase()}`;
+  const suffix = createHash("sha256").update(userId).digest("hex").slice(0, 10);
+  const username = `${slugify(name).slice(0, 20)}-${suffix}`;
   return prisma.publicProfile.upsert({
     where: { userId },
     update: {},

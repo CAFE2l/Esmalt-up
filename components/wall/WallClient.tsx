@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
+import {
+  AnimatePresence, LayoutGroup, motion, useMotionValue, useReducedMotion,
+  useSpring, useTransform,
+} from "framer-motion";
 import {
   CalendarDays, Check, ChevronRight, Crown, Filter, GraduationCap,
   Medal, RefreshCw, Search, Sparkles, Star, Trophy, Users, X,
@@ -78,6 +81,15 @@ function SkeletonRows() {
 function Count({ value }: { value: number }) {
   const reduceMotion = useReducedMotion();
   return <motion.span key={value} initial={reduceMotion ? false : { y: 5, opacity: 0.5 }} animate={{ y: 0, opacity: 1 }} className="tabular-nums">{value.toLocaleString("pt-BR")}</motion.span>;
+}
+
+function AnimatedRank({ rank }: { rank: number }) {
+  const reduceMotion = useReducedMotion();
+  const value = useMotionValue(reduceMotion ? rank : 0);
+  const spring = useSpring(value, { stiffness: 75, damping: 20 });
+  const rounded = useTransform(spring, (current) => Math.round(current));
+  useEffect(() => { value.set(rank); }, [rank, value]);
+  return <motion.span>{rounded}</motion.span>;
 }
 
 function FollowAction({ entry }: { entry: WallEntry }) {
@@ -186,7 +198,7 @@ function GraduateRow({
     >
       <td className="px-4 py-4">
         <span className={`inline-flex min-w-11 items-center justify-center rounded-xl border px-2 py-2 text-sm font-extrabold tabular-nums ${rankTone(entry.rankPosition)}`}>
-          {entry.rankPosition === 1 && <Crown size={14} className="mr-1" />}#{entry.rankPosition}
+          {entry.rankPosition === 1 && <Crown size={14} className="mr-1" />}#<AnimatedRank rank={entry.rankPosition} />
         </span>
       </td>
       <td className="px-4 py-4">

@@ -83,7 +83,7 @@ SELECT
         ''
       ),
       'formada'
-    ) || '-' || SUBSTRING(MD5(grouped."userId") FROM 1 FOR 6),
+    ) || '-' || SUBSTRING(MD5(grouped."userId") FROM 1 FOR 10),
     60
   ),
   COALESCE(NULLIF(grouped.name, ''), grouped.certificate_name),

@@ -35,33 +35,29 @@ export async function GET(
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE + 1,
-        select: type === "followers"
-          ? {
-              follower: {
-                select: {
-                  userId: true,
-                  username: true,
-                  displayName: true,
-                  avatarUrl: true,
-                  followersCount: true,
-                  followingCount: true,
-                  allowFollows: true,
-                },
-              },
-            }
-          : {
-              following: {
-                select: {
-                  userId: true,
-                  username: true,
-                  displayName: true,
-                  avatarUrl: true,
-                  followersCount: true,
-                  followingCount: true,
-                  allowFollows: true,
-                },
-              },
+        select: {
+          follower: {
+            select: {
+              userId: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              followersCount: true,
+              followingCount: true,
+              allowFollows: true,
             },
+          },
+          following: {
+            select: {
+              userId: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              followersCount: true,
+              followingCount: true,
+              allowFollows: true,
+            },
+          },
       }),
       prisma.follow.count({ where }),
     ]);

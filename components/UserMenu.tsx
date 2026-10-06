@@ -233,11 +233,16 @@ export default function UserMenu() {
         Configurações
       </Link>
       <Link
-        href="/desejos"
+        href="/favoritos"
         role="menuitem"
         data-menu-item
         onClick={() => closeMenu()}
-        className={`${itemStyle.link} ${itemStyle.normal}`}
+        aria-current={pathname.startsWith("/favoritos") || pathname.startsWith("/desejos") ? "page" : undefined}
+        className={`${itemStyle.link} ${
+          pathname.startsWith("/favoritos") || pathname.startsWith("/desejos")
+            ? "bg-rosa-claro/70 text-rose-gold"
+            : itemStyle.normal
+        }`}
       >
         <Heart size={ICON_SIZE} />
         Favoritos
@@ -252,7 +257,12 @@ export default function UserMenu() {
         role="menuitem"
         data-menu-item
         onClick={() => closeMenu()}
-        className={`${itemStyle.link} ${itemStyle.normal}`}
+        aria-current={pathname.startsWith("/pedidos") ? "page" : undefined}
+        className={`${itemStyle.link} ${
+          pathname.startsWith("/pedidos")
+            ? "bg-rosa-claro/70 text-rose-gold"
+            : itemStyle.normal
+        }`}
       >
         <ShoppingBag size={ICON_SIZE} />
         Meus pedidos
