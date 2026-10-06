@@ -14,7 +14,6 @@ interface FavoritesButtonProps {
   showText?: boolean;
   textClassName?: string;
   iconClassName?: string;
-  guard?: () => void;
 }
 
 const sizeClasses = {

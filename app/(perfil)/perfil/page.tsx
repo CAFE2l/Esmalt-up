@@ -543,40 +543,45 @@ export default function PerfilPage() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
-  // Sync global profile with local state
+  // Sync global profile → local state ONLY on initial load (when localProfile is still null)
   useEffect(() => {
-    if (!profileLoading && globalProfile) {
-      // Convert global profile to local format
-      const convertedProfile: ProfileForm = {
-        name: globalProfile.name || "",
-        bio: globalProfile.bio || "",
-        city: globalProfile.city || "",
-        level: globalProfile.level || "Iniciante",
-        experienceYears: globalProfile.experienceYears || "",
-        favoriteBrands: globalProfile.favoriteBrands || "",
-        favoriteStyles: globalProfile.favoriteStyles || "",
-        equipment: globalProfile.equipment || "",
-        courseInProgress: globalProfile.courseInProgress || "",
-        status: globalProfile.status || "Disponível para atendimentos",
-        interests: globalProfile.interests || [],
-        badges: globalProfile.badges || [],
-        profilePhotoUrl: globalProfile.profilePhotoUrl || "",
-        bannerUrl: globalProfile.bannerUrl || "",
-        isEntrepreneur: globalProfile.isEntrepreneur || false,
-        services: globalProfile.services || [],
-        pricing: globalProfile.pricing || "",
-        bookingLink: globalProfile.bookingLink || "",
-        youtube: globalProfile.youtube || "",
-        instagram: globalProfile.instagram || "",
-        tiktok: globalProfile.tiktok || "",
-      };
-      setLocalProfile(convertedProfile);
-      initialProfileRef.current = convertedProfile;
-    } else if (!profileLoading && !globalProfile && !authLoading && !user) {
-      setLocalProfile(null);
-      initialProfileRef.current = null;
+    if (profileLoading) return;
+    if (!globalProfile) {
+      if (!authLoading && !user) {
+        setLocalProfile(null);
+        initialProfileRef.current = null;
+      }
+      return;
     }
-  }, [globalProfile, profileLoading, authLoading, user]);
+    // Only initialise — never overwrite edits the user is making
+    if (localProfile !== null) return;
+    const converted: ProfileForm = {
+      name: globalProfile.name || "",
+      bio: globalProfile.bio || "",
+      city: globalProfile.city || "",
+      level: globalProfile.level || "Iniciante",
+      experienceYears: globalProfile.experienceYears || "",
+      favoriteBrands: globalProfile.favoriteBrands || "",
+      favoriteStyles: globalProfile.favoriteStyles || "",
+      equipment: globalProfile.equipment || "",
+      courseInProgress: globalProfile.courseInProgress || "",
+      status: globalProfile.status || "Disponível para atendimentos",
+      interests: globalProfile.interests || [],
+      badges: globalProfile.badges || [],
+      profilePhotoUrl: globalProfile.profilePhotoUrl || "",
+      bannerUrl: globalProfile.bannerUrl || "",
+      isEntrepreneur: globalProfile.isEntrepreneur || false,
+      services: globalProfile.services || [],
+      pricing: globalProfile.pricing || "",
+      bookingLink: globalProfile.bookingLink || "",
+      youtube: globalProfile.youtube || "",
+      instagram: globalProfile.instagram || "",
+      tiktok: globalProfile.tiktok || "",
+    };
+    setLocalProfile(converted);
+    initialProfileRef.current = converted;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileLoading, authLoading]);
 
   // Show global save status as toast
   useEffect(() => {
@@ -664,9 +669,9 @@ export default function PerfilPage() {
       });
 
       // Update initial ref after successful save
-      initialProfileRef.current = localProfile;
+      initialProfileRef.current = { ...localProfile };
     } catch {
-      // Errors are handled by the global context and will show toast via the effect
+      // Errors handled by context, shown via toast effect
     }
   };
 

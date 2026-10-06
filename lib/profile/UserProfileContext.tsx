@@ -110,30 +110,13 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Update Firebase auth profile and our context
+  // Update Firebase auth profile (display name / photo only) — no reload to avoid re-triggering onAuthStateChanged
   const updateFirebaseProfile = useCallback(async (updates: { displayName?: string; photoURL?: string | null }) => {
     if (!user) return;
-    
     try {
-      // Only update Firebase if we have changes to supported fields
-      const hasUpdates = updates.displayName !== undefined || updates.photoURL !== undefined;
-      if (hasUpdates) {
-        const firebaseUpdates: { displayName?: string; photoURL?: string | null } = {};
-        if (updates.displayName !== undefined) {
-          firebaseUpdates.displayName = updates.displayName;
-        }
-        if (updates.photoURL !== undefined) {
-          firebaseUpdates.photoURL = updates.photoURL;
-        }
-        
-        await updateFirebaseAuthProfile(user, firebaseUpdates);
-        
-        // Force refresh the Firebase auth state to pick up changes
-        await user.reload();
-      }
+      await updateFirebaseAuthProfile(user, updates);
     } catch (err) {
       console.error("[UserProfileContext] Error updating Firebase profile:", err);
-      // Don't fail the entire operation if Firebase update fails
     }
   }, [user]);
 
@@ -221,12 +204,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       }
       
       setSaveStatus('success');
-      
-      // Auto-reset success status after 3 seconds
       setTimeout(() => setSaveStatus('idle'), 3000);
-      
-      // Refresh profile from server to ensure consistency
-      await refreshProfile();
       
     } catch (err) {
       console.error("[UserProfileContext] Error updating profile:", err);
@@ -274,11 +252,6 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     };
     
     loadProfile();
-    
-    // Set up periodic refresh to keep data in sync across tabs
-    const intervalId = setInterval(loadProfile, 30000); // Refresh every 30 seconds
-    
-    return () => clearInterval(intervalId);
   }, [user, authLoading, fetchProfile]);
 
   // Provide value to consumers
