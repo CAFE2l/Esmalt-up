@@ -202,7 +202,9 @@ export async function POST(req: Request) {
           items: {
             create: lines.map((line) => ({
               productId: line.product.id,
-              productName: line.product.name,
+              productName: line.variantName
+                ? `${line.product.name} (${line.variantName})`
+                : line.product.name,
               priceCents: line.unitPriceCents,
               quantity: line.item.quantity,
               variant: line.variantName,

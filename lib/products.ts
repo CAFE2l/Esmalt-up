@@ -28,6 +28,7 @@ export interface Product {
   lengthCm: number;
   ratingAvg: number;
   ratingCount: number;
+  soldCount: number;
   level: string | null;
   active: boolean;
   createdAt: Date;
@@ -163,6 +164,7 @@ export async function ensureProductRecord(identifier: string): Promise<Product |
   const record = await prisma.product.upsert({
     where: { slug: catalogProduct.slug },
     create: {
+      id: catalogProduct.id,
       slug: catalogProduct.slug,
       kind: catalogProduct.kind,
       name: catalogProduct.name,
@@ -189,6 +191,7 @@ export async function ensureProductRecord(identifier: string): Promise<Product |
       lengthCm: catalogProduct.lengthCm,
       ratingAvg: catalogProduct.ratingAvg,
       ratingCount: catalogProduct.ratingCount,
+      soldCount: catalogProduct.soldCount,
       level: catalogProduct.level,
       active: true,
     },
@@ -268,6 +271,7 @@ function transformStaticProduct(staticProduct: StaticProduct): Product {
     lengthCm: 10,
     ratingAvg: staticProduct.rating || 0,
     ratingCount: staticProduct.reviewCount || 0,
+    soldCount: staticProduct.soldCount ?? 0,
     level: staticProduct.level ?? null,
     active: true,
     createdAt: new Date(),
@@ -338,6 +342,7 @@ function transformDbProduct(dbProduct: DbProduct): Product {
     lengthCm: dbProduct.lengthCm,
     ratingAvg: dbProduct.ratingAvg,
     ratingCount: dbProduct.ratingCount,
+    soldCount: dbProduct.soldCount,
     level: dbProduct.level,
     active: dbProduct.active,
     createdAt: dbProduct.createdAt,

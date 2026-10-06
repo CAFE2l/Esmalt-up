@@ -5,6 +5,7 @@
 import { randomBytes } from "crypto";
 import { prisma } from "./prisma";
 import { getMainTrackLessons } from "@/data/course";
+import { normalizePublicCode } from "./certificateCode";
 
 // Base32 alphabet without ambiguous characters (0/O/1/I)
 const BASE32_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -15,27 +16,16 @@ export function generatePublicCode(): string {
   const year = new Date().getFullYear();
   const randomBuffer = randomBytes(BASE32_LENGTH);
   let code = "";
-  
+
   for (let i = 0; i < BASE32_LENGTH; i++) {
     const index = randomBuffer[i] % BASE32_ALPHABET.length;
     code += BASE32_ALPHABET[index];
   }
-  
+
   return `ESM-${year}-${code}`;
 }
 
-/** Validate public code format */
-export function validatePublicCodeFormat(code: string): boolean {
-  const trimmed = code.trim().toUpperCase();
-  // Format: ESM-YYYY-XXXXXXXX (8 uppercase chars from safe alphabet)
-  const pattern = /^ESM-\d{4}-[A-HJ-NP-Z2-9]{8}$/;
-  return pattern.test(trimmed);
-}
-
-/** Normalize public code for lookup */
-export function normalizePublicCode(code: string): string {
-  return code.trim().toUpperCase();
-}
+export { normalizePublicCode, validatePublicCodeFormat } from "./certificateCode";
 
 /** Validate recipient name */
 export function validateRecipientName(name: string): { valid: boolean; error?: string } {
@@ -175,6 +165,34 @@ export async function getCertificateByPublicCode(code: string): Promise<{
     status: certificate.status,
     curriculumVersion: certificate.curriculumVersion,
   };
+}
+
+/**
+ * Public-safe certificate lookup for the verification endpoint.
+ * Returns ONLY the fields that are safe to show to the public.
+ * Never exposes userId, email or internal ids.
+ */
+export async function getPublicCertificateByCode(code: string): Promise<{
+  publicCode: string;
+  recipientName: string;
+  courseId: string;
+  issuedAt: Date;
+  status: string;
+} | null> {
+  const normalizedCode = normalizePublicCode(code);
+
+  const certificate = await prisma.certificate.findUnique({
+    where: { publicCode: normalizedCode },
+    select: {
+      publicCode: true,
+      recipientName: true,
+      courseId: true,
+      issuedAt: true,
+      status: true,
+    },
+  });
+
+  return certificate;
 }
 
 /**

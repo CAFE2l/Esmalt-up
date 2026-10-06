@@ -10,6 +10,10 @@ const updateSchema = z.object({
   rating: z.number().int().min(1).max(5),
   title: z.string().trim().max(120).optional(),
   content: z.string().trim().min(10).max(2000),
+  media: z.array(z.object({
+    kind: z.enum(["image", "video"]),
+    url: z.string().url(),
+  })).max(3).optional(),
 });
 
 async function recalculateRating(tx: Prisma.TransactionClient, productId: string) {
@@ -57,7 +61,22 @@ export async function PATCH(
     const updated = await prisma.$transaction(async (tx) => {
       const item = await tx.review.update({
         where: { id: reviewId },
-        data: parsed.data,
+        data: {
+          rating: parsed.data.rating,
+          title: parsed.data.title,
+          content: parsed.data.content,
+          ...(parsed.data.media
+            ? {
+                media: {
+                  deleteMany: {},
+                  create: parsed.data.media.map((media, sortOrder) => ({
+                    ...media,
+                    sortOrder,
+                  })),
+                },
+              }
+            : {}),
+        },
       });
       await recalculateRating(tx, review.productId);
       return item;

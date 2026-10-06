@@ -153,7 +153,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // TODO: enforce verified-purchase eligibility after purchase/order flows are unified.
+    // Only buyers may publish reviews; the browser eligibility check is advisory.
     const verifiedPurchase = await prisma.orderItem.findFirst({
         where: {
           productId: product.id,
@@ -164,6 +164,12 @@ export async function POST(req: Request) {
         },
         take: 1,
       });
+    if (!verifiedPurchase) {
+      return NextResponse.json(
+        { error: "Apenas clientes que compraram este produto podem avaliar." },
+        { status: 403 },
+      );
+    }
     const profile = await prisma.userProfile.upsert({
       where: { uid: auth.uid },
       create: { uid: auth.uid, interests: [], badges: [] },

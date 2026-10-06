@@ -29,6 +29,7 @@ export interface Product {
   variants?: Record<string, unknown>;
   weightG?: number;
   stock?: number;
+  soldCount?: number;
 }
 
 export const LEVEL_LABELS: Record<SkillLevel, string> = {

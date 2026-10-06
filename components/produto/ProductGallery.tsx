@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X, Play, ZoomIn } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -43,6 +43,18 @@ export default function ProductGallery({
     label: productName,
   };
 
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightboxOpen(false);
+      if (gallery.length < 2) return;
+      if (event.key === "ArrowRight") setActiveIndex((index) => (index + 1) % gallery.length);
+      if (event.key === "ArrowLeft") setActiveIndex((index) => (index - 1 + gallery.length) % gallery.length);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [gallery.length, lightboxOpen]);
+
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!zoom) return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -77,7 +89,7 @@ export default function ProductGallery({
             setTouchStartX(null);
           }}
           onClick={() => {
-            if (active.type === "image") setLightboxOpen(true);
+            if (images.length > 0 && active.type === "image") setLightboxOpen(true);
           }}
           role="group"
           aria-label="Galeria de imagens do produto"

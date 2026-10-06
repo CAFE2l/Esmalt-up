@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  Award,
+  Check,
+  Copy,
   Download,
+  ExternalLink,
   Lock,
   LogOut,
   Moon,
@@ -19,7 +23,7 @@ import { primaryButton } from "@/components/buttonStyles";
 import { useAuth } from "@/lib/AuthContext";
 import { useTheme, type Theme } from "@/lib/useTheme";
 
-type TabKey = "aparencia" | "dados" | "privacidade";
+type TabKey = "aparencia" | "dados" | "privacidade" | "certificados";
 type ProfileForm = {
   name: string;
   level: string;
@@ -42,6 +46,7 @@ const tabs: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: "aparencia", label: "Aparência", icon: Palette },
   { key: "dados", label: "Meus Dados", icon: UserRound },
   { key: "privacidade", label: "Privacidade & Conta", icon: Lock },
+  { key: "certificados", label: "Certificados", icon: Award },
 ];
 
 const statusOptions = [
@@ -615,6 +620,135 @@ function PrivacidadePanel() {
   );
 }
 
+function CertificadosPanel() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [certificate, setCertificate] = useState<{
+    publicCode: string;
+    recipientName: string;
+    issuedAt: string;
+    status: string;
+    completedAt?: string | null;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch("/api/certificates/issue", {
+          headers: { authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (active && response.ok && data.certificate) {
+          setCertificate(data.certificate);
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const copyCode = async () => {
+    if (!certificate) return;
+    try {
+      await navigator.clipboard.writeText(certificate.publicCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PanelSection
+        icon={Award}
+        title="Verificar autenticidade"
+        subtitle="Verifique a autenticidade de um certificado Esmalt'up."
+      >
+        <Link
+          href="/verificar"
+          className={`${primaryButton} inline-flex px-6 py-2.5 text-sm`}
+        >
+          <ShieldAlert size={16} className="mr-2" />
+          Verificar certificado
+        </Link>
+      </PanelSection>
+
+      <PanelSection
+        icon={Award}
+        title="Meus certificados"
+        subtitle="Seus certificados emitidos pela plataforma."
+      >
+        {loading ? (
+          <p className="animate-pulse text-sm text-foreground/60">Carregando...</p>
+        ) : certificate ? (
+          <div className="rounded-2xl border border-cinza-suave/70 bg-rosa-claro/20 p-5">
+            <h3 className="font-bold text-foreground">Curso Nail Designer Iniciante</h3>
+            <p className="mt-1 text-sm text-foreground/60">
+              Emitido em{" "}
+              {new Date(certificate.issuedAt).toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <code className="rounded-lg border border-cinza-suave/60 bg-branco px-3 py-1.5 font-mono text-sm text-rose-gold">
+                {certificate.publicCode}
+              </code>
+              <button
+                type="button"
+                onClick={copyCode}
+                aria-label="Copiar código"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-cinza-suave/60 text-foreground/60 transition-colors hover:border-rose-gold/50 hover:text-rose-gold"
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/certificado"
+                className="inline-flex items-center gap-1.5 rounded-full border border-rose-gold/40 px-4 py-2 text-xs font-semibold text-rose-gold transition-colors hover:bg-rose-gold/10"
+              >
+                <ExternalLink size={14} /> Ver certificado
+              </Link>
+              <Link
+                href="/certificado"
+                className="inline-flex items-center gap-1.5 rounded-full border border-rose-gold/40 px-4 py-2 text-xs font-semibold text-rose-gold transition-colors hover:bg-rose-gold/10"
+              >
+                <Download size={14} /> Baixar
+              </Link>
+              <Link
+                href={`/verificar/${encodeURIComponent(certificate.publicCode)}`}
+                className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-2 text-xs font-semibold text-white transition-all hover:brightness-105"
+              >
+                <ShieldAlert size={14} /> Verificar
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-foreground/60">
+            Você ainda não possui certificados. Conclua o curso para receber o seu.
+          </p>
+        )}
+      </PanelSection>
+    </div>
+  );
+}
+
 export default function ConfiguracoesPage() {
   const { user, loading } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -720,6 +854,7 @@ export default function ConfiguracoesPage() {
           )}
           {activeTab === "dados" && <DadosPanel />}
           {activeTab === "privacidade" && <PrivacidadePanel />}
+          {activeTab === "certificados" && <CertificadosPanel />}
         </div>
 
         <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-foreground/50">

@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Search, X } from "lucide-react";
+import { normalizePublicCode } from "@/lib/certificateCode";
 
 export default function VerificationForm() {
   const router = useRouter();
@@ -17,8 +18,8 @@ export default function VerificationForm() {
       setIsLoading(true);
 
       try {
-        const normalizedCode = code.trim().toUpperCase();
-        
+        const normalizedCode = normalizePublicCode(code);
+
         if (!normalizedCode) {
           setError("Por favor, digite o código do certificado.");
           setIsLoading(false);
@@ -64,6 +65,7 @@ export default function VerificationForm() {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="ESM-2026-XXXXXXXX"
+              aria-label="Código do certificado"
               className="w-full pl-12 pr-12 rounded-xl border border-cinza-suave/40 bg-branco/95 p-4 text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-rose-gold focus:border-transparent"
               maxLength={17} // ESM-YYYY-XXXXXXXX = 4 + 1 + 4 + 1 + 8 = 18, but we allow some extra
               autoComplete="off"

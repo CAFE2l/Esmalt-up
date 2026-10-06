@@ -25,22 +25,26 @@ export async function GET(req: Request) {
     }
 
     // Check if user has any approved order containing this product
-    const hasPurchased = await prisma.order.exists({
+    const order = await prisma.order.findFirst({
       where: {
         userId: auth.uid,
-        status: "approved",
+        status: { in: ["pago", "entregue", "concluido"] },
         items: {
           some: {
-            productId: productId,
+            productId,
           },
         },
       },
+      select: { id: true },
     });
 
-    return NextResponse.json({ hasPurchased });
+    return NextResponse.json({ hasPurchased: Boolean(order) });
   } catch (error) {
     console.error("Error checking user purchases:", error);
-    return NextResponse.json({ hasPurchased: false });
+    return NextResponse.json(
+      { error: "Não foi possível verificar a compra." },
+      { status: 500 },
+    );
   }
 }
 
@@ -61,7 +65,7 @@ export async function GET_USER_PURCHASES(req: Request) {
     const orders = await prisma.order.findMany({
       where: {
         userId: auth.uid,
-        status: "approved",
+        status: { in: ["pago", "entregue", "concluido"] },
       },
       select: {
         items: {

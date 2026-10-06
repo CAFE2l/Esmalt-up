@@ -104,6 +104,7 @@ model Product {
   lengthCm        Int      @default(0)
   ratingAvg       Float    @default(0)
   ratingCount     Int      @default(0)
+  soldCount       Int      @default(0)
   level           String?
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
@@ -339,7 +340,8 @@ model ReviewVote {
   sessionId String?
   review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
-  @@unique([reviewId, userId, sessionId])
+  @@unique([reviewId, userId])
+  @@unique([reviewId, sessionId])
   @@map("review_votes")
 }
 

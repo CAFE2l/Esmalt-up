@@ -99,30 +99,17 @@ export default function WishlistPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <Heart className="mx-auto h-12 w-12 text-rose-gold" />
-        <h1 className="mt-4 text-2xl font-bold">Minha Lista de Desejos</h1>
-        <p className="mt-2 text-foreground/60">Entre para ver seus produtos favoritos.</p>
-        <Link href="/login?redirect=%2Fdesejos" className={`${primaryButton} mt-6 px-6 py-3 text-sm`}>
-          Entrar
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <nav className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground/50">
         <Link href="/perfil" className="hover:text-rose-gold">Minha Área</Link>
         <span aria-hidden>/</span>
-        <span className="text-rose-gold">Lista de Desejos</span>
+        <span className="text-rose-gold">Favoritos</span>
       </nav>
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Minha Lista de Desejos
+            Meus Favoritos
           </h1>
           <p className="mt-1 text-sm text-foreground/60">
             {favorites.length} {favorites.length === 1 ? "produto salvo" : "produtos salvos"}
@@ -137,6 +124,7 @@ export default function WishlistPage() {
           <h2 className="mt-4 text-lg font-semibold">Sua lista está vazia</h2>
           <p className="mt-2 text-sm text-foreground/60">
             Toque no coração de um produto para guardá-lo aqui.
+            {!user && " Seus favoritos ficam salvos neste dispositivo e serão sincronizados quando você entrar."}
           </p>
           <Link href="/kits" className={`${outlineButton} mt-6 px-5 py-2.5 text-sm`}>
             Explorar produtos

@@ -24,6 +24,7 @@ async function seedProducts() {
       highlights: product.features || [],
       specs: product.specs ? { specs: product.specs } : undefined,
       variants: product.variants ? product.variants as Prisma.InputJsonValue : undefined,
+      soldCount: product.soldCount ?? 0,
       weightG: product.weightG ?? 500,
       heightCm: 10,
       widthCm: 10,

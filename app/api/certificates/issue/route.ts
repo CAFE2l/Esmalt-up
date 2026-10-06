@@ -1,52 +1,8 @@
 import { NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { verifyIdToken } from "@/lib/serverAuth";
 import { getMainTrackLessons } from "@/data/course";
-
-// Base32 alphabet without ambiguous characters (0/O/1/I)
-const BASE32_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const BASE32_LENGTH = 8; // XXXXXXXX part
-
-/** Generate a cryptographically secure public code: ESM-YYYY-XXXXXXXX */
-function generatePublicCode(): string {
-  const year = new Date().getFullYear();
-  
-  // Generate 8 random characters from safe alphabet
-  const randomBuffer = randomBytes(BASE32_LENGTH);
-  let code = "";
-  
-  for (let i = 0; i < BASE32_LENGTH; i++) {
-    const index = randomBuffer[i] % BASE32_ALPHABET.length;
-    code += BASE32_ALPHABET[index];
-  }
-  
-  return `ESM-${year}-${code}`;
-}
-
-/** Validate recipient name */
-function validateRecipientName(name: string): { valid: boolean; error?: string } {
-  const trimmed = name.trim();
-  
-  if (trimmed.length < 3) {
-    return { valid: false, error: "O nome deve ter pelo menos 3 caracteres." };
-  }
-  
-  if (trimmed.length > 80) {
-    return { valid: false, error: "O nome deve ter no máximo 80 caracteres." };
-  }
-  
-  // Only allow letters, spaces, accents, apostrophes, and hyphens
-  const nameRegex = /^[a-zA-Z\u00C0-\u024F'\s-]+$/;
-  if (!nameRegex.test(trimmed)) {
-    return { 
-      valid: false, 
-      error: "O nome só pode conter letras, acentos, espaços, apóstrofos e hífens." 
-    };
-  }
-  
-  return { valid: true };
-}
+import { generatePublicCode, validateRecipientName } from "@/lib/certificates";
 
 async function getUid(req: Request): Promise<string | null> {
   const header = req.headers.get("authorization");

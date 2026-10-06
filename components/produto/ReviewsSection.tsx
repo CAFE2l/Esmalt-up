@@ -321,6 +321,7 @@ function ReviewForm({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [moderationPending, setModerationPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
@@ -364,11 +365,10 @@ function ReviewForm({
         },
       );
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Erro ao enviar avaliação.");
-      }
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Erro ao enviar avaliação.");
 
+      setModerationPending(Boolean(result.moderation));
       setSuccess(true);
       onSuccess();
     } catch (err) {
@@ -441,10 +441,12 @@ function ReviewForm({
         <div className="bg-branco rounded-3xl border border-rose-gold/25 p-6 max-w-md w-full mx-4 text-center shadow-card-lg">
           <div className="mb-4 text-6xl">🎉</div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            Avaliação enviada com sucesso!
+            {initialReview ? "Avaliação atualizada!" : "Avaliação enviada com sucesso!"}
           </h3>
           <p className="text-sm text-foreground/60 mb-4">
-            Obrigada por compartilhar sua experiência com outros clientes.
+            {moderationPending
+              ? "Sua foto será exibida após a análise da equipe."
+              : "Obrigada por compartilhar sua experiência com outros clientes."}
           </p>
           <button
             onClick={onClose}
@@ -817,11 +819,12 @@ export default function ReviewsSection({ productId }: { productId: string }) {
         {openForm && (
           <ReviewForm
             productId={productId}
-            onClose={() => setOpenForm(false)}
-            onSuccess={() => {
+            onClose={() => {
               setOpenForm(false);
               setEditingReview(null);
-              load("recent", 1);
+            }}
+            onSuccess={() => {
+              void load("recent", 1);
             }}
             initialReview={editingReview}
           />
@@ -979,11 +982,12 @@ export default function ReviewsSection({ productId }: { productId: string }) {
       {openForm && canReview && (
         <ReviewForm
           productId={productId}
-          onClose={() => setOpenForm(false)}
-          onSuccess={() => {
+          onClose={() => {
             setOpenForm(false);
             setEditingReview(null);
-            load("recent", 1);
+          }}
+          onSuccess={() => {
+            void load("recent", 1);
           }}
           initialReview={editingReview}
         />

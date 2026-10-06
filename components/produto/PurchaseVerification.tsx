@@ -9,31 +9,40 @@ export function usePurchaseVerification(productId: string) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user || !productId) return;
+    let active = true;
+    if (!user || !productId) {
+      setHasPurchased(false);
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+    const currentUser = user;
     
     async function checkPurchase() {
       setLoading(true);
       try {
-        const token = await user.getIdToken();
+        const token = await currentUser.getIdToken();
         const response = await fetch(`/api/user-purchases?productId=${encodeURIComponent(productId)}`, {
           headers: {
             authorization: `Bearer ${token}`,
           },
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          setHasPurchased(data.hasPurchased || false);
-        }
+        const data = await response.json().catch(() => ({}));
+        if (active) setHasPurchased(response.ok && Boolean(data.hasPurchased));
       } catch (error) {
         console.error("Error checking purchase status:", error);
-        setHasPurchased(false);
+        if (active) setHasPurchased(false);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
-    checkPurchase();
+    void checkPurchase();
+    return () => {
+      active = false;
+    };
   }, [user, productId]);
 
   return { hasPurchased, loading };

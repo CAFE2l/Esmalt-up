@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Check, X, Calendar, Code, ExternalLink } from "lucide-react";
 import { formatDatePtBR } from "@/lib/certificates";
+import { normalizePublicCode } from "@/lib/certificateCode";
 
 interface CertificateVerificationProps {
   code: string;
@@ -26,18 +27,31 @@ export default function CertificateVerification({ code }: CertificateVerificatio
 
   const fetchVerification = useCallback(async (normalizedCode: string) => {
     try {
+      setStatus("loading");
       const response = await fetch(`/api/certificates/verify/${encodeURIComponent(normalizedCode)}`);
-      const data = await response.json();
-      
-      if (data.valid) {
+
+      let data: CertificateData | null = null;
+      try {
+        data = await response.json();
+      } catch {
+        setStatus("error");
+        setCertificate(null);
+        return;
+      }
+
+      if (response.ok && data?.valid) {
         setStatus("valid");
         setCertificate(data);
-      } else if (data.error?.includes("revogado")) {
+      } else if (response.ok && data?.status === "revoked") {
         setStatus("revoked");
         setCertificate(data);
-      } else {
+      } else if (response.status === 404) {
         setStatus("not_found");
         setCertificate(data);
+      } else {
+        // 429, 500 or any other failure — never show "not found"
+        setStatus("error");
+        setCertificate(null);
       }
     } catch {
       setStatus("error");
@@ -46,7 +60,7 @@ export default function CertificateVerification({ code }: CertificateVerificatio
   }, []);
 
   useEffect(() => {
-    const normalizedCode = code.trim().toUpperCase();
+    const normalizedCode = normalizePublicCode(code);
     if (normalizedCode) {
       fetchVerification(normalizedCode);
     } else {
@@ -157,8 +171,6 @@ export default function CertificateVerification({ code }: CertificateVerificatio
         );
 
       case "not_found":
-      case "error":
-      default:
         return (
           <div className="text-center">
             <div className="flex justify-center mb-4">
@@ -166,13 +178,13 @@ export default function CertificateVerification({ code }: CertificateVerificatio
                 <X className="h-8 w-8 text-warning" />
               </div>
             </div>
-            
+
             <h2 className="text-2xl font-bold text-warning mb-2">
               Certificado não encontrado
             </h2>
-            
+
             <p className="text-foreground/70 mb-6">
-              Não foi possível localizar um certificado com este código. Verifique se o código foi digitado corretamente.
+              Certificado não encontrado. Verifique se o código foi digitado corretamente.
             </p>
 
             <Link
@@ -182,6 +194,40 @@ export default function CertificateVerification({ code }: CertificateVerificatio
               <ExternalLink className="h-4 w-4" />
               Tentar outro código
             </Link>
+
+            <div className="mt-6 p-4 rounded-xl bg-rosa-claro/10 border border-rosa-claro/20 text-center text-xs text-foreground/60">
+              <p>
+                <strong className="text-foreground">Certificados Esmalt&apos;up são simbólicos</strong> e emitidos apenas por diversão.
+              </p>
+            </div>
+          </div>
+        );
+
+      case "error":
+      default:
+        return (
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-warning/10 border-2 border-warning">
+                <X className="h-8 w-8 text-warning" />
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-bold text-warning mb-2">
+              Não foi possível verificar agora
+            </h2>
+
+            <p className="text-foreground/70 mb-6">
+              Ocorreu um erro ao consultar o certificado. Verifique sua conexão e tente novamente.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => fetchVerification(normalizePublicCode(code))}
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-rosa-blush to-rose-gold text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:brightness-105 active:scale-95"
+            >
+              Tentar novamente
+            </button>
 
             <div className="mt-6 p-4 rounded-xl bg-rosa-claro/10 border border-rosa-claro/20 text-center text-xs text-foreground/60">
               <p>
@@ -204,7 +250,7 @@ export default function CertificateVerification({ code }: CertificateVerificatio
         </p>
       </div>
 
-      <div className="bg-branco/95 border border-cinza-suave/40 rounded-2xl p-6 shadow-card backdrop-blur-sm">
+      <div className="bg-branco/95 border border-cinza-suave/40 rounded-2xl p-6 shadow-card backdrop-blur-sm" aria-live="polite">
         {getStatusContent()}
       </div>
 

@@ -172,7 +172,7 @@ export default function ProductView({
                 Destaque
               </span>
             )}
-            {product.ratingCount > 10 && (
+            {product.soldCount >= 10 && (
               <span className="rounded-full bg-rosa-blush/15 px-3 py-1 text-xs font-medium text-rosa-blush">
                 Mais vendido
               </span>
