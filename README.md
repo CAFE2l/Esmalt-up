@@ -56,6 +56,32 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
    - `prisma/migrations/20261008000000_cart_variants/migration.sql`
    - `prisma/migrations/20261009000000_product_sold_count/migration.sql`
 
+   **Vercel deployment blocker (`P2022 products.soldCount`):** the catalog
+   pages query this column during static generation. Before redeploying, apply
+   the `20261009000000_product_sold_count` SQL file to the same production
+   PostgreSQL database configured as Vercel's `DATABASE_URL` (not just a local
+   development database). For an immediate, idempotent repair, run this in
+   Neon SQL Editor:
+
+   ```sql
+   ALTER TABLE "products"
+     ADD COLUMN IF NOT EXISTS "soldCount" INTEGER NOT NULL DEFAULT 0;
+   ```
+
+   Confirm it was applied before retrying Vercel:
+
+   ```sql
+   SELECT column_name, data_type, column_default
+   FROM information_schema.columns
+   WHERE table_schema = current_schema()
+     AND table_name = 'products'
+     AND column_name = 'soldCount';
+   ```
+
+   The query must return one row with `integer` and default `0`. This is a
+   database schema mismatch, not a Next.js build issue; making `/kits` or
+   `/pecas-avulsas` dynamic would only move the same database error to runtime.
+
    Before applying the unique review index, run:
 
    ```sql

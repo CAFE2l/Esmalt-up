@@ -42,7 +42,7 @@ export function OrderTimeline({ order }: { order: Parameters<typeof buildTimelin
                 className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border ${STATE_RING[step.state]}`}
                 aria-label={step.label}
               >
-                <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" aria-hidden="true" />
+                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
               </motion.span>
               {!isLast && (
                 <span

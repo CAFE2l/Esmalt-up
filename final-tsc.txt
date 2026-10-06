@@ -1,0 +1,22 @@
+npm notice run esmaltup@0.1.0 npx
+npm notice run 'tsc' --noEmit
+components/certificates/CertificateRenderer.tsx(368,28): error TS2304: Cannot find name 'html2canvas'.
+components/certificates/CertificateRenderer.tsx(396,50): error TS2339: Property 'html2canvas' does not exist on type 'Window & typeof globalThis'.
+components/certificates/CertificateRenderer.tsx(490,52): error TS2339: Property 'jsPDF' does not exist on type 'Window & typeof globalThis'.
+components/curso/CursoApp.tsx(45,5): error TS2339: Property 'currentLessonId' does not exist on type '{ data: ProgressData; completed: Record<string, boolean>; watched: Record<string, boolean>; skipped: Record<string, boolean>; positions: Record<string, number>; ... 19 more ...; reload: () => Promise<...>; }'.
+components/curso/CursoApp.tsx(50,5): error TS2339: Property 'prevLesson' does not exist on type '{ data: ProgressData; completed: Record<string, boolean>; watched: Record<string, boolean>; skipped: Record<string, boolean>; positions: Record<string, number>; ... 19 more ...; reload: () => Promise<...>; }'.
+components/curso/CursoApp.tsx(51,5): error TS2339: Property 'nextLesson' does not exist on type '{ data: ProgressData; completed: Record<string, boolean>; watched: Record<string, boolean>; skipped: Record<string, boolean>; positions: Record<string, number>; ... 19 more ...; reload: () => Promise<...>; }'.
+components/curso/CursoApp.tsx(52,5): error TS2339: Property 'markWatched' does not exist on type '{ data: ProgressData; completed: Record<string, boolean>; watched: Record<string, boolean>; skipped: Record<string, boolean>; positions: Record<string, number>; ... 19 more ...; reload: () => Promise<...>; }'.
+components/curso/CursoApp.tsx(56,5): error TS2339: Property 'setLessonId' does not exist on type '{ data: ProgressData; completed: Record<string, boolean>; watched: Record<string, boolean>; skipped: Record<string, boolean>; positions: Record<string, number>; ... 19 more ...; reload: () => Promise<...>; }'.
+components/curso/CursoApp.tsx(57,25): error TS2554: Expected 0 arguments, but got 2.
+components/curso/CursoApp.tsx(97,34): error TS2339: Property 'lesson' does not exist on type 'CourseLesson'.
+components/curso/CursoApp.tsx(126,13): error TS2739: Type 'CourseLesson' is missing the following properties from type 'CourseLesson': lesson, module, lessonIndex, moduleIndex
+components/curso/CursoVideoPlayer.tsx(32,5): error TS2717: Subsequent property declarations must have the same type.  Property 'YT' must be of type '{ Player: new (el: string | HTMLElement, opts: { videoId?: string | undefined; host?: string | undefined; playerVars?: Record<string, string | number | boolean> | undefined; events?: { ...; } | undefined; }) => YTPlayer; PlayerState: { ...; }; } | undefined', but here has type '{ Player: new (el: HTMLElement, opts: { videoId: string; playerVars?: Record<string, string | number | boolean> | undefined; events?: { onReady?: ((e: { target: YTPlayer; }) => void) | undefined; onStateChange?: ((e: { ...; }) => void) | undefined; onError?: ((e: { ...; }) => void) | undefined; } | undefined; }) => ...'.
+components/curso/CursoVideoPlayer.tsx(273,7): error TS2739: Type 'YTPlayer' is missing the following properties from type 'YTPlayer': mute, unMute, seekTo
+components/curso/CursoVideoPlayer.tsx(278,13): error TS2739: Type 'YTPlayer' is missing the following properties from type 'YTPlayer': mute, unMute, seekTo
+components/curso/CursoVideoPlayer.tsx(284,24): error TS2339: Property 'seekTo' does not exist on type 'YTPlayer'.
+TSC_EXIT:2
+npm notice run esmaltup@0.1.0 npx
+npm notice run 'next' lint --file app/(perfil)/favoritos/page.tsx --file app/(perfil)/pedidos/page.tsx --file app/(perfil)/pedidos/[id]/page.tsx --file app/(perfil)/desejos/page.tsx --file components/UserMenu.tsx
+✔ No ESLint warnings or errors
+LINT_EXIT:0

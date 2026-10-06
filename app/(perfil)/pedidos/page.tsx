@@ -386,7 +386,9 @@ export default function PedidosPage() {
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6" aria-busy="true">
         <GlassSkeleton className="h-8 w-56 rounded-full" />
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <GlassSkeleton className="h-24 rounded-2xl" count={4} />
+          {Array.from({ length: 4 }, (_, index) => (
+            <GlassSkeleton key={index} className="h-24 rounded-2xl" />
+          ))}
         </div>
         <div className="mt-8 space-y-4">
           {Array.from({ length: 3 }, (_, index) => (

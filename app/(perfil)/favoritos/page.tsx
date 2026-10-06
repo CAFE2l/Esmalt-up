@@ -251,7 +251,9 @@ export default function FavoritosPage() {
           <GlassSkeleton className="h-4 w-40 rounded-full" />
         </div>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <GlassSkeleton className="aspect-square rounded-3xl" count={4} />
+          {Array.from({ length: 4 }, (_, index) => (
+            <GlassSkeleton key={index} className="aspect-square rounded-3xl" />
+          ))}
         </div>
       </div>
     );

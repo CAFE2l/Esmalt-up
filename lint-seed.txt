@@ -1,3 +1,4 @@
 nohup: ignorando entrada
 npm notice run esmaltup@0.1.0 npx
 npm notice run 'next' lint --file prisma/seed/orders.ts
+✔ No ESLint warnings or errors
