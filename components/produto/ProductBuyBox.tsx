@@ -2,55 +2,42 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useCart } from "@/lib/CartContext";
-import { 
-  Truck, 
-  Package, 
-  ChevronLeft, 
-  ChevronRight, 
-  Shield, 
+import {
+  Truck,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  Shield,
   Star,
   Clock,
   Check,
-  Eye,
   ShoppingCart,
   CreditCard,
   Banknote,
   MessageCircle,
-  X
+  X,
 } from "lucide-react";
-import { formatPrice, getInstallments, type Product } from "@/lib/products";
+import {
+  formatPrice,
+  getInstallments,
+  type Product,
+  type ProductOptionGroup,
+} from "@/lib/products";
 import { calculateFreight, isCepComplete, lookupCep, type CepAddress } from "@/lib/shipping";
 import { cn } from "@/lib/cn";
 import { getPrimaryProductImage } from "@/lib/products";
 import { FavoritesButton } from "@/lib/wishlist";
 
-// Define variant types for products
-interface ProductVariant {
-  id: string;
-  name: string;
-  priceCents: number;
-  oldPriceCents?: number;
-  stock: number;
-  sku?: string;
-  imageUrl?: string;
-  color?: string;
-  description?: string;
-  estimatedDelivery?: string;
-}
-
-interface ProductOptionGroup {
-  name: string; // e.g., "Cor", "Tamanho", "Voltagem"
-  type: "color" | "size" | "voltage" | "version" | "quantity";
-  options: ProductVariant[];
-}
-
-interface ProductWithVariants extends Product {
-  optionGroups?: ProductOptionGroup[];
-}
-
 interface ProductBuyBoxProps {
-  product: ProductWithVariants;
+  product: Product;
   onBuyNow?: () => void;
+  onVariantChange?: (variant: {
+    variantId: string | null;
+    variantName: string | null;
+    imageUrl: string | null;
+    priceCents: number;
+    stock: number;
+  }) => void;
   userHasPurchased?: boolean; // For review eligibility
   reviewCount?: number;
   ratingAvg?: number | null;
@@ -297,17 +284,9 @@ function TrustSection() {
 function SocialProof({
   ratingAvg,
   reviewCount,
-  verifiedPurchaseCount,
-  recentViews,
-  recentSales,
-  lastPurchase,
 }: {
   ratingAvg: number | null;
   reviewCount: number;
-  verifiedPurchaseCount?: number;
-  recentViews?: number;
-  recentSales?: number;
-  lastPurchase?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -334,34 +313,7 @@ function SocialProof({
           <p className="font-medium text-foreground">
             {reviewCount} {reviewCount === 1 ? "avaliação" : "avaliações"}
           </p>
-          {verifiedPurchaseCount && (
-            <p className="text-xs text-emerald-400">
-              {verifiedPurchaseCount} avaliações de clientes verificados
-            </p>
-          )}
         </div>
-      </div>
-
-      {/* Activity indicators */}
-      <div className="flex flex-wrap gap-2">
-        {recentViews && recentViews > 0 && (
-          <div className="flex items-center gap-1 px-3 py-2 rounded-full bg-rosa-claro/30 text-xs text-foreground/70">
-            <Eye className="h-3 w-3 text-rose-gold" />
-            {recentViews} {recentViews === 1 ? "pessoa" : "pessoas"} visualizaram
-          </div>
-        )}
-        {recentSales && recentSales > 0 && (
-          <div className="flex items-center gap-1 px-3 py-2 rounded-full bg-emerald-500/10 text-xs text-emerald-400">
-            <ShoppingCart className="h-3 w-3" />
-            {recentSales} {recentSales === 1 ? "venda" : "vendas"} nesta semana
-          </div>
-        )}
-        {lastPurchase && (
-          <div className="flex items-center gap-1 px-3 py-2 rounded-full bg-rose-gold/10 text-xs text-rose-gold">
-            <Clock className="h-3 w-3" />
-            Última compra {lastPurchase}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -416,6 +368,7 @@ function EnhancedQuantitySelector({
 export default function ProductBuyBox({
   product,
   onBuyNow,
+  onVariantChange,
   userHasPurchased = false,
   reviewCount = 0,
   ratingAvg = null,
@@ -491,12 +444,22 @@ export default function ProductBuyBox({
 
   // Handle variant option selection
   const handleSelectOption = useCallback((groupName: string, optionId: string) => {
+    const selected = product.optionGroups
+      ?.find((group) => group.name === groupName)
+      ?.options.find((option) => option.id === optionId);
     setSelectedOptions(prev => ({
       ...prev,
       [groupName]: optionId
     }));
     setQuantity(1); // Reset quantity when variant changes
-  }, []);
+    onVariantChange?.({
+      variantId: selected?.id ?? null,
+      variantName: selected?.name ?? null,
+      imageUrl: selected?.imageUrl ?? null,
+      priceCents: selected?.priceCents ?? product.priceCents,
+      stock: selected?.stock ?? product.stock,
+    });
+  }, [onVariantChange, product.optionGroups, product.priceCents, product.stock]);
 
   // Handle CEP lookup
   const handleCepCheck = useCallback(async () => {
@@ -751,10 +714,6 @@ export default function ProductBuyBox({
       <SocialProof
         ratingAvg={ratingAvg}
         reviewCount={reviewCount}
-        verifiedPurchaseCount={Math.floor(reviewCount * 0.8)} // Approx. 80% verified
-        recentViews={Math.floor(Math.random() * 50) + 10} // Example: 10-60 views
-        recentSales={Math.floor(Math.random() * 10) + 1} // Example: 1-10 sales
-        lastPurchase="há 2 horas"
       />
 
       {/* REVIEW ELIGIBILITY NOTICE */}

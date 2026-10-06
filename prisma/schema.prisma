@@ -259,13 +259,15 @@ model Cart {
 }
 
 model CartItem {
-  id        String @id @default(cuid())
-  cartId    String
-  productId String
-  quantity  Int    @default(1)
-  cart      Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  id          String  @id @default(cuid())
+  cartId      String
+  productId   String
+  variantId   String?
+  variantName String?
+  quantity    Int     @default(1)
+  cart        Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
-  @@unique([cartId, productId])
+  @@unique([cartId, productId, variantId])
   @@map("cart_items")
 }
 
@@ -304,6 +306,7 @@ model Review {
   rating       Int
   title        String?
   content      String
+  verifiedPurchase Boolean @default(false)
   status       String   @default("pending")
   helpfulCount Int      @default(0)
   user         UserProfile? @relation(fields: [userId], references: [uid], onDelete: SetNull)
@@ -311,7 +314,9 @@ model Review {
   media        ReviewMedia[]
   votes        ReviewVote[]
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  @@unique([productId, userId])
   @@index([productId, status])
   @@map("reviews")
 }

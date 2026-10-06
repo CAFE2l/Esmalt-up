@@ -2,8 +2,6 @@
 
 import { Heart } from "lucide-react";
 import { m as motion, useReducedMotion } from "framer-motion";
-import { useAuth } from "@/lib/AuthContext";
-import { useAuthGate } from "@/components/AuthGateModal";
 import { useFavoriteToggle } from "./useFavorites";
 import type { FavoriteProductInput } from "./FavoritesContext";
 
@@ -31,13 +29,7 @@ export function FavoritesButton({
   iconClassName = "",
 }: FavoritesButtonProps) {
   const reduceMotion = useReducedMotion();
-  const { user } = useAuth();
   const { isFavorite, toggleFavorite, isLoading } = useFavoriteToggle(product.id);
-  const { guard, modal } = useAuthGate(
-    user,
-    "Entre em sua conta para criar sua lista de desejos.",
-    "Faça login para salvar favoritos",
-  );
 
   return (
     <>
@@ -45,7 +37,11 @@ export function FavoritesButton({
         type="button"
         aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
         aria-pressed={isFavorite}
-        onClick={() => guard(() => void toggleFavorite(product))}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void toggleFavorite(product);
+        }}
         disabled={isLoading}
         whileHover={reduceMotion ? undefined : { scale: 1.08 }}
         whileTap={reduceMotion ? undefined : { scale: 0.92 }}
@@ -75,7 +71,6 @@ export function FavoritesButton({
           </span>
         )}
       </motion.button>
-      {modal}
     </>
   );
 }

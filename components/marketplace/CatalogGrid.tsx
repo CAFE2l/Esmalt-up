@@ -16,6 +16,7 @@ import {
 } from "@/lib/catalogData";
 import ProductArt from "./ProductArt";
 import { trackSelectItem, trackViewItemList, trackFilterApply } from "@/lib/analytics";
+import Stars from "@/components/produto/Stars";
 
 import type { Variants } from "framer-motion";
 
@@ -354,6 +355,14 @@ export default function CatalogGrid({
                   <p className="mt-1.5 text-sm leading-relaxed text-foreground/75">
                     {product.description}
                   </p>
+                  {product.ratingAvg > 0 && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Stars rating={product.ratingAvg} size={13} />
+                      <span className="text-xs text-foreground/60">
+                        {product.ratingAvg.toFixed(1)} ({product.ratingCount})
+                      </span>
+                    </div>
+                  )}
                   <div className="mt-auto pt-4">
                     <p className="text-xl font-semibold text-rose-gold">
                       {formatPrice(product.priceCents)}

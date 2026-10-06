@@ -23,6 +23,12 @@ export interface Product {
   videoUrl?: string;
   specs?: { label: string; value: string }[];
   features?: string[];
+  images?: string[];
+  oldPriceCents?: number;
+  brand?: string;
+  variants?: Record<string, unknown>;
+  weightG?: number;
+  stock?: number;
 }
 
 export const LEVEL_LABELS: Record<SkillLevel, string> = {
@@ -203,6 +209,28 @@ export const PRODUCTS: Product[] = [
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    oldPriceCents: 2990,
+    brand: "Esmalt'up",
+    images: ["/produtos/produtos_separados/lixa_banana.jpg"],
+    weightG: 250,
+    features: ["Formato banana para melhor ergonomia", "Duas gramaturas: 100 e 180", "Pacote com 50 unidades"],
+    specs: [
+      { label: "Formato", value: "Banana" },
+      { label: "Gramatura", value: "100/180" },
+      { label: "Conteúdo", value: "50 unidades" },
+    ],
+    variants: {
+      optionGroups: [
+        {
+          name: "Gramatura",
+          type: "size",
+          options: [
+            { id: "grao-100", name: "100", priceCents: 2490, stock: 99, sku: "ESM-LIXA-100" },
+            { id: "grao-180", name: "180", priceCents: 2490, stock: 99, sku: "ESM-LIXA-180" },
+          ],
+        },
+      ],
+    },
   },
   {
     id: "peca-brocas",
@@ -217,6 +245,28 @@ export const PRODUCTS: Product[] = [
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    oldPriceCents: 5990,
+    brand: "Esmalt'up",
+    images: ["/produtos/produtos_separados/jogo_de_broca.jpg"],
+    weightG: 180,
+    features: ["Cinco peças para diferentes etapas", "Opções em cerâmica e metal", "Compatíveis com motores padrão"],
+    specs: [
+      { label: "Conteúdo", value: "5 brocas" },
+      { label: "Materiais", value: "Cerâmica e metal" },
+      { label: "Uso", value: "Cutícula, gel e refinamento" },
+    ],
+    variants: {
+      optionGroups: [
+        {
+          name: "Material",
+          type: "version",
+          options: [
+            { id: "broca-ceramica", name: "Cerâmica", priceCents: 4990, stock: 99, imageUrl: "/produtos/produtos_separados/jogo_de_broca.jpg" },
+            { id: "broca-metal", name: "Metal", priceCents: 4990, stock: 99, imageUrl: "/produtos/produtos_separados/jogo_de_broca.jpg" },
+          ],
+        },
+      ],
+    },
   },
   {
     id: "peca-tips",
@@ -269,6 +319,39 @@ export const PRODUCTS: Product[] = [
     stockStatus: "in_stock",
     rating: null,
     reviewCount: null,
+    oldPriceCents: 2790,
+    brand: "Esmalt'up",
+    images: ["/produtos/produtos_separados/top_coat.jpg"],
+    weightG: 80,
+    features: ["Alto brilho", "Fórmula sem residual", "Selagem de longa duração"],
+    specs: [
+      { label: "Acabamento", value: "Alto brilho" },
+      { label: "Aplicação", value: "Camada de finalização" },
+      { label: "Marca", value: "Esmalt'up" },
+    ],
+  },
+  {
+    id: "peca-cabine-sun",
+    kind: "peca",
+    name: "Cabine SUN",
+    description: "Cabine LED para cura de gel, com temporizador e sensor automático.",
+    imageUrl: "/produtos/produtos_separados/cabine_led.jpg",
+    images: ["/produtos/produtos_separados/cabine_led.jpg"],
+    priceCents: 17990,
+    oldPriceCents: 19990,
+    category: "cabine",
+    featured: true,
+    stockStatus: "in_stock",
+    rating: null,
+    reviewCount: null,
+    brand: "SUN",
+    weightG: 650,
+    features: ["Cura de gel com LEDs", "Temporizador", "Sensor automático de mão"],
+    specs: [
+      { label: "Modelo", value: "SUN" },
+      { label: "Potência", value: "48W" },
+      { label: "Voltagem", value: "Bivolt" },
+    ],
   },
   {
     id: "peca-alicate",

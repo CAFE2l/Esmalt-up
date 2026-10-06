@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateRequest } from "@/lib/authUtils";
 import { prisma } from "@/lib/prisma";
+import { ensureProductRecord } from "@/lib/products";
 
 export const runtime = "nodejs";
 
@@ -10,24 +11,7 @@ const favoriteSchema = z.object({
 });
 
 async function findProduct(identifier: string) {
-  return prisma.product.findFirst({
-    where: {
-      active: true,
-      OR: [{ id: identifier }, { slug: identifier }],
-    },
-    select: {
-      id: true,
-      slug: true,
-      kind: true,
-      name: true,
-      description: true,
-      priceCents: true,
-      category: true,
-      stock: true,
-      images: true,
-      featured: true,
-    },
-  });
+  return ensureProductRecord(identifier);
 }
 
 export async function GET(request: Request) {

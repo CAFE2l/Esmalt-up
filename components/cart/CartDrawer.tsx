@@ -106,7 +106,7 @@ export default function CartDrawer() {
               const quantityLimit = product.stock > 0 ? product.stock : line.quantity;
               return (
                 <li
-                  key={line.productId}
+                  key={`${line.productId}:${line.variantId ?? "base"}`}
                   className="flex gap-3 rounded-3xl border border-cinza-suave/40 bg-rosa-claro/30 p-3"
                 >
                   <Link
@@ -136,7 +136,7 @@ export default function CartDrawer() {
                       </Link>
                       <button
                         type="button"
-                        onClick={() => removeItem(product.id)}
+                        onClick={() => removeItem(product.id, line.variantId)}
                         aria-label={`Remover ${product.name}`}
                         className="text-foreground/50 transition-colors hover:text-rose-gold"
                       >
@@ -145,12 +145,15 @@ export default function CartDrawer() {
                         </svg>
                       </button>
                     </div>
+                    {line.variantName && (
+                      <p className="mt-1 text-xs text-foreground/60">Opção: {line.variantName}</p>
+                    )}
 
                     <div className="mt-auto flex items-center justify-between pt-1">
                       <div className="flex items-center rounded-full border border-cinza-suave/50 bg-branco">
                         <button
                           type="button"
-                          onClick={() => setQuantity(product.id, line.quantity - 1)}
+                          onClick={() => setQuantity(product.id, line.quantity - 1, line.variantId)}
                           disabled={line.quantity <= 1}
                           aria-label={`Diminuir quantidade de ${product.name}`}
                           className="grid h-8 w-8 place-items-center rounded-full text-foreground/70 transition-colors hover:text-rose-gold disabled:cursor-not-allowed disabled:opacity-40"
@@ -162,7 +165,7 @@ export default function CartDrawer() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => setQuantity(product.id, Math.min(quantityLimit, line.quantity + 1))}
+                          onClick={() => setQuantity(product.id, Math.min(quantityLimit, line.quantity + 1), line.variantId)}
                           disabled={line.quantity >= quantityLimit}
                           aria-label={`Aumentar quantidade de ${product.name}`}
                           className="grid h-8 w-8 place-items-center rounded-full text-foreground/70 transition-colors hover:text-rose-gold disabled:cursor-not-allowed disabled:opacity-40"

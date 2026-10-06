@@ -27,6 +27,7 @@ export default function ProductGallery({
   const [activeIndex, setActiveIndex] = useState(0);
   const [zoom, setZoom] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   // Build gallery items
   const gallery: GalleryItem[] = [
@@ -36,7 +37,11 @@ export default function ProductGallery({
     gallery.push({ type: "video", src: videoUrl, label: "Vídeo" });
   }
 
-  const active = gallery[activeIndex] ?? gallery[0];
+  const active = gallery[activeIndex] ?? gallery[0] ?? {
+    type: "image" as const,
+    src: "/placeholder-product.jpg",
+    label: productName,
+  };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!zoom) return;
@@ -48,16 +53,34 @@ export default function ProductGallery({
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 lg:flex-row">
         {/* Main image/video */}
         <div
           className={cn(
-            "relative aspect-square overflow-hidden rounded-[2rem] border border-cinza-suave/30 bg-rosa-claro",
+            "relative aspect-square min-w-0 flex-1 overflow-hidden rounded-[2rem] border border-cinza-suave/30 bg-rosa-claro",
             zoom && "cursor-zoom-out",
           )}
           onMouseMove={handleMouseMove}
           onMouseEnter={() => setZoom(true)}
           onMouseLeave={() => setZoom(false)}
+          onTouchStart={(event) => setTouchStartX(event.touches[0]?.clientX ?? null)}
+          onTouchEnd={(event) => {
+            if (touchStartX === null || gallery.length < 2) return;
+            const delta = event.changedTouches[0]?.clientX;
+            if (delta === undefined || Math.abs(delta - touchStartX) < 40) return;
+            setActiveIndex((index) =>
+              delta < touchStartX
+                ? (index + 1) % gallery.length
+                : (index - 1 + gallery.length) % gallery.length,
+            );
+            setZoom(false);
+            setTouchStartX(null);
+          }}
+          onClick={() => {
+            if (active.type === "image") setLightboxOpen(true);
+          }}
+          role="group"
+          aria-label="Galeria de imagens do produto"
         >
           {active.type === "video" ? (
             videoUrl?.includes("youtube") || videoUrl?.includes("youtu.be") ? (
@@ -92,7 +115,10 @@ export default function ProductGallery({
               {images.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setLightboxOpen(true)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setLightboxOpen(true);
+                  }}
                   className="absolute bottom-4 right-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-foreground shadow-lg transition-transform hover:scale-110"
                   aria-label="Ampliar imagem"
                 >
@@ -111,12 +137,13 @@ export default function ProductGallery({
 
         {/* Thumbnails */}
         {gallery.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex shrink-0 gap-3 overflow-x-auto pb-2 lg:max-h-[38rem] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pr-2">
             {gallery.map((item, index) => (
               <button
                 key={`${item.type}-${index}`}
                 type="button"
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation();
                   setActiveIndex(index);
                   setZoom(false);
                 }}
@@ -151,6 +178,9 @@ export default function ProductGallery({
       {lightboxOpen && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Imagem ampliada: ${productName}`}
           onClick={() => setLightboxOpen(false)}
         >
           <button
@@ -168,6 +198,7 @@ export default function ProductGallery({
               width={1200}
               height={1200}
               className="h-full w-full object-contain"
+              onClick={(event) => event.stopPropagation()}
             />
           </div>
         </div>

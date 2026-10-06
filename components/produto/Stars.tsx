@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { cn } from "@/lib/cn";
 
 interface StarsProps {
@@ -15,6 +16,7 @@ export default function Stars({
   interactive = false,
   onChange,
 }: StarsProps) {
+  const id = useId().replace(/:/g, "");
   if (!interactive) {
     return (
       <span
@@ -22,18 +24,30 @@ export default function Stars({
         aria-label={`Avaliação ${rating.toFixed(1)} de 5`}
       >
         {Array.from({ length: 5 }).map((_, index) => {
-          const filled = index + 1 <= Math.round(rating);
+          const fill = Math.max(0, Math.min(1, rating - index));
+          const clipId = `${id}-star-${index}`;
           return (
             <svg
               key={index}
               viewBox="0 0 24 24"
               className="h-4 w-4"
-              fill={filled ? "currentColor" : "none"}
+              fill="none"
               stroke="currentColor"
-              strokeWidth={filled ? 0 : 1.5}
+              strokeWidth={1.5}
               style={{ width: size, height: size }}
             >
+              <defs>
+                <clipPath id={clipId}>
+                  <rect width={24 * fill} height="24" />
+                </clipPath>
+              </defs>
               <path d="M12 2l2.9 6.26 6.85.62-5.2 4.5 1.55 6.7L12 16.6 5.9 20.08l1.55-6.7-5.2-4.5 6.85-.62L12 2z" />
+              <path
+                d="M12 2l2.9 6.26 6.85.62-5.2 4.5 1.55 6.7L12 16.6 5.9 20.08l1.55-6.7-5.2-4.5 6.85-.62L12 2z"
+                fill="currentColor"
+                stroke="none"
+                clipPath={`url(#${clipId})`}
+              />
             </svg>
           );
         })}

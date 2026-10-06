@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Check, Copy, Share2 } from "lucide-react";
 import {
   getCategoryLabel,
   getInstallments as _getInstallments,
@@ -12,30 +14,14 @@ import {
 import ProductGallery from "./ProductGallery";
 import ProductBuyBox from "./ProductBuyBox";
 import Stars from "./Stars";
-import { cn } from "@/lib/cn";
 import { usePurchaseVerification } from "./PurchaseVerification";
 import { useCart } from "@/lib/CartContext";
+import { useRecentlyViewed } from "@/lib/wishlist/useRecentlyViewed";
 
 interface ProductViewProps {
   product: Product;
   initialAverage: number | null;
   initialCount: number;
-}
-
-const RECENTLY_VIEWED_KEY = "esmaltup-recently-viewed";
-
-function addRecentlyViewed(productId: string) {
-  if (typeof window === "undefined") return;
-  try {
-    const stored = window.localStorage.getItem(RECENTLY_VIEWED_KEY);
-    const items: string[] = stored ? JSON.parse(stored) : [];
-    const filtered = items.filter((id) => id !== productId);
-    filtered.unshift(productId);
-    if (filtered.length > 20) filtered.pop();
-    window.localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(filtered));
-  } catch {
-    // localStorage unavailable
-  }
 }
 
 export default function ProductView({
@@ -45,37 +31,90 @@ export default function ProductView({
 }: ProductViewProps) {
   const router = useRouter();
   const { addItem } = useCart();
+  const { addRecentlyViewed } = useRecentlyViewed();
   const { hasPurchased } = usePurchaseVerification(product.id);
-  const outOfStock = product.stock <= 0;
   const primaryImage = getPrimaryProductImage(product);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<{
+    variantId: string | null;
+    variantName: string | null;
+    imageUrl: string | null;
+    priceCents: number;
+    stock: number;
+  }>({ variantId: null, variantName: null, imageUrl: null, priceCents: product.priceCents, stock: product.stock });
+  const outOfStock = selectedVariant.stock <= 0;
 
   useEffect(() => {
-    addRecentlyViewed(product.id);
-  }, [product.id]);
+    addRecentlyViewed(product);
+  }, [addRecentlyViewed, product]);
+
+  useEffect(() => {
+    setSelectedVariant({
+      variantId: null,
+      variantName: null,
+      imageUrl: null,
+      priceCents: product.priceCents,
+      stock: product.stock,
+    });
+  }, [product.id, product.priceCents, product.stock]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = window.setTimeout(() => setCopied(false), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+
+  const shareProduct = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.name, url });
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+      }
+    }
+    setShareMenuOpen((open) => !open);
+  };
+
+  const copyProductLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setShareMenuOpen(false);
+    } catch {
+      setShareMenuOpen(true);
+    }
+  };
 
   const handleBuyNow = () => {
     router.push("/checkout");
   };
 
   const handleMobileBuyNow = () => {
-    if (outOfStock) return;
+    if (selectedVariant.stock <= 0) return;
     addItem(product.id, 1, {
+      variantId: selectedVariant.variantId ?? undefined,
+      variantName: selectedVariant.variantName ?? undefined,
       product: {
         id: product.id,
         slug: product.slug,
         kind: product.kind,
         name: product.name,
-        priceCents: product.priceCents,
-        imageUrl: primaryImage,
-        stock: product.stock,
+        priceCents: selectedVariant.priceCents,
+        imageUrl: selectedVariant.imageUrl ?? primaryImage,
+        stock: selectedVariant.stock,
       },
     });
     handleBuyNow();
   };
 
   const categoryLabel = getCategoryLabel(product.category);
-  const galleryImages = primaryImage
-    ? [primaryImage, ...product.images.filter((image) => image !== primaryImage)]
+  const galleryImages = selectedVariant.imageUrl
+    ? [selectedVariant.imageUrl, ...product.images.filter((image) => image !== selectedVariant.imageUrl)]
+    : primaryImage
+      ? [primaryImage, ...product.images.filter((image) => image !== primaryImage)]
     : product.images;
 
   return (
@@ -99,8 +138,8 @@ export default function ProductView({
         </span>
       </nav>
 
-      {/* Main content - 3 column layout on desktop */}
-      <div className="grid gap-8 lg:grid-cols-[45%_30%_25%] lg:gap-12">
+      {/* Main content */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,.9fr)] lg:gap-12">
         {/* Left: Gallery */}
         <div className="lg:col-span-1">
           <ProductGallery
@@ -111,7 +150,7 @@ export default function ProductView({
           />
         </div>
 
-        {/* Center: Product Info */}
+        {/* Purchase details */}
         <div className="space-y-6">
           {/* Category and badges */}
           <div className="flex flex-wrap items-center gap-2">
@@ -126,6 +165,16 @@ export default function ProductView({
             {product.brand && (
               <span className="rounded-full bg-cinza-suave/20 px-3 py-1 text-xs font-medium text-foreground/70">
                 {product.brand}
+              </span>
+            )}
+            {product.featured && (
+              <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
+                Destaque
+              </span>
+            )}
+            {product.ratingCount > 10 && (
+              <span className="rounded-full bg-rosa-blush/15 px-3 py-1 text-xs font-medium text-rosa-blush">
+                Mais vendido
               </span>
             )}
           </div>
@@ -158,94 +207,107 @@ export default function ProductView({
             </p>
           )}
 
-          {/* Description */}
-          <p className="text-sm leading-relaxed text-foreground/75 sm:text-base">
-            {product.description}
-          </p>
-
-          {/* Highlights */}
-          {product.highlights && product.highlights.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground">Por que você vai amar</h3>
-              <ul className="space-y-2">
-                {product.highlights.map((highlight, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm leading-relaxed text-foreground/70">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mt-0.5 h-4 w-4 shrink-0 text-rose-gold">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    {highlight}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Kit contents for kits */}
-          {product.kind === "kit" && product.specs && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground">O que vem no kit</h3>
-              <div className="rounded-2xl border border-cinza-suave/30 bg-rosa-claro/30 p-4">
-                <ul className="space-y-1 text-sm text-foreground/70">
-                  {product.specs.map((spec, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-rose-gold" />
-                      {spec.label}: {spec.value}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* Specs table */}
-          {product.specs && product.specs.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground">Especificações</h3>
-              <div className="rounded-2xl border border-cinza-suave/30 bg-branco p-4">
-                <table className="w-full text-sm">
-                  <tbody>
-                    {product.specs.map((spec, index) => (
-                      <tr
-                        key={index}
-                        className={cn(
-                          "border-b border-cinza-suave/20 last:border-0",
-                          index % 2 === 0 && "bg-rosa-claro/30"
-                        )}
-                      >
-                        <td className="py-2 pl-2 pr-3 font-medium text-foreground/70">
-                          {spec.label}
-                        </td>
-                        <td className="py-2 pl-3 pr-2">{spec.value}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Buy Box (sticky on desktop) */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 rounded-3xl border border-cinza-suave/40 bg-branco p-6 shadow-card">
-            <ProductBuyBox 
-              product={product} 
+          <div className="rounded-3xl border border-cinza-suave/40 bg-branco p-4 shadow-card sm:p-6">
+            <ProductBuyBox
+              product={product}
               onBuyNow={handleBuyNow}
               reviewCount={initialCount}
               ratingAvg={initialAverage}
               userHasPurchased={hasPurchased}
+              onVariantChange={setSelectedVariant}
             />
+          </div>
+
+          <div className="rounded-2xl border border-cinza-suave/30 bg-branco p-4">
+            <p className="font-semibold text-foreground">Vendido e entregue por Esmalt&apos;up</p>
+            <p className="mt-2 text-sm text-foreground/65">Compra segura · suporte especializado · devolução conforme a legislação vigente.</p>
+          </div>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={shareProduct}
+              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-rose-gold/30 px-4 text-sm font-medium text-rose-gold hover:bg-rosa-claro/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold"
+              aria-expanded={shareMenuOpen}
+            >
+              <Share2 className="h-4 w-4" /> Compartilhar
+            </button>
+            {shareMenuOpen && (
+              <div className="absolute left-0 top-full z-20 mt-2 grid min-w-48 gap-1 rounded-xl border border-cinza-suave/40 bg-branco p-2 shadow-card">
+                <button type="button" onClick={copyProductLink} className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-rosa-claro/40">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Copiar link
+                </button>
+                <Link className="rounded-lg px-3 py-2 text-sm hover:bg-rosa-claro/40" href={`https://wa.me/?text=${encodeURIComponent(`${product.name} ${typeof window === "undefined" ? "" : window.location.href}`)}`} target="_blank" rel="noreferrer">WhatsApp</Link>
+                <a className="rounded-lg px-3 py-2 text-sm hover:bg-rosa-claro/40" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window === "undefined" ? "" : window.location.href)}`} target="_blank" rel="noreferrer">Facebook</a>
+                <a className="rounded-lg px-3 py-2 text-sm hover:bg-rosa-claro/40" href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(typeof window === "undefined" ? "" : window.location.href)}&text=${encodeURIComponent(product.name)}`} target="_blank" rel="noreferrer">X / Twitter</a>
+                <a className="rounded-lg px-3 py-2 text-sm hover:bg-rosa-claro/40" href={`mailto:?subject=${encodeURIComponent(product.name)}&body=${encodeURIComponent(typeof window === "undefined" ? "" : window.location.href)}`}>E-mail</a>
+              </div>
+            )}
+            {copied && <span role="status" className="ml-3 text-xs text-emerald-400">Link copiado!</span>}
           </div>
         </div>
       </div>
+
+      <section className="mt-12 grid gap-8 border-t border-cinza-suave/30 pt-10 lg:grid-cols-2">
+        <div id="descricao" className="space-y-4">
+          <h2 className="text-2xl font-bold">Descrição</h2>
+          <p className="leading-relaxed text-foreground/75">{product.description}</p>
+          {product.highlights.length > 0 && (
+            <ul className="space-y-2">
+              {product.highlights.map((highlight) => (
+                <li key={highlight} className="flex items-start gap-2 text-sm text-foreground/75">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-rose-gold" /> {highlight}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {product.specs && product.specs.length > 0 && (
+          <div id="especificacoes" className="space-y-3">
+            <h2 className="text-2xl font-bold">Especificações</h2>
+            <div className="overflow-hidden rounded-2xl border border-cinza-suave/30 bg-branco">
+              <table className="w-full text-sm">
+                <tbody>
+                  {product.specs.map((spec, index) => (
+                    <tr key={`${spec.label}-${index}`} className={index % 2 === 0 ? "bg-rosa-claro/30" : ""}>
+                      <th scope="row" className="px-4 py-3 text-left font-medium text-foreground/70">{spec.label}</th>
+                      <td className="px-4 py-3">{spec.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Mobile sticky buy bar */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-cinza-suave/40 bg-branco p-4 shadow-header lg:hidden">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs text-foreground/60">A partir de</p>
-            <p className="text-lg font-bold text-rose-gold">{formatPrice(product.priceCents)}</p>
+            <p className="text-lg font-bold text-rose-gold">{formatPrice(selectedVariant.priceCents)}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => addItem(product.id, 1, {
+              variantId: selectedVariant.variantId ?? undefined,
+              variantName: selectedVariant.variantName ?? undefined,
+              product: {
+                id: product.id,
+                slug: product.slug,
+                kind: product.kind,
+                name: product.name,
+                priceCents: selectedVariant.priceCents,
+                imageUrl: selectedVariant.imageUrl ?? primaryImage,
+                stock: selectedVariant.stock,
+              },
+            })}
+            disabled={outOfStock}
+            className="rounded-full border border-rose-gold px-3 py-3 text-xs font-semibold text-rose-gold disabled:opacity-40"
+          >
+            Adicionar
+          </button>
           <button
             type="button"
             onClick={handleMobileBuyNow}

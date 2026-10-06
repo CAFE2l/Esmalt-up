@@ -1,5 +1,7 @@
+import { Prisma, type Product as DbProduct } from "@prisma/client";
 import { prisma } from "./prisma";
 import { PRODUCTS } from "./catalogData.static";
+import type { Product as StaticProduct } from "./catalogData.static";
 
 export interface Product {
   id: string;
@@ -19,6 +21,7 @@ export interface Product {
   highlights: string[];
   specs: { label: string; value: string }[] | null;
   variants: Record<string, unknown> | null;
+  optionGroups?: ProductOptionGroup[];
   weightG: number;
   heightCm: number;
   widthCm: number;
@@ -29,6 +32,25 @@ export interface Product {
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  priceCents: number;
+  oldPriceCents?: number;
+  stock: number;
+  sku?: string;
+  imageUrl?: string;
+  color?: string;
+  description?: string;
+  estimatedDelivery?: string;
+}
+
+export interface ProductOptionGroup {
+  name: string;
+  type: "color" | "size" | "voltage" | "version" | "quantity";
+  options: ProductVariant[];
 }
 
 export type ProductKind = "kit" | "peca";
@@ -115,14 +137,64 @@ export async function getProduct(id: string): Promise<Product | null> {
   const product = await prisma.product.findUnique({
     where: { id },
   });
-  return product ? transformDbProduct(product) : null;
+  if (product) return transformDbProduct(product);
+  const staticProduct = PRODUCTS.find((item) => item.id === id);
+  return staticProduct ? transformStaticProduct(staticProduct) : null;
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const product = await prisma.product.findUnique({
     where: { slug },
   });
-  return product ? transformDbProduct(product) : null;
+  if (product) return transformDbProduct(product);
+  const staticProduct = PRODUCTS.find((item) => item.id === slug);
+  return staticProduct ? transformStaticProduct(staticProduct) : null;
+}
+
+export async function ensureProductRecord(identifier: string): Promise<Product | null> {
+  const existing = await prisma.product.findFirst({
+    where: { OR: [{ id: identifier }, { slug: identifier }] },
+  });
+  if (existing) return existing.active ? transformDbProduct(existing) : null;
+
+  const staticProduct = PRODUCTS.find((item) => item.id === identifier);
+  if (!staticProduct) return null;
+  const catalogProduct = transformStaticProduct(staticProduct);
+  const record = await prisma.product.upsert({
+    where: { slug: catalogProduct.slug },
+    create: {
+      slug: catalogProduct.slug,
+      kind: catalogProduct.kind,
+      name: catalogProduct.name,
+      description: catalogProduct.description,
+      brand: catalogProduct.brand,
+      sku: catalogProduct.sku,
+      priceCents: catalogProduct.priceCents,
+      oldPriceCents: catalogProduct.oldPriceCents,
+      category: catalogProduct.category,
+      stock: catalogProduct.stock,
+      featured: catalogProduct.featured,
+      videoUrl: catalogProduct.videoUrl,
+      images: catalogProduct.images,
+      highlights: catalogProduct.highlights,
+      specs: catalogProduct.specs
+        ? { specs: catalogProduct.specs } as Prisma.InputJsonValue
+        : undefined,
+      variants: catalogProduct.variants
+        ? catalogProduct.variants as Prisma.InputJsonValue
+        : undefined,
+      weightG: catalogProduct.weightG,
+      heightCm: catalogProduct.heightCm,
+      widthCm: catalogProduct.widthCm,
+      lengthCm: catalogProduct.lengthCm,
+      ratingAvg: catalogProduct.ratingAvg,
+      ratingCount: catalogProduct.ratingCount,
+      level: catalogProduct.level,
+      active: true,
+    },
+    update: {},
+  });
+  return record.active ? transformDbProduct(record) : null;
 }
 
 export async function getRelatedProducts(
@@ -131,8 +203,8 @@ export async function getRelatedProducts(
 ): Promise<Product[]> {
   const products = await prisma.product.findMany({
     where: {
-      id: { not: product.id },
       active: true,
+      id: { not: product.id },
       OR: [
         { category: product.category },
         { kind: product.kind },
@@ -145,7 +217,14 @@ export async function getRelatedProducts(
       { createdAt: "desc" },
     ],
   });
-  return products.map(transformDbProduct);
+  if (products.length > 0) return products.map(transformDbProduct);
+  const staticRelated = getByKindSync(product.kind).filter(
+    (candidate) => candidate.id !== product.id && candidate.category === product.category,
+  );
+  return (staticRelated.length > 0
+    ? staticRelated
+    : getByKindSync(product.kind).filter((candidate) => candidate.id !== product.id)
+  ).slice(0, limit);
 }
 
 // Client-side sync functions (fallback to static data)
@@ -163,32 +242,33 @@ export function getByKindSync(kind: ProductKind): Product[] {
   return PRODUCTS.filter((p) => p.kind === kind).map(transformStaticProduct);
 }
 
-function transformStaticProduct(staticProduct: Record<string, unknown>): Product {
+function transformStaticProduct(staticProduct: StaticProduct): Product {
   return {
     id: staticProduct.id,
     slug: staticProduct.id,
     kind: staticProduct.kind,
     name: staticProduct.name,
     description: staticProduct.description,
-    brand: "Esmalt'up",
+    brand: staticProduct.brand ?? "Esmalt'up",
     sku: `ESM-${staticProduct.id.toUpperCase()}`,
     priceCents: staticProduct.priceCents,
-    oldPriceCents: null,
+    oldPriceCents: staticProduct.oldPriceCents ?? null,
     category: staticProduct.category,
-    stock: staticProduct.stockStatus === "in_stock" ? 99 : 0,
+    stock: staticProduct.stock ?? (staticProduct.stockStatus === "in_stock" ? 99 : 0),
     featured: staticProduct.featured,
-    videoUrl: staticProduct.videoUrl,
-    images: [staticProduct.imageUrl],
+    videoUrl: staticProduct.videoUrl ?? null,
+    images: staticProduct.images ?? [staticProduct.imageUrl],
     highlights: staticProduct.features || [],
     specs: staticProduct.specs || null,
-    variants: null,
-    weightG: 500,
+    variants: staticProduct.variants ?? null,
+    optionGroups: parseOptionGroups(staticProduct.variants),
+    weightG: staticProduct.weightG ?? 500,
     heightCm: 10,
     widthCm: 10,
     lengthCm: 10,
     ratingAvg: staticProduct.rating || 0,
     ratingCount: staticProduct.reviewCount || 0,
-    level: staticProduct.level,
+    level: staticProduct.level ?? null,
     active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -231,7 +311,7 @@ export function freeShippingThresholdCents(): number {
   return 9900;
 }
 
-function transformDbProduct(dbProduct: Record<string, unknown>): Product {
+function transformDbProduct(dbProduct: DbProduct): Product {
   const specs = dbProduct.specs as { specs?: { label: string; value: string }[] } | null;
   return {
     id: dbProduct.id,
@@ -250,7 +330,8 @@ function transformDbProduct(dbProduct: Record<string, unknown>): Product {
     images: dbProduct.images,
     highlights: dbProduct.highlights,
     specs: specs?.specs || null,
-    variants: dbProduct.variants,
+    variants: dbProduct.variants as Record<string, unknown> | null,
+    optionGroups: parseOptionGroups(dbProduct.variants),
     weightG: dbProduct.weightG,
     heightCm: dbProduct.heightCm,
     widthCm: dbProduct.widthCm,
@@ -262,6 +343,29 @@ function transformDbProduct(dbProduct: Record<string, unknown>): Product {
     createdAt: dbProduct.createdAt,
     updatedAt: dbProduct.updatedAt,
   };
+}
+
+function parseOptionGroups(value: unknown): ProductOptionGroup[] | undefined {
+  if (!value || typeof value !== "object" || !("optionGroups" in value)) return undefined;
+  const groups = (value as { optionGroups?: unknown }).optionGroups;
+  if (!Array.isArray(groups)) return undefined;
+  return groups.filter((group): group is ProductOptionGroup => {
+    if (!group || typeof group !== "object") return false;
+    const candidate = group as Partial<ProductOptionGroup>;
+    return (
+      typeof candidate.name === "string" &&
+      ["color", "size", "voltage", "version", "quantity"].includes(candidate.type ?? "") &&
+      Array.isArray(candidate.options) &&
+      candidate.options.every(
+        (option) =>
+          option &&
+          typeof option.id === "string" &&
+          typeof option.name === "string" &&
+          Number.isInteger(option.priceCents) &&
+          Number.isInteger(option.stock),
+      )
+    );
+  });
 }
 
 export function getCategoryLabel(category: string): string {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, ShoppingCart, Star, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CATEGORY_LABELS, LEVEL_LABELS, formatPrice, type Product } from "@/lib/catalogData";
@@ -27,6 +28,10 @@ function ProductCard({
   showBadges?: boolean;
 }) {
   const { addItem } = useCart();
+  const router = useRouter();
+  const navigateToProduct = useCallback(() => {
+    router.push(`/produto/${product.slug}`);
+  }, [product.slug, router]);
   const handleQuickViewClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -59,11 +64,21 @@ function ProductCard({
 
   return (
     <motion.div
+      role="link"
+      tabIndex={0}
+      aria-label={`Ver detalhes de ${product.name}`}
+      onClick={navigateToProduct}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          navigateToProduct();
+        }
+      }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index ? index * 0.1 : 0, duration: 0.3 }}
       whileHover={{ y: -4, scale: 1.01 }}
-      className={`group relative flex flex-col bg-branco rounded-2xl border border-rose-gold/25 shadow-card transition-all duration-300 hover:shadow-card-lg ${
+      className={`group relative flex cursor-pointer flex-col rounded-2xl border border-rose-gold/25 bg-branco shadow-card transition-all duration-300 hover:shadow-card-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold ${
         isHero ? "lg:col-span-2 lg:row-span-2" : ""
       }`}
     >
@@ -84,7 +99,15 @@ function ProductCard({
         )}
 
         <div className="absolute inset-0 flex items-center justify-center p-4">
-          <ProductArt product={product} className="h-full w-full object-contain" />
+          <Link
+            href={`/produto/${product.slug}`}
+            onClick={(event) => event.stopPropagation()}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="flex h-full w-full items-center justify-center"
+          >
+            <ProductArt product={product} className="pointer-events-none h-full w-full object-contain" />
+          </Link>
         </div>
 
         {/* Badges */}
@@ -128,8 +151,10 @@ function ProductCard({
             )}
           </div>
           
-          <h3 className="text-lg font-bold text-foreground tracking-tight mb-1 line-clamp-1 group-hover:text-rose-gold transition-colors">
-            {product.name}
+          <h3 className="mb-1 line-clamp-1 text-lg font-bold tracking-tight text-foreground transition-colors group-hover:text-rose-gold">
+            <Link href={`/produto/${product.slug}`} onClick={(event) => event.stopPropagation()}>
+              {product.name}
+            </Link>
           </h3>
           
           {showRating && product.ratingAvg > 0 && (

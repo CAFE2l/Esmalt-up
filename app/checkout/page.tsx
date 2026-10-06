@@ -716,7 +716,7 @@ export default function CheckoutPage() {
               const product = line.product;
               if (!product) return null;
               return (
-                <li key={line.productId} className="flex items-center gap-3">
+                <li key={`${line.productId}:${line.variantId ?? "base"}`} className="flex items-center gap-3">
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-branco">
                     {product.imageUrl ? (
                       <Image src={product.imageUrl} alt={product.name} fill sizes="56px" className="object-cover" />
@@ -726,6 +726,9 @@ export default function CheckoutPage() {
                     <p className="truncate text-xs font-medium text-foreground">
                       {product.name}
                     </p>
+                    {line.variantName && (
+                      <p className="text-[11px] text-foreground/60">{line.variantName}</p>
+                    )}
                     <p className="text-[11px] text-foreground/60">
                       {line.quantity}× {formatPrice(product.priceCents)}
                     </p>

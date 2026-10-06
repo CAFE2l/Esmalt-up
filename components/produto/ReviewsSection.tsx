@@ -25,22 +25,25 @@ interface ReviewItem {
   helpfulCount: number;
   myVote: boolean;
   verifiedBuyer: boolean;
+  isMine: boolean;
   media: ReviewMedia[];
 }
 
 interface ReviewState {
   average: number | null;
   total: number;
+  filteredTotal: number;
   distribution: Record<string, number>;
   items: ReviewItem[];
   hasMore: boolean;
 }
 
-type SortOption = "recent" | "helpful" | "rating" | "with_media";
+type SortOption = "recent" | "helpful" | "rating" | "low_rating" | "with_media";
 
 const LOADING: ReviewState = {
   average: null,
   total: 0,
+  filteredTotal: 0,
   distribution: {},
   items: [],
   hasMore: false,
@@ -136,10 +139,14 @@ function ReviewItemCard({
   review,
   onVoteHelpful,
   onOpenGallery,
+  onEdit,
+  onDelete,
 }: {
   review: ReviewItem;
   onVoteHelpful: (reviewId: string) => void;
   onOpenGallery: (media: ReviewMedia[], index: number) => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   const hasMedia = review.media && review.media.length > 0;
   const imageMedia = review.media?.filter(m => m.kind === "image") || [];
@@ -267,9 +274,19 @@ function ReviewItemCard({
 
       {/* Helpful Button */}
       <div className="flex items-center gap-3 pt-3 border-t border-cinza-suave/40">
+        {review.isMine && (
+          <div className="mr-auto flex gap-3">
+            <button type="button" onClick={onEdit} className="text-xs font-medium text-rose-gold hover:underline">
+              Editar
+            </button>
+            <button type="button" onClick={onDelete} className="text-xs font-medium text-red-400 hover:underline">
+              Excluir
+            </button>
+          </div>
+        )}
         <button
           onClick={() => onVoteHelpful(review.id)}
-          disabled={review.myVote}
+          aria-pressed={review.myVote}
           className={`flex items-center gap-1 text-xs font-medium transition-colors ${
             review.myVote
               ? "text-rose-gold"
@@ -289,31 +306,36 @@ function ReviewForm({
   productId,
   onClose,
   onSuccess,
+  initialReview,
 }: {
   productId: string;
   onClose: () => void;
   onSuccess: () => void;
+  initialReview?: ReviewItem | null;
 }) {
   const { user } = useAuth();
-  const [rating, setRating] = useState(5);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [media, setMedia] = useState<ReviewMedia[]>([]);
+  const [rating, setRating] = useState(initialReview?.rating ?? 5);
+  const [title, setTitle] = useState(initialReview?.title ?? "");
+  const [content, setContent] = useState(initialReview?.content ?? "");
+  const [media, setMedia] = useState<ReviewMedia[]>(initialReview?.media ?? []);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user) {
+      setError("Entre em sua conta para publicar uma avaliação.");
+      return;
+    }
 
     if (rating < 1 || rating > 5) {
       setError("Por favor, selecione uma classificação.");
       return;
     }
 
-    if (content.length < 4) {
-      setError("A avaliação deve ter pelo menos 4 caracteres.");
+    if (content.trim().length < 10) {
+      setError("A avaliação deve ter pelo menos 10 caracteres.");
       return;
     }
 
@@ -322,8 +344,12 @@ function ReviewForm({
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch("/api/reviews", {
-        method: "POST",
+      const response = await fetch(
+        initialReview
+          ? `/api/reviews/${encodeURIComponent(initialReview.id)}`
+          : "/api/reviews",
+        {
+        method: initialReview ? "PATCH" : "POST",
         headers: {
           "content-type": "application/json",
           authorization: `Bearer ${token}`,
@@ -335,7 +361,8 @@ function ReviewForm({
           content,
           media,
         }),
-      });
+        },
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -357,19 +384,45 @@ function ReviewForm({
 
     setUploading(true);
     try {
+      const selected = Array.from(files).slice(0, Math.max(0, 3 - media.length));
+      const token = await user?.getIdToken();
+      if (!token) throw new Error("Entre em sua conta para enviar fotos.");
+
       const newMedia: ReviewMedia[] = [];
-      for (const file of Array.from(files).slice(0, 5)) {
-        // In a real implementation, you would upload to Cloudinary here
-        // For now, we'll use URL.createObjectURL for local preview
-        const url = URL.createObjectURL(file);
-        const kind = file.type.startsWith("image/") ? "image" : "video";
+      for (const file of selected) {
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+          throw new Error("Envie fotos JPG, PNG ou WebP.");
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error("Cada foto pode ter no máximo 5 MB.");
+        }
+        const fileBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => typeof reader.result === "string"
+            ? resolve(reader.result)
+            : reject(new Error("Não foi possível ler a foto."));
+          reader.onerror = () => reject(new Error("Não foi possível ler a foto."));
+          reader.readAsDataURL(file);
+        });
+        const response = await fetch("/api/reviews/upload", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ fileBase64, fileName: file.name, kind: "image" }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || "Não foi possível enviar a foto.");
         newMedia.push({
-          id: `preview-${Date.now()}-${Math.random()}`,
-          kind,
-          url,
+          id: `upload-${Date.now()}-${newMedia.length}`,
+          kind: "image",
+          url: result.url,
         });
       }
-      setMedia(prev => [...prev, ...newMedia]);
+      setMedia((previous) => [...previous, ...newMedia]);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Não foi possível enviar as fotos.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -409,7 +462,7 @@ function ReviewForm({
       <div className="bg-branco rounded-3xl border border-rose-gold/25 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-card-lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
-            Escrever avaliação
+            {initialReview ? "Editar avaliação" : "Escrever avaliação"}
           </h2>
           <button
             onClick={onClose}
@@ -492,31 +545,31 @@ function ReviewForm({
           {/* Media Upload */}
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">
-              Adicione fotos ou vídeos
+              Adicione fotos
             </h3>
             <p className="text-xs text-foreground/50 mb-3">
-              Mostre o resultado obtido com o produto (máx. 5 arquivos)
+              Mostre o resultado obtido com o produto (máx. 3 fotos de até 5 MB)
             </p>
 
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,video/*"
+              accept="image/jpeg,image/png,image/webp"
               multiple
               onChange={handleFileUpload}
-              disabled={uploading || media.length >= 5}
+              disabled={uploading || media.length >= 3}
               className="sr-only"
             />
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || media.length >= 5}
+              disabled={uploading || media.length >= 3}
               className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-rose-gold/40 bg-rosa-claro/30 px-6 py-3 text-sm font-medium text-rose-gold hover:bg-rosa-claro/50 transition-colors disabled:opacity-50 w-full justify-center"
             >
               {uploading ? (
                 "Carregando..."
-              ) : media.length >= 5 ? (
-                "Máximo de arquivos atingido"
+              ) : media.length >= 3 ? (
+                "                Máximo de 3 fotos atingido"
               ) : (
                 <>
                   <Camera className="h-4 w-4" />
@@ -565,7 +618,7 @@ function ReviewForm({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={uploading || content.length < 4}
+              disabled={uploading || content.trim().length < 10}
               className={`${primaryButton} flex-1`}
             >
               {uploading ? "Enviando..." : "Publicar avaliação"}
@@ -583,8 +636,11 @@ export default function ReviewsSection({ productId }: { productId: string }) {
   const { guard: authGuard, modal: authModal } = useAuthGate(user, "Faça login para escrever uma avaliação.");
   const [state, setState] = useState<ReviewState>(LOADING);
   const [sort, setSort] = useState<SortOption>("recent");
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  const [voteError, setVoteError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [openForm, setOpenForm] = useState(false);
+  const [editingReview, setEditingReview] = useState<ReviewItem | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Media gallery state
@@ -597,7 +653,8 @@ export default function ReviewsSection({ productId }: { productId: string }) {
 
   const load = useCallback(
     async (sortKey: SortOption, pageNumber: number, append = false) => {
-      const url = `/api/reviews?productId=${encodeURIComponent(productId)}&sort=${sortKey}&page=${pageNumber}&sessionId=${encodeURIComponent(sessionId ?? "")}`;
+      const ratingQuery = ratingFilter ? `&rating=${ratingFilter}` : "";
+      const url = `/api/reviews?productId=${encodeURIComponent(productId)}&sort=${sortKey}&page=${pageNumber}&sessionId=${encodeURIComponent(sessionId ?? "")}${ratingQuery}`;
       try {
         const token = user ? await user.getIdToken().catch(() => null) : null;
         const response = await fetch(url, {
@@ -614,7 +671,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
         /* mantém estado atual */
       }
     },
-    [productId, sessionId, user],
+    [productId, ratingFilter, sessionId, user],
   );
 
   // Check if user has purchased this product
@@ -653,7 +710,7 @@ export default function ReviewsSection({ productId }: { productId: string }) {
   useEffect(() => {
     setPage(1);
     void load(sort, 1);
-  }, [productId, sort, load]);
+  }, [productId, sort, ratingFilter, load]);
 
   const distributionTotal = useMemo(
     () =>
@@ -664,24 +721,48 @@ export default function ReviewsSection({ productId }: { productId: string }) {
 
   const voteHelpful = useCallback(
     async (reviewId: string) => {
-      if (!user) return;
+      if (!user) {
+        setVoteError("Entre em sua conta para marcar uma avaliação como útil.");
+        return;
+      }
       try {
         const token = await user.getIdToken();
-        await fetch("/api/reviews/vote", {
+        const response = await fetch(`/api/reviews/${encodeURIComponent(reviewId)}/vote`, {
           method: "POST",
           headers: {
             "content-type": "application/json",
             authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ reviewId, helpful: true }),
+          body: JSON.stringify({ sessionId }),
         });
-        await load(sort, page, true);
-      } catch {
-        /* ignore */
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Não foi possível registrar seu voto.");
+        }
+        setVoteError(null);
+        await load(sort, page);
+      } catch (error) {
+        setVoteError(error instanceof Error ? error.message : "Não foi possível registrar seu voto.");
       }
     },
-    [user, sort, page, load],
+    [user, sessionId, sort, page, load],
   );
+
+  const deleteReview = useCallback(async (reviewId: string) => {
+    if (!user || !window.confirm("Deseja excluir sua avaliação?")) return;
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/reviews/${encodeURIComponent(reviewId)}`, {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Não foi possível excluir a avaliação.");
+      await load(sort, page);
+    } catch (error) {
+      setVoteError(error instanceof Error ? error.message : "Não foi possível excluir a avaliação.");
+    }
+  }, [user, load, sort, page]);
 
   const loadMore = useCallback(() => {
     if (state.hasMore && !loadingMore) {
@@ -739,8 +820,10 @@ export default function ReviewsSection({ productId }: { productId: string }) {
             onClose={() => setOpenForm(false)}
             onSuccess={() => {
               setOpenForm(false);
+              setEditingReview(null);
               load("recent", 1);
             }}
+            initialReview={editingReview}
           />
         )}
       </section>
@@ -808,13 +891,26 @@ export default function ReviewsSection({ productId }: { productId: string }) {
               const percent = distributionTotal > 0 ? (count / distributionTotal) * 100 : 0;
               return (
                 <div key={stars} className="flex items-center gap-3">
-                  <span className="text-sm text-foreground/70 w-8">{stars} estrela{stars !== 1 ? "s" : ""}</span>
-                  <div className="flex-1 h-2 rounded-full bg-rosa-claro/40 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setRatingFilter((current) => current === stars ? null : stars)}
+                    aria-pressed={ratingFilter === stars}
+                    className={`w-10 text-left text-sm ${ratingFilter === stars ? "font-bold text-rose-gold" : "text-foreground/70"}`}
+                  >
+                    {stars}★
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Filtrar avaliações de ${stars} estrelas`}
+                    aria-pressed={ratingFilter === stars}
+                    onClick={() => setRatingFilter((current) => current === stars ? null : stars)}
+                    className="flex-1 h-2 rounded-full bg-rosa-claro/40 overflow-hidden"
+                  >
                     <div
                       className="h-full bg-rose-gold transition-all duration-300"
                       style={{ width: `${percent}%` }}
                     />
-                  </div>
+                  </button>
                   <span className="text-sm text-foreground/60 w-12 text-right">
                     {count}
                   </span>
@@ -833,14 +929,25 @@ export default function ReviewsSection({ productId }: { productId: string }) {
                 <option value="recent">Mais recentes</option>
                 <option value="helpful">Mais úteis</option>
                 <option value="rating">Melhor avaliação</option>
+                <option value="low_rating">Menor avaliação</option>
                 <option value="with_media">Com fotos/vídeos ({reviewsWithMedia.length})</option>
               </select>
+              {ratingFilter && (
+                <button
+                  type="button"
+                  onClick={() => setRatingFilter(null)}
+                  className="text-sm text-rose-gold underline"
+                >
+                  Limpar filtro {ratingFilter}★
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Reviews List */}
+      {voteError && <p role="alert" className="mb-4 text-sm text-red-400">{voteError}</p>}
       <div className="space-y-6">
         {state.items.map((review) => (
           <ReviewItemCard
@@ -848,6 +955,11 @@ export default function ReviewsSection({ productId }: { productId: string }) {
             review={review}
             onVoteHelpful={voteHelpful}
             onOpenGallery={(media, index) => openGallery(media, index)}
+            onEdit={() => {
+              setEditingReview(review);
+              setOpenForm(true);
+            }}
+            onDelete={() => void deleteReview(review.id)}
           />
         ))}
 
@@ -870,8 +982,10 @@ export default function ReviewsSection({ productId }: { productId: string }) {
           onClose={() => setOpenForm(false)}
           onSuccess={() => {
             setOpenForm(false);
+            setEditingReview(null);
             load("recent", 1);
           }}
+          initialReview={editingReview}
         />
       )}
 

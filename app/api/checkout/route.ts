@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/authUtils";
-import { getProduct } from "@/lib/catalogData";
+import { ensureProductRecord } from "@/lib/products";
 import {
   findBuiltInCoupon,
   couponDiscountCents,
@@ -25,6 +25,7 @@ const checkoutSchema = z.object({
     .array(
       z.object({
         productId: z.string().min(1),
+        variantId: z.string().min(1).optional(),
         quantity: z.number().int().min(1).max(99),
       }),
     )
@@ -77,11 +78,32 @@ export async function POST(req: Request) {
     const { items, customer, address, couponCode, payment } = parsed.data;
 
     // ---- Valida itens contra o catálogo (fonte da verdade de preço). ----
-    const lines: Array<{ item: typeof items[0]; product: NonNullable<Awaited<ReturnType<typeof getProduct>>>; cents: number }> = [];
+    const lines: Array<{
+      item: typeof items[number];
+      product: NonNullable<Awaited<ReturnType<typeof ensureProductRecord>>>;
+      cents: number;
+      unitPriceCents: number;
+      variantName: string | null;
+      stock: number;
+    }> = [];
     for (const item of items) {
-      const product = await getProduct(item.productId);
+      const product = await ensureProductRecord(item.productId);
       if (!product) continue;
-      lines.push({ item, product, cents: product.priceCents * item.quantity });
+      const variant = item.variantId
+        ? product.optionGroups?.flatMap((group) => group.options).find((option) => option.id === item.variantId)
+        : null;
+      if (item.variantId && !variant) {
+        return NextResponse.json({ error: `A opção selecionada para ${product.name} não está mais disponível.` }, { status: 409 });
+      }
+      const unitPriceCents = variant?.priceCents ?? product.priceCents;
+      lines.push({
+        item,
+        product,
+        cents: unitPriceCents * item.quantity,
+        unitPriceCents,
+        variantName: variant?.name ?? null,
+        stock: variant?.stock ?? product.stock,
+      });
     }
 
     if (lines.length === 0) {
@@ -92,7 +114,7 @@ export async function POST(req: Request) {
     }
 
     const invalidStockLine = lines.find(
-      (line) => line.product.stock < line.item.quantity,
+      (line) => line.stock < line.item.quantity,
     );
     if (invalidStockLine) {
       return NextResponse.json(
@@ -181,8 +203,9 @@ export async function POST(req: Request) {
             create: lines.map((line) => ({
               productId: line.product.id,
               productName: line.product.name,
-              priceCents: line.product.priceCents,
+              priceCents: line.unitPriceCents,
               quantity: line.item.quantity,
+              variant: line.variantName,
             })),
           },
         },

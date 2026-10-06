@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/authUtils";
-import { getProduct } from "@/lib/catalogData";
+import { ensureProductRecord } from "@/lib/products";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,7 @@ const createSchema = z.object({
   productId: z.string().min(1),
   rating: z.number().int().min(1).max(5),
   title: z.string().max(120).optional(),
-  content: z.string().min(4).max(2000),
+  content: z.string().trim().min(10, "A avaliação deve ter pelo menos 10 caracteres.").max(2000),
   media: z
     .array(
       z.object({
@@ -18,7 +19,7 @@ const createSchema = z.object({
         url: z.string().url(),
       }),
     )
-    .max(5)
+    .max(3)
     .default([]),
 });
 
@@ -41,9 +42,15 @@ export async function GET(req: Request) {
     // Identificação opcional para marcar "minha avaliação votada".
     const auth = await authenticateRequest(req);
 
-    const where = { productId, status: "approved" };
+    const allReviewsWhere = { productId, status: "approved" };
+    const rating = Number(searchParams.get("rating"));
+    const where = {
+      ...allReviewsWhere,
+      ...(Number.isInteger(rating) && rating >= 1 && rating <= 5 ? { rating } : {}),
+      ...(sort === "with_media" ? { media: { some: {} } } : {}),
+    };
 
-    const [reviews, total, grouped] = await Promise.all([
+    const [reviews, total, filteredTotal, grouped] = await Promise.all([
       prisma.review.findMany({
         where,
         orderBy:
@@ -51,7 +58,9 @@ export async function GET(req: Request) {
             ? [{ helpfulCount: "desc" }, { createdAt: "desc" }]
             : sort === "rating"
               ? [{ rating: "desc" }, { createdAt: "desc" }]
-              : { createdAt: "desc" },
+              : sort === "low_rating"
+                ? [{ rating: "asc" }, { createdAt: "desc" }]
+                : { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
@@ -59,10 +68,11 @@ export async function GET(req: Request) {
           votes: true,
         },
       }),
+      prisma.review.count({ where: allReviewsWhere }),
       prisma.review.count({ where }),
       prisma.review.groupBy({
         by: ["rating"],
-        where,
+        where: allReviewsWhere,
         _count: { _all: true },
       }),
     ]);
@@ -80,6 +90,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       average,
       total,
+      filteredTotal,
       distribution,
       items: reviews.map((review) => ({
         id: review.id,
@@ -94,10 +105,11 @@ export async function GET(req: Request) {
             (auth.ok && vote.userId === auth.uid) ||
             (!auth.ok && vote.sessionId && vote.sessionId === sessionId),
         ),
-        verifiedBuyer: review.userId ? true : false,
+        verifiedBuyer: review.verifiedPurchase,
+        isMine: auth.ok && review.userId === auth.uid,
         media: review.media,
       })),
-      hasMore: page * pageSize < total,
+      hasMore: page * pageSize < filteredTotal,
     });
   } catch (error) {
     console.error("[api/reviews] GET", error);
@@ -111,7 +123,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const auth = await authenticateRequest(req);
-    const isAuth = auth.ok;
+    if (!auth.ok) {
+      return NextResponse.json(
+        { error: "Entre em sua conta para avaliar este produto." },
+        { status: 401 },
+      );
+    }
 
     const body = await req.json().catch(() => null);
     if (!body) {
@@ -128,7 +145,7 @@ export async function POST(req: Request) {
 
     const { productId, rating, title, content, media } = parsed.data;
 
-    const product = await getProduct(productId);
+    const product = await ensureProductRecord(productId);
     if (!product) {
       return NextResponse.json(
         { error: "Produto não encontrado." },
@@ -136,11 +153,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verified buyer check: user must have a delivered/paid order for this product
-    if (isAuth && auth.uid) {
-      const hasOrder = await prisma.orderItem.findFirst({
+    // TODO: enforce verified-purchase eligibility after purchase/order flows are unified.
+    const verifiedPurchase = await prisma.orderItem.findFirst({
         where: {
-          productId,
+          productId: product.id,
           order: {
             userId: auth.uid,
             status: { in: ["pago", "entregue", "concluido"] },
@@ -148,55 +164,77 @@ export async function POST(req: Request) {
         },
         take: 1,
       });
-      if (!hasOrder) {
-        return NextResponse.json(
-          { error: "Apenas clientes que compraram este produto podem avaliar." },
-          { status: 403 },
-        );
-      }
-    }
-
-    let userName = "Cliente";
-    let userId: string | null = null;
-
-    if (isAuth) {
-      userId = auth.uid;
-      const profile = await prisma.userProfile.findUnique({
-        where: { uid: auth.uid },
-        select: { name: true },
-      });
-      if (profile?.name) userName = profile.name;
-    }
+    const profile = await prisma.userProfile.upsert({
+      where: { uid: auth.uid },
+      create: { uid: auth.uid, interests: [], badges: [] },
+      update: {},
+      select: { name: true },
+    });
+    const userName = profile.name || "Cliente";
 
     // Mídia exige moderação antes de aparecer publicamente.
     const status = media.length > 0 ? "pending" : "approved";
 
-    const review = await prisma.review.create({
-      data: {
-        productId,
-        rating,
-        title: title || null,
-        content,
-        status,
-        userName,
-        userId,
-        media: {
-          create: media.map((item, index) => ({
-            kind: item.kind,
-            url: item.url,
-            sortOrder: index,
-          })),
+    const review = await prisma.$transaction(async (tx) => {
+      const created = await tx.review.create({
+        data: {
+          productId: product.id,
+          rating,
+          title: title || null,
+          content,
+          status,
+          userName,
+          userId: auth.uid,
+          verifiedPurchase: Boolean(verifiedPurchase),
+          media: {
+            create: media.map((item, index) => ({
+              kind: item.kind,
+              url: item.url,
+              sortOrder: index,
+            })),
+          },
         },
-      },
-      include: { media: true },
+        include: { media: true },
+      });
+      await updateProductRating(tx, product.id);
+      return created;
     });
 
     return NextResponse.json({ review, moderation: status === "pending" }, { status: 201 });
   } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "Você já avaliou este produto. Edite sua avaliação existente." },
+        { status: 409 },
+      );
+    }
     console.error("[api/reviews] POST", error);
     return NextResponse.json(
       { error: "Não foi possível publicar a avaliação." },
       { status: 500 },
     );
   }
+}
+
+async function updateProductRating(
+  tx: Prisma.TransactionClient,
+  productId: string,
+) {
+  const aggregate = await tx.review.aggregate({
+    where: { productId, status: "approved" },
+    _avg: { rating: true },
+    _count: { _all: true },
+  });
+  await tx.product.update({
+    where: { id: productId },
+    data: {
+      ratingAvg: aggregate._avg.rating ?? 0,
+      ratingCount: aggregate._count._all,
+    },
+  });
 }

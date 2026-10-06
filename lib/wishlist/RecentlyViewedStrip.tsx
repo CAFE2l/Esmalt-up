@@ -58,7 +58,11 @@ export function RecentlyViewedStrip({
 
     // Listen for storage changes
     window.addEventListener('storage', loadRecentlyViewed);
-    return () => window.removeEventListener('storage', loadRecentlyViewed);
+    window.addEventListener('recently-viewed-updated', loadRecentlyViewed);
+    return () => {
+      window.removeEventListener('storage', loadRecentlyViewed);
+      window.removeEventListener('recently-viewed-updated', loadRecentlyViewed);
+    };
   }, [maxItems]);
 
   if (loading) {

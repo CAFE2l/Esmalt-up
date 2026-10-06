@@ -6,6 +6,7 @@ import ProductView from "@/components/produto/ProductView";
 import ReviewsSection from "@/components/produto/ReviewsSection";
 import QuestionsSection from "@/components/produto/QuestionsSection";
 import RelatedProducts from "@/components/produto/RelatedProducts";
+import { RecentlyViewedStrip } from "@/lib/wishlist/RecentlyViewedStrip";
 
 export const runtime = "nodejs";
 
@@ -141,6 +142,7 @@ export default async function ProductPage({
       </div>
 
       {related.length > 0 && <RelatedProducts products={related} />}
+      <RecentlyViewedStrip className="pt-4" />
     </div>
   );
 }

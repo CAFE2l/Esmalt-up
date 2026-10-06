@@ -39,6 +39,7 @@ export function useRecentlyViewed() {
       
       // Save to localStorage
       localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(newList));
+      window.dispatchEvent(new Event("recently-viewed-updated"));
       
       // Update state
       setRecentlyViewed(newList);

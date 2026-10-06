@@ -19,6 +19,8 @@ import {
 
 export interface CartLine {
   productId: string;
+  variantId?: string;
+  variantName?: string;
   quantity: number;
   product?: CartProductSummary;
 }
@@ -58,13 +60,13 @@ interface CartContextValue {
   openCart: () => void;
   closeCart: () => void;
   addItem: (productId: string, quantity?: number, options?: CartItemOptions) => void;
-  removeItem: (productId: string) => void;
-  setQuantity: (productId: string, quantity: number) => void;
+  removeItem: (productId: string, variantId?: string) => void;
+  setQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
   applyCoupon: (code: string) => Promise<void>;
   removeCoupon: () => void;
   syncWithAccount: () => Promise<void>;
-  linePrice: (productId: string) => string;
+  linePrice: (productId: string, variantId?: string) => string;
 }
 
 const STORAGE_KEY = "esmaltup-cart";
@@ -182,8 +184,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({
           sessionId,
-          items: (guestItems ?? itemsRef.current).map(({ productId, quantity }) => ({
+          items: (guestItems ?? itemsRef.current).map(({ productId, variantId, variantName, quantity }) => ({
             productId,
+            variantId,
+            variantName,
             quantity,
           })),
         }),
@@ -258,7 +262,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
             },
             body: JSON.stringify({
               sessionId,
-              items: items.map(({ productId, quantity }) => ({ productId, quantity })),
+              items: items.map(({ productId, variantId, variantName, quantity }) => ({
+                productId,
+                variantId,
+                variantName,
+                quantity,
+              })),
             }),
             signal: controller.signal,
           });
@@ -296,15 +305,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       if (!user) writeStored(STORAGE_OWNER_KEY, GUEST_OWNER);
       setItems((current) => {
-        const existing = current.find((line) => line.productId === productId);
+        const variantId = options?.variantId;
+        const existing = current.find(
+          (line) => line.productId === productId && line.variantId === variantId,
+        );
         if (existing) {
           return current.map((line) =>
-            line.productId === productId
+            line.productId === productId && line.variantId === variantId
               ? { ...line, product, quantity: Math.min(99, product.stock, line.quantity + quantity) }
               : line,
           );
         }
-        return [...current, { productId, quantity: Math.min(99, product.stock, quantity), product }];
+        return [...current, {
+          productId,
+          variantId: options?.variantId,
+          variantName: options?.variantName,
+          quantity: Math.min(99, product.stock, quantity),
+          product,
+        }];
       });
       setError(null);
       setToast("Produto adicionado ao carrinho");
@@ -313,18 +331,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
-  const removeItem = useCallback((productId: string) => {
-    setItems((current) => current.filter((line) => line.productId !== productId));
+  const removeItem = useCallback((productId: string, variantId?: string) => {
+    setItems((current) => current.filter((line) =>
+      line.productId !== productId || (variantId !== undefined && line.variantId !== variantId),
+    ));
   }, []);
 
-  const setQuantity = useCallback((productId: string, quantity: number) => {
+  const setQuantity = useCallback((productId: string, quantity: number, variantId?: string) => {
     if (quantity < 1) {
-      setItems((current) => current.filter((line) => line.productId !== productId));
+      setItems((current) => current.filter((line) =>
+        line.productId !== productId || (variantId !== undefined && line.variantId !== variantId),
+      ));
       return;
     }
     setItems((current) =>
       current.flatMap((line) => {
-        if (line.productId !== productId) return [line];
+        if (line.productId !== productId || (variantId !== undefined && line.variantId !== variantId)) return [line];
         const maxQuantity = Math.min(99, line.product?.stock ?? 99);
         return maxQuantity > 0
           ? [{ ...line, quantity: Math.min(maxQuantity, quantity) }]
@@ -402,9 +424,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCouponState({ coupon: null, discountCents: 0, status: "idle", message: "" });
   }, []);
 
-  const linePrice = useCallback((productId: string) => {
+  const linePrice = useCallback((productId: string, variantId?: string) => {
     const product =
-      items.find((line) => line.productId === productId)?.product ??
+      items.find((line) =>
+        line.productId === productId &&
+        (variantId === undefined || line.variantId === variantId),
+      )?.product ??
       (getProductSync(productId) ? asCartProduct(getProductSync(productId)!) : null);
     return product ? formatPrice(product.priceCents) : "";
   }, [items]);
