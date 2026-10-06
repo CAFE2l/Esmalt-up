@@ -137,6 +137,7 @@ export async function GET(request: Request) {
           where: {
             status: "valid",
             showOnWall: true,
+            rankPosition: { not: null },
             issuedAt: { gte: getPeriodStart("month", new Date())! },
           },
         }),
@@ -144,16 +145,17 @@ export async function GET(request: Request) {
           where: {
             status: "valid",
             showOnWall: true,
+            rankPosition: { not: null },
             issuedAt: { gte: new Date(new Date().setUTCHours(0, 0, 0, 0)) },
           },
         }),
         prisma.certificate.findFirst({
-          where: { status: "valid", showOnWall: true },
+          where: { status: "valid", showOnWall: true, rankPosition: { not: null } },
           orderBy: [{ rankPosition: "asc" }],
           select: { recipientName: true, user: { select: { publicProfile: { select: { displayName: true, isPublic: true } } } } },
         }),
         prisma.certificate.findFirst({
-          where: { status: "valid", showOnWall: true },
+          where: { status: "valid", showOnWall: true, rankPosition: { not: null } },
           orderBy: [{ issuedAt: "desc" }, { rankPosition: "desc" }],
           select: { recipientName: true, user: { select: { publicProfile: { select: { displayName: true, isPublic: true } } } } },
         }),
@@ -161,9 +163,9 @@ export async function GET(request: Request) {
 
     const hasMore = pageRows.length > PAGE_SIZE;
     const visibleRows = hasMore ? pageRows.slice(0, PAGE_SIZE) : pageRows;
-    const ids = visibleRows
+    const ids = [...visibleRows, ...podiumRows]
       .map((row) => row.user.publicProfile?.isPublic ? row.userId : null)
-      .filter((id): id is string => Boolean(id));
+      .filter((id, index, all): id is string => Boolean(id) && all.indexOf(id) === index);
     const viewerFollows = auth.ok && ids.length
       ? await prisma.follow.findMany({
           where: { followerId: auth.uid, followingId: { in: ids } },
@@ -178,7 +180,7 @@ export async function GET(request: Request) {
       toWallEntry(row, followed.has(row.userId), auth.ok ? auth.uid : undefined),
     );
     const firstIssued = await prisma.certificate.findFirst({
-      where: { status: "valid", showOnWall: true },
+      where: { status: "valid", showOnWall: true, rankPosition: { not: null } },
       orderBy: { issuedAt: "asc" },
       select: { issuedAt: true },
     });

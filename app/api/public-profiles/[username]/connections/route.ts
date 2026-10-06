@@ -65,30 +65,29 @@ export async function GET(
       }),
       prisma.follow.count({ where }),
     ]);
-
-    const profiles = rows.map((row) => {
-      const listed = type === "followers"
-        ? (row as typeof rows[number] & { follower: { userId: string; username: string; displayName: string; avatarUrl: string | null; followersCount: number; followingCount: number; allowFollows: boolean } }).follower
-        : (row as typeof rows[number] & { following: { userId: string; username: string; displayName: string; avatarUrl: string | null; followersCount: number; followingCount: number; allowFollows: boolean } }).following;
-      return {
-        ...safePublicProfile(listed),
-        isFollowing: auth.ok && Boolean(
-          auth.uid === listed.userId || false
-        ),
-      };
-    });
-
-    if (auth.ok && profiles.length) {
-      const targetIds = rows.map((row) => type === "followers"
-        ? (row as { follower: { userId: string } }).follower.userId
-        : (row as { following: { userId: string } }).following.userId);
+    const listedProfiles = rows.map((row) =>
+      type === "followers" ? row.follower : row.following,
+    );
+    const followed = new Set<string>();
+    if (auth.ok && listedProfiles.length) {
       const follows = await prisma.follow.findMany({
-        where: { followerId: auth.uid, followingId: { in: targetIds } },
+        where: {
+          followerId: auth.uid,
+          followingId: { in: listedProfiles.map((listed) => listed.userId) },
+        },
         select: { following: { select: { username: true } } },
       });
-      const followed = new Set(follows.map((item) => item.following.username));
-      profiles.forEach((item) => { item.isFollowing = followed.has(item.username); });
+      follows.forEach((item) => followed.add(item.following.username));
     }
+    const profiles = listedProfiles.map((listed) => ({
+      username: listed.username,
+      displayName: listed.displayName,
+      avatarUrl: safePublicProfile(listed).avatarUrl,
+      followersCount: listed.followersCount,
+      followingCount: listed.followingCount,
+      allowFollows: listed.allowFollows,
+      isFollowing: followed.has(listed.username),
+    }));
 
     return NextResponse.json({
       profiles,

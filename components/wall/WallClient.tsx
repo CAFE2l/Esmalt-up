@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import {
-  Award, CalendarDays, Check, ChevronRight, Crown, Filter, GraduationCap,
+  CalendarDays, Check, ChevronRight, Crown, Filter, GraduationCap,
   Medal, RefreshCw, Search, Sparkles, Star, Trophy, Users, X,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { FollowButton } from "@/lib/FollowContext";
+import { FollowButton, useFollow } from "@/lib/FollowContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { LEDUnderline } from "@/components/ui/LED";
 import { isNewGraduate, longDatePtBR, type WallEntry, type WallPage } from "@/lib/wall";
@@ -76,7 +76,8 @@ function SkeletonRows() {
 }
 
 function Count({ value }: { value: number }) {
-  return <motion.span key={value} initial={{ y: 5, opacity: 0.5 }} animate={{ y: 0, opacity: 1 }} className="tabular-nums">{value.toLocaleString("pt-BR")}</motion.span>;
+  const reduceMotion = useReducedMotion();
+  return <motion.span key={value} initial={reduceMotion ? false : { y: 5, opacity: 0.5 }} animate={{ y: 0, opacity: 1 }} className="tabular-nums">{value.toLocaleString("pt-BR")}</motion.span>;
 }
 
 function FollowAction({ entry }: { entry: WallEntry }) {
@@ -103,14 +104,15 @@ function ProfileLink({ entry, children }: { entry: WallEntry; children: React.Re
 }
 
 function PodiumCard({ entry, place }: { entry: WallEntry; place: number }) {
+  const reduceMotion = useReducedMotion();
   const champion = place === 1;
   const badge = place === 1 ? "text-amber-200" : place === 2 ? "text-slate-200" : "text-amber-500";
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 18 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
+      whileHover={reduceMotion ? {} : { y: -4 }}
       transition={{ type: "spring", stiffness: 230, damping: 22 }}
       className={`relative min-w-[82vw] snap-center overflow-hidden rounded-3xl border p-5 sm:min-w-0 ${
         champion
@@ -118,7 +120,7 @@ function PodiumCard({ entry, place }: { entry: WallEntry; place: number }) {
           : "border-cinza-suave/50 bg-branco/65"
       }`}
     >
-      {champion && <Sparkles aria-hidden className="absolute right-4 top-4 h-5 w-5 animate-pulse text-amber-300" />}
+      {champion && <Sparkles aria-hidden className="absolute right-4 top-4 h-5 w-5 motion-safe:animate-pulse text-amber-300" />}
       <div className="flex items-center justify-between">
         <span className={`inline-flex items-center gap-2 font-extrabold ${badge}`}>
           {champion ? <Crown size={20} /> : <Medal size={18} />} #{entry.rankPosition}
@@ -150,8 +152,38 @@ function GraduateRow({
   highlight: boolean;
 }) {
   const path = entry.profile ? `/u/${encodeURIComponent(entry.profile.username)}` : null;
-  const content = (
-    <>
+  const reduceMotion = useReducedMotion();
+  const rowClass = `border-b border-cinza-suave/20 transition-colors hover:bg-rosa-claro/15 ${entry.rankPosition === 1 ? "bg-amber-300/[0.07]" : ""} ${entry.isOwn ? "bg-rose-gold/10 ring-1 ring-inset ring-rose-gold/45" : ""} ${highlight ? "motion-safe:animate-pulse ring-2 ring-inset ring-rose-gold" : ""}`;
+  const follow = useFollow(entry.profile?.username ?? "", entry.profile ? {
+    isFollowing: entry.isFollowing,
+    followersCount: entry.profile.followersCount,
+    followingCount: entry.profile.followingCount,
+    allowFollows: entry.profile.allowFollows,
+    loaded: true,
+  } : undefined);
+  return (
+    <motion.tr
+      layout={!reduceMotion}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? undefined : { opacity: 0 }}
+      whileHover={reduceMotion ? {} : { y: -2 }}
+      id={`graduate-${entry.rankPosition}`}
+      className={`${rowClass} ${path ? "cursor-pointer" : ""}`}
+      tabIndex={path ? 0 : undefined}
+      role={path ? "link" : undefined}
+      aria-label={path ? `Abrir perfil de ${entry.recipientName}, posição ${entry.rankPosition}` : undefined}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("a,button")) return;
+        if (path) window.location.assign(path);
+      }}
+      onKeyDown={(event) => {
+        if (path && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          window.location.assign(path);
+        }
+      }}
+    >
       <td className="px-4 py-4">
         <span className={`inline-flex min-w-11 items-center justify-center rounded-xl border px-2 py-2 text-sm font-extrabold tabular-nums ${rankTone(entry.rankPosition)}`}>
           {entry.rankPosition === 1 && <Crown size={14} className="mr-1" />}#{entry.rankPosition}
@@ -165,7 +197,7 @@ function GraduateRow({
               <span className="truncate">{entry.recipientName}</span>
               {isNewGraduate(entry.issuedAt) && <span className="rounded-full bg-rose-gold/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-gold">Novo</span>}
               {entry.isOwn && <span className="rounded-full bg-rosa-blush/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-gold">Você</span>}
-              {entry.isFollowing && <span className="rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-bold text-violet-300">Seguindo</span>}
+              {follow.isFollowing && <span className="rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-bold text-violet-300">Seguindo</span>}
             </span>
             <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-emerald-300"><Check size={12} /> Certificado válido</span>
           </span>
@@ -178,48 +210,54 @@ function GraduateRow({
       </td>
       <td className="px-4 py-4">
         <div className="flex items-center gap-2">
-          {entry.profile && <Link href={path!} className="whitespace-nowrap rounded-full border border-rose-gold/35 px-3 py-2 text-xs font-semibold text-rose-gold">Ver perfil</Link>}
+          {entry.profile && <Link href={`/u/${encodeURIComponent(entry.profile.username)}`} className="whitespace-nowrap rounded-full border border-rose-gold/35 px-3 py-2 text-xs font-semibold text-rose-gold">Ver perfil</Link>}
           <FollowAction entry={entry} />
         </div>
       </td>
-    </>
+    </motion.tr>
   );
-  const rowClass = `border-b border-cinza-suave/20 transition-colors hover:bg-rosa-claro/15 ${entry.rankPosition === 1 ? "bg-amber-300/[0.07]" : ""} ${entry.isOwn ? "bg-rose-gold/10 ring-1 ring-inset ring-rose-gold/45" : ""} ${highlight ? "animate-pulse ring-2 ring-inset ring-rose-gold" : ""}`;
+}
+
+function GraduateMobileCard({
+  entry,
+  highlight,
+}: {
+  entry: WallEntry;
+  highlight: boolean;
+}) {
+  const reduceMotion = useReducedMotion();
+  const follow = useFollow(entry.profile?.username ?? "", entry.profile ? {
+    isFollowing: entry.isFollowing,
+    followersCount: entry.profile.followersCount,
+    followingCount: entry.profile.followingCount,
+    allowFollows: entry.profile.allowFollows,
+    loaded: true,
+  } : undefined);
   return (
-    <>
-      <tr
-        id={`graduate-${entry.rankPosition}`}
-        className={`${rowClass} ${path ? "cursor-pointer" : ""}`}
-        tabIndex={path ? 0 : undefined}
-        role={path ? "link" : undefined}
-        aria-label={path ? `Abrir perfil de ${entry.recipientName}, posição ${entry.rankPosition}` : undefined}
-        onClick={() => { if (path) window.location.assign(path); }}
-        onKeyDown={(event) => {
-          if (path && (event.key === "Enter" || event.key === " ")) {
-            event.preventDefault();
-            window.location.assign(path);
-          }
-        }}
-      >
-        {content}
-      </tr>
-      <li className={`${rowClass} list-none p-3 sm:hidden`}>
-        <div className="flex items-center gap-3">
-          <span className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-1 text-xs font-extrabold ${rankTone(entry.rankPosition)}`}>#{entry.rankPosition}</span>
-          <ProfileLink entry={entry}><Avatar entry={entry} size="sm" /></ProfileLink>
-          <span className="min-w-0 flex-1">
-            <ProfileLink entry={entry}><span className="block truncate text-sm font-bold text-foreground">{entry.recipientName}</span></ProfileLink>
-            <span className="text-[11px] text-foreground/60">{longDatePtBR(entry.issuedAt)}</span>
-          </span>
-          <FollowAction entry={entry} />
-        </div>
-      </li>
-    </>
+    <motion.li
+      layout={!reduceMotion}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? undefined : { opacity: 0 }}
+      id={`graduate-mobile-${entry.rankPosition}`}
+      className={`list-none border-b border-cinza-suave/20 p-3 ${entry.isOwn ? "bg-rose-gold/10" : ""} ${highlight ? "motion-safe:animate-pulse ring-2 ring-rose-gold" : ""}`}
+    >
+      <div className="flex items-center gap-3">
+        <span className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-1 text-xs font-extrabold ${rankTone(entry.rankPosition)}`}>#{entry.rankPosition}</span>
+        {entry.profile ? <Link href={`/u/${encodeURIComponent(entry.profile.username)}`}><Avatar entry={entry} size="sm" /></Link> : <Avatar entry={entry} size="sm" />}
+        <span className="min-w-0 flex-1">
+          {entry.profile ? <Link href={`/u/${encodeURIComponent(entry.profile.username)}`} className="block truncate text-sm font-bold text-foreground">{entry.recipientName}</Link> : <span className="block truncate text-sm font-bold text-foreground">{entry.recipientName}</span>}
+          <span className="block text-[11px] text-foreground/60">{longDatePtBR(entry.issuedAt)}{follow.isFollowing ? " · Seguindo" : ""}</span>
+        </span>
+        <FollowAction entry={entry} />
+      </div>
+    </motion.li>
   );
 }
 
 export default function WallClient() {
   const { user } = useAuth();
+  const reduceMotion = useReducedMotion();
   const [data, setData] = useState<WallPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -236,6 +274,7 @@ export default function WallClient() {
   const [highlightRank, setHighlightRank] = useState<number | null>(null);
   const [jumpRank, setJumpRank] = useState<number | null>(null);
   const requestId = useRef(0);
+  const requestedPage = useRef<number | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(queryDraft.trim()), 250);
@@ -278,7 +317,17 @@ export default function WallClient() {
     }
   }, [followingOnly, order, period, publicOnly, query, user]);
 
-  useEffect(() => { void load(1); }, [load]);
+  useEffect(() => {
+    const filtersCleared = order === "rank" && period === "all" && !query && !followingOnly && !publicOnly;
+    if (requestedPage.current !== null) {
+      if (!filtersCleared) return;
+      const requested = requestedPage.current;
+      requestedPage.current = null;
+      void load(requested);
+      return;
+    }
+    void load(1);
+  }, [followingOnly, load, order, period, publicOnly, query]);
 
   useEffect(() => {
     let active = true;
@@ -308,7 +357,11 @@ export default function WallClient() {
 
   useEffect(() => {
     if (jumpRank === null || !data?.entries.some((entry) => entry.rankPosition === jumpRank)) return;
-    const row = document.getElementById(`graduate-${jumpRank}`);
+    const row = document.getElementById(
+      window.matchMedia("(max-width: 639px)").matches
+        ? `graduate-mobile-${jumpRank}`
+        : `graduate-${jumpRank}`,
+    );
     row?.scrollIntoView({ behavior: "smooth", block: "center" });
     setHighlightRank(jumpRank);
     window.setTimeout(() => setHighlightRank(null), 2500);
@@ -325,15 +378,17 @@ export default function WallClient() {
   };
 
   const goToPosition = () => {
-    if (!own?.rankPosition) return;
+    if (!own?.rankPosition || !own.showOnWall) return;
+    const pageNumber = Math.ceil(own.rankPosition / (data?.pageSize ?? 20));
+    const canLoadDirectly = order === "rank" && period === "all" && !query && !followingOnly && !publicOnly;
     setQueryDraft("");
     setPeriod("all");
     setFollowingOnly(false);
     setPublicOnly(false);
     setOrder("rank");
-    const pageNumber = Math.ceil(own.rankPosition / (data?.pageSize ?? 20));
     setJumpRank(own.rankPosition);
-    void load(pageNumber);
+    if (canLoadDirectly) void load(pageNumber);
+    else requestedPage.current = pageNumber;
   };
 
   const filterControls = (
@@ -398,7 +453,7 @@ export default function WallClient() {
               <div className="flex rounded-full border border-cinza-suave/45 bg-rosa-claro/15 p-1">
                 {([{ value: "rank", label: "Primeiros formados" }, { value: "recent", label: "Mais recentes" }] as const).map((item) => (
                   <button key={item.value} onClick={() => setOrder(item.value)} className={`relative rounded-full px-3 py-2 text-xs font-semibold transition sm:px-4 ${order === item.value ? "text-white" : "text-foreground/65"}`}>
-                    {order === item.value && <motion.span layoutId="hall-sort" className="absolute inset-0 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold" />}
+                    {order === item.value && <motion.span layoutId={reduceMotion ? undefined : "hall-sort"} className="absolute inset-0 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold" />}
                     <span className="relative z-10">{item.label}</span>
                   </button>
                 ))}
@@ -463,7 +518,7 @@ export default function WallClient() {
               </table>
               <ul className="sm:hidden">
                 <AnimatePresence initial={false}>
-                  {list.map((entry) => <GraduateRow key={entry.publicCode} entry={entry} highlight={highlightRank === entry.rankPosition} />)}
+                  {list.map((entry) => <GraduateMobileCard key={entry.publicCode} entry={entry} highlight={highlightRank === entry.rankPosition} />)}
                 </AnimatePresence>
               </ul>
             </div>
@@ -492,15 +547,15 @@ export default function WallClient() {
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-rose-gold/25 bg-[#241923]/95 px-4 py-3 text-white shadow-[0_-8px_32px_rgba(0,0,0,.18)] backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-          {own?.rankPosition ? (
+          {own?.rankPosition && own.showOnWall ? (
             <>
               <p className="text-sm font-semibold">Sua posição: <span className="text-rose-gold">#{own.rankPosition} de {data?.stats.total ?? "—"}</span></p>
               <button onClick={goToPosition} className="rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-2 text-xs font-bold text-white sm:text-sm">Ir para minha posição</button>
             </>
           ) : (
             <>
-              <p className="text-xs font-semibold sm:text-sm">Conclua o curso e entre para o Hall da Fama</p>
-              <Link href="/curso" className="shrink-0 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-2 text-xs font-bold text-white sm:text-sm">Ver curso <ChevronRight className="ml-1 inline" size={14} /></Link>
+              <p className="text-xs font-semibold sm:text-sm">{own?.rankPosition ? "Seu certificado está oculto no mural" : "Conclua o curso e entre para o Hall da Fama"}</p>
+              <Link href={own?.rankPosition ? "/configuracoes" : "/curso"} className="shrink-0 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-2 text-xs font-bold text-white sm:text-sm">{own?.rankPosition ? "Configurar perfil" : "Ver curso"} <ChevronRight className="ml-1 inline" size={14} /></Link>
             </>
           )}
         </div>

@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -96,7 +96,10 @@ export function FollowProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (cause) {
       setStates((items) => ({ ...items, [username]: previous }));
-      setError(cause instanceof Error ? cause.message : "Não foi possível atualizar o follow.");
+      const message = cause instanceof Error ? cause.message : "Não foi possível atualizar o follow.";
+      setError(message);
+      setToast(message);
+      window.setTimeout(() => setToast(null), 4000);
       return false;
     } finally {
       setLoading((items) => ({ ...items, [username]: false }));
@@ -183,6 +186,7 @@ export function FollowButton({
   const { isFollowing, allowFollows, pending, toggleFollow, error } = useFollow(username, initial);
   const [loginPrompt, setLoginPrompt] = useState(false);
   const [redirectTo, setRedirectTo] = useState("/formados");
+  const reduceMotion = useReducedMotion();
   if (!allowFollows) return null;
 
   return (
@@ -192,7 +196,7 @@ export function FollowButton({
         aria-label={isFollowing ? `Deixar de seguir ${displayName}` : `Seguir ${displayName}`}
         aria-pressed={isFollowing}
         disabled={pending}
-        whileTap={{ scale: 0.96 }}
+        whileTap={reduceMotion ? {} : { scale: 0.96 }}
         transition={{ type: "spring", stiffness: 420, damping: 24 }}
         onClick={() => {
           if (!user) {

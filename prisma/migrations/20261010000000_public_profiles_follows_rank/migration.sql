@@ -60,6 +60,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS "public_profiles_username_key"
   ON "public_profiles" ("username");
 CREATE INDEX IF NOT EXISTS "public_profiles_isPublic_username_idx"
   ON "public_profiles" ("isPublic", "username");
+CREATE INDEX IF NOT EXISTS "public_profiles_isPublic_displayName_idx"
+  ON "public_profiles" ("isPublic", "displayName");
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS "public_profiles_displayName_trgm_idx"
+  ON "public_profiles" USING GIN ("displayName" gin_trgm_ops);
 
 INSERT INTO "public_profiles" (
   "userId", "username", "displayName", "avatarUrl", "joinedAt",

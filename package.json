@@ -12,6 +12,8 @@
     "seed:products": "npx tsx prisma/seed/products.ts",
     "seed:demo-reviews": "SEED_DEMO_REVIEWS=1 npx tsx prisma/seed/products.ts",
     "seed:curriculum": "npx tsx prisma/seed/curriculum.ts",
+    "seed:graduate-test-data": "npx tsx prisma/seed/graduate-test-data.ts",
+    "cleanup:graduate-test-data": "npx tsx prisma/seed/cleanup-graduate-test-data.ts",
     "validate:videos": "npx tsx scripts/validate-course-videos.ts",
     "test": "vitest run"
   },

@@ -237,6 +237,7 @@ export default function FavoritosPage() {
     } catch {
       // Compartilhamento nativo cancelado pelo usuário — não é erro.
     }
+  };
 
   const containerVariants = reducedMotion
     ? reducedMotionVariants.stagger
@@ -327,4 +328,94 @@ export default function FavoritosPage() {
             </button>
           </div>
 
-  };
+          {favorites.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-cinza-suave/40 pt-5">
+            <ArrowUpDown className="h-4 w-4 text-rose-gold" aria-hidden="true" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+              Ordenar
+            </span>
+            <div role="group" aria-label="Ordenar favoritos" className="flex flex-wrap gap-2">
+              {SORT_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setSort(option.key)}
+                  aria-pressed={sort === option.key}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-gold ${
+                    sort === option.key
+                      ? "bg-gradient-to-r from-rosa-blush to-rose-gold text-white shadow-card"
+                      : "border border-cinza-suave/60 text-foreground/60 hover:border-rose-gold/60 hover:text-foreground"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </motion.header>
+
+      {error && (
+        <p role="alert" className="mt-5 text-sm text-red-400">
+          {error.message}
+        </p>
+      )}
+
+      {favorites.length === 0 ? (
+        <div className="mt-8">
+          <EmptyState />
+        </div>
+      ) : (
+        <motion.ul
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <AnimatePresence mode="popLayout">
+            {sortedFavorites.map((product) => (
+              <FavoriteCard
+                key={product.id}
+                product={product}
+                onRemove={() => void handleRemove(product)}
+                onAddToCart={() => handleAddToCart(product)}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.ul>
+      )}
+
+      {recommendations.length > 0 && (
+        <motion.section
+          initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5 }}
+          className="mt-14"
+        >
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-rose-gold" aria-hidden="true" />
+            <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+              Você também pode curtir
+            </h2>
+          </div>
+          <ProductCarousel
+            products={recommendations.map((product) => ({
+              id: product.id,
+              slug: product.slug,
+              name: product.name,
+              priceCents: product.priceCents,
+              imageUrl: getPrimaryProductImage(product),
+              kind: product.kind,
+              category: product.category,
+              stock: product.stock,
+            }))}
+          />
+        </motion.section>
+      )}
+      </section>
+
+      <GlowToast toast={toast} onDismiss={() => setToast(null)} />
+    </>
+  );
+}

@@ -280,6 +280,7 @@ export async function GET(req: Request) {
       issuedAt: certificate.issuedAt.toISOString(),
       status: certificate.status,
       showOnWall: certificate.showOnWall,
+      rankPosition: certificate.rankPosition,
       completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
     },
   });

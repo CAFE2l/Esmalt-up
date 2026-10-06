@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
-  Award, Check, Copy, ExternalLink, Heart, LoaderCircle, RefreshCw,
-  Share2, Sparkles, Users,
+  Award, Check, Copy, ExternalLink, LoaderCircle, RefreshCw, Share2, Users,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { FollowButton } from "@/lib/FollowContext";
+import { FollowButton, useFollow } from "@/lib/FollowContext";
 
 interface PublicProfileData {
   username: string;
@@ -87,7 +86,15 @@ function ProfileSkeleton() {
 
 export default function PublicProfileClient({ username }: { username: string }) {
   const { user } = useAuth();
+  const reduceMotion = useReducedMotion();
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
+  const sharedFollow = useFollow(username, profile ? {
+    isFollowing: profile.isFollowing,
+    followersCount: profile.followersCount,
+    followingCount: profile.followingCount,
+    allowFollows: profile.allowFollows,
+    loaded: true,
+  } : undefined);
   const [tab, setTab] = useState<Tab>("about");
   const [connections, setConnections] = useState<ConnectionProfile[]>([]);
   const [connectionPage, setConnectionPage] = useState(1);
@@ -239,7 +246,7 @@ export default function PublicProfileClient({ username }: { username: string }) 
             <motion.div
               aria-hidden
               className="absolute -inset-1 bg-gradient-to-r from-transparent via-rose-gold/25 to-transparent"
-              animate={{ x: ["-100%", "100%"] }}
+              animate={reduceMotion ? {} : { x: ["-100%", "100%"] }}
               transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             />
             <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent" />
@@ -278,8 +285,8 @@ export default function PublicProfileClient({ username }: { username: string }) 
               )}
             </div>
             <div className="mt-6 grid max-w-xl grid-cols-3 gap-3 border-t border-cinza-suave/50 pt-5 text-center">
-              <Stat value={profile.followersCount} label="Seguidores" />
-              <Stat value={profile.followingCount} label="Seguindo" />
+              <Stat value={sharedFollow.followersCount} label="Seguidores" />
+              <Stat value={sharedFollow.followingCount} label="Seguindo" />
               <Stat value={profile.certificate?.rankPosition ?? null} label="Posição" prefix={profile.certificate ? "#" : ""} suffix={profile.certificate ? " no ranking" : ""} />
             </div>
             <nav aria-label="Abas do perfil" className="mt-7 flex gap-2 overflow-x-auto border-b border-cinza-suave/40">
@@ -369,9 +376,10 @@ function Stat({
   prefix?: string;
   suffix?: string;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div layout className="rounded-xl bg-rosa-claro/15 px-2 py-3">
-      <motion.p key={value ?? "none"} initial={{ opacity: 0.5, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-lg font-extrabold tabular-nums text-foreground">
+      <motion.p key={value ?? "none"} initial={reduceMotion ? false : { opacity: 0.5, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-lg font-extrabold tabular-nums text-foreground">
         {prefix}{value ?? "—"}{suffix}
       </motion.p>
       <p className="mt-1 text-xs text-foreground/60">{label}</p>
