@@ -9,7 +9,9 @@ import {
 } from "react";
 import {
   GoogleAuthProvider,
+  browserLocalPersistence,
   onAuthStateChanged,
+  setPersistence,
   signInWithRedirect,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -25,7 +27,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<"popup" | "redirect">;
   logout: () => Promise<void>;
 }
 
@@ -39,23 +41,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
-    });
-    return unsubscribe;
+      });
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
+    await setPersistence(auth, browserLocalPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signup = async (name: string, email: string, password: string) => {
+    await setPersistence(auth, browserLocalPersistence);
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(credential.user, { displayName: name });
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (): Promise<"popup" | "redirect"> => {
+    const missingConfig = [
+      ["NEXT_PUBLIC_FIREBASE_API_KEY", process.env.NEXT_PUBLIC_FIREBASE_API_KEY],
+      ["NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN],
+      ["NEXT_PUBLIC_FIREBASE_PROJECT_ID", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID],
+      ["NEXT_PUBLIC_FIREBASE_APP_ID", process.env.NEXT_PUBLIC_FIREBASE_APP_ID],
+    ]
+      .filter(([, value]) => !value)
+      .map(([name]) => name);
+    if (missingConfig.length > 0) {
+      const error = new Error(`Configuração do Firebase ausente: ${missingConfig.join(", ")}.`);
+      Object.assign(error, { code: "auth/configuration-not-found" });
+      throw error;
+    }
+
     const provider = new GoogleAuthProvider();
+    provider.addScope("email");
+    provider.addScope("profile");
     try {
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
+      return "popup";
     } catch (error) {
       const code =
         typeof error === "object" && error !== null && "code" in error
@@ -63,12 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : undefined;
 
       if (
-        code === "auth/popup-closed-by-user" ||
         code === "auth/popup-blocked" ||
         code === "auth/operation-not-supported-in-this-environment"
       ) {
+        await setPersistence(auth, browserLocalPersistence);
         await signInWithRedirect(auth, provider);
-        return;
+        return "redirect";
       }
 
       throw error;

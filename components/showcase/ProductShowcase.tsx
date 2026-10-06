@@ -120,7 +120,7 @@ export default function ProductShowcase({
     trackEvent("cta_click", {
       item_id: currentProduct.id,
       item_name: currentProduct.name,
-      destination: `/produtos/${currentProduct.slug}`,
+      destination: `/produto/${currentProduct.slug}`,
     });
   }, [currentProduct]);
 
@@ -191,7 +191,7 @@ export default function ProductShowcase({
                 />
                 <div className="flex flex-wrap items-center gap-3">
                   <Link
-                    href={`/produtos/${currentProduct.slug}`}
+                    href={`/produto/${currentProduct.slug}`}
                     onClick={handleCtaClick}
                     className={cn("rounded-full px-6 py-3 text-sm font-semibold text-[#1c1519]", focusRing)}
                     style={{ background: currentProduct.tint }}

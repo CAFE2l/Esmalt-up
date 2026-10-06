@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Heart,
   LogOut,
+  ShoppingBag,
   Settings,
   Trash2,
   UserRound,
@@ -189,10 +190,15 @@ export default function UserMenu() {
     if (!user) return;
     setBusy(true);
     if (confirming === "logout") {
-      await logout();
-      setConfirming(null);
-      setBusy(false);
-      closeMenu(true);
+      try {
+        await logout();
+        setConfirming(null);
+        closeMenu(true);
+      } catch {
+        setFlash({ kind: "error", text: "Não foi possível sair da conta. Tente novamente." });
+      } finally {
+        setBusy(false);
+      }
       return;
     }
     setConfirming(null);
@@ -234,12 +240,22 @@ export default function UserMenu() {
         className={`${itemStyle.link} ${itemStyle.normal}`}
       >
         <Heart size={ICON_SIZE} />
-        Minha Lista de Desejos
+        Favoritos
         {favoritesCount > 0 && (
           <span className="ml-auto rounded-full bg-rosa-claro px-2 py-0.5 text-[11px] font-semibold text-rose-gold">
             {favoritesCount}
           </span>
         )}
+      </Link>
+      <Link
+        href="/pedidos"
+        role="menuitem"
+        data-menu-item
+        onClick={() => closeMenu()}
+        className={`${itemStyle.link} ${itemStyle.normal}`}
+      >
+        <ShoppingBag size={ICON_SIZE} />
+        Meus pedidos
       </Link>
 
       <div

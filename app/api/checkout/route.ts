@@ -47,12 +47,23 @@ const checkoutSchema = z.object({
   payment: z.object({
     method: z.enum(["pix", "boleto", "card"]),
     card: cardSchema.optional(),
+  }).superRefine((payment, context) => {
+    if (payment.method === "card" && !payment.card) {
+      context.addIssue({
+        code: "custom",
+        path: ["card"],
+        message: "Informe os dados do cartão.",
+      });
+    }
   }),
 });
 
 export async function POST(req: Request) {
   try {
     const auth = await authenticateRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
+    }
 
     const body = await req.json().catch(() => null);
     const parsed = checkoutSchema.safeParse(body);
@@ -80,18 +91,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const productWithNoStock = lines.find(
-      (line) => line.product.stock === 0,
+    const invalidStockLine = lines.find(
+      (line) => line.product.stock < line.item.quantity,
     );
-    if (productWithNoStock) {
+    if (invalidStockLine) {
       return NextResponse.json(
-        { error: `${productWithNoStock.product.name} está esgotado.` },
+        { error: `${invalidStockLine.product.name} não tem estoque suficiente.` },
         { status: 409 },
       );
     }
 
     const subtotalCents = lines.reduce((sum, line) => sum + line.cents, 0);
-    const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
+    const itemCount = lines.reduce((sum, line) => sum + line.item.quantity, 0);
 
     // ---- Cupom (banco primeiro, fallback embutido). ----
     let discountCents = 0;
@@ -122,43 +133,60 @@ export async function POST(req: Request) {
     const totalCents = subtotalCents - discountCents + freight.cents;
 
     // ---- Persiste pedido. ----
+    await prisma.userProfile.upsert({
+      where: { uid: auth.uid },
+      create: { uid: auth.uid, interests: [], badges: [] },
+      update: {},
+      select: { uid: true },
+    });
+
     const primary = lines[0]!.product;
     const kitName =
-      lines.length === 1 && lines[0]!.quantity === 1
+      lines.length === 1 && lines[0]!.item.quantity === 1
         ? primary.name
         : `${primary.name} +${lines.length - 1} ${lines.length - 1 === 1 ? "item" : "itens"}`;
 
-    const order = await prisma.order.create({
-      data: {
-        userId: auth.ok ? auth.uid : null,
-        sessionId: parsed.data.sessionId ?? null,
-        customerName: customer.name,
-        email: customer.email,
-        kitName,
-        status: "aguardando_pagamento",
-        subtotalCents,
-        shippingCents: freight.cents,
-        discountCents,
-        totalCents,
-        couponCode: resolvedCouponCode,
-        cep: address.cep,
-        address: [address.logradouro, address.numero, address.complemento]
-          .filter(Boolean)
-          .join(", "),
-        neighborhood: address.bairro,
-        city: address.cidade,
-        state: address.uf,
-        paymentMethod: payment.method,
-        paymentStatus: "pending",
-        items: {
-          create: lines.map((line) => ({
-            productId: line.product.id,
-            productName: line.product.name,
-            priceCents: line.product.priceCents,
-            quantity: line.quantity,
-          })),
+    const order = await prisma.$transaction(async (transaction) => {
+      const savedAddress = await transaction.address.create({
+        data: {
+          userId: auth.uid,
+          cep: address.cep,
+          logradouro: address.logradouro,
+          numero: address.numero,
+          complemento: address.complemento,
+          bairro: address.bairro,
+          cidade: address.cidade,
+          uf: address.uf,
         },
-      },
+      });
+
+      return transaction.order.create({
+        data: {
+          userId: auth.uid,
+          addressId: savedAddress.id,
+          sessionId: parsed.data.sessionId ?? null,
+          customerName: customer.name,
+          email: customer.email,
+          cpf: customer.cpf,
+          kitName,
+          status: "aguardando_pagamento",
+          subtotalCents,
+          shippingCents: freight.cents,
+          discountCents,
+          totalCents,
+          couponCode: resolvedCouponCode,
+          paymentMethod: payment.method,
+          paymentStatus: "pending",
+          items: {
+            create: lines.map((line) => ({
+              productId: line.product.id,
+              productName: line.product.name,
+              priceCents: line.product.priceCents,
+              quantity: line.item.quantity,
+            })),
+          },
+        },
+      });
     });
 
     // ---- Cria cobrança (Mercado Pago real ou modo demonstração). ----
@@ -191,14 +219,15 @@ export async function POST(req: Request) {
     }
 
     const paidImmediately = instructions.status === "approved";
+    const paymentRejected = instructions.status === "rejected";
 
     await prisma.order.update({
       where: { id: order.id },
       data: {
         gatewayPaymentId: instructions.gatewayPaymentId,
         gatewayStatus: instructions.status,
-        paymentStatus: paidImmediately ? "paid" : "pending",
-        status: paidImmediately ? "pago" : "aguardando_pagamento",
+        paymentStatus: paidImmediately ? "paid" : paymentRejected ? "failed" : "pending",
+        status: paidImmediately ? "pago" : paymentRejected ? "falha_pagamento" : "aguardando_pagamento",
         paymentExtra: JSON.stringify({
           mode: instructions.mode,
           message: instructions.message,
@@ -208,6 +237,22 @@ export async function POST(req: Request) {
         }),
       },
     });
+
+    let cartClearError: string | null = null;
+    if (!paymentRejected) {
+      try {
+        const cart = await prisma.cart.findUnique({
+          where: { userId: auth.uid },
+          select: { id: true },
+        });
+        if (cart) {
+          await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+        }
+      } catch (error) {
+        console.error("[api/checkout] cart clear", error);
+        cartClearError = "Pedido criado, mas não foi possível limpar o carrinho salvo. Atualize o carrinho antes da próxima compra.";
+      }
+    }
 
     // Notificação por e-mail (no-op em dev sem SMTP).
     await sendMail(
@@ -229,7 +274,8 @@ export async function POST(req: Request) {
         discounts: { subtotalCents, discountCents, shippingCents: freight.cents },
         gateway: instructions.mode,
         demo: instructions.mode === "demo",
-        orderUrl: `${process.env.NEXT_PUBLIC_APP_URL}/order/${order.id}`,
+        cartClearError,
+        orderUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin}/order/${order.id}?sessionId=${encodeURIComponent(parsed.data.sessionId ?? "")}`,
         instructions: {
           kind: instructions.kind,
           status: instructions.status,

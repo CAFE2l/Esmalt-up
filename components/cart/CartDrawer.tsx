@@ -19,6 +19,7 @@ export default function CartDrawer() {
     setQuantity,
     applyCoupon,
     removeCoupon,
+    error,
   } = useCart();
 
   const [couponInput, setCouponInput] = useState("");
@@ -102,6 +103,7 @@ export default function CartDrawer() {
             {items.map((line) => {
               const product = line.product;
               if (!product) return null;
+              const quantityLimit = product.stock > 0 ? product.stock : line.quantity;
               return (
                 <li
                   key={line.productId}
@@ -149,8 +151,9 @@ export default function CartDrawer() {
                         <button
                           type="button"
                           onClick={() => setQuantity(product.id, line.quantity - 1)}
+                          disabled={line.quantity <= 1}
                           aria-label={`Diminuir quantidade de ${product.name}`}
-                          className="grid h-8 w-8 place-items-center rounded-full text-foreground/70 transition-colors hover:text-rose-gold"
+                          className="grid h-8 w-8 place-items-center rounded-full text-foreground/70 transition-colors hover:text-rose-gold disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           −
                         </button>
@@ -159,9 +162,10 @@ export default function CartDrawer() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => setQuantity(product.id, line.quantity + 1)}
+                          onClick={() => setQuantity(product.id, Math.min(quantityLimit, line.quantity + 1))}
+                          disabled={line.quantity >= quantityLimit}
                           aria-label={`Aumentar quantidade de ${product.name}`}
-                          className="grid h-8 w-8 place-items-center rounded-full text-foreground/70 transition-colors hover:text-rose-gold"
+                          className="grid h-8 w-8 place-items-center rounded-full text-foreground/70 transition-colors hover:text-rose-gold disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           +
                         </button>
@@ -194,9 +198,10 @@ export default function CartDrawer() {
                 <button
                   type="button"
                   onClick={handleApplyCoupon}
+                  disabled={couponState.status === "applying"}
                   className="shrink-0 rounded-full bg-rosa-claro px-4 text-sm font-semibold text-rose-gold transition-colors hover:bg-rosa-blush hover:text-white"
                 >
-                  Aplicar
+                  {couponState.status === "applying" ? "Validando..." : "Aplicar"}
                 </button>
               </div>
 
@@ -227,6 +232,11 @@ export default function CartDrawer() {
         )}
 
         <div className="border-t border-cinza-suave/40 bg-rosa-claro/20 px-5 py-4">
+          {error && (
+            <p role="alert" className="mb-3 rounded-xl bg-red-500/10 px-3 py-2 text-xs text-red-500">
+              {error}
+            </p>
+          )}
           <div className="space-y-1.5">
             <div className="flex justify-between text-sm text-foreground/70">
               <span>Subtotal</span>

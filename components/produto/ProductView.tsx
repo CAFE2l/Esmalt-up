@@ -14,6 +14,7 @@ import ProductBuyBox from "./ProductBuyBox";
 import Stars from "./Stars";
 import { cn } from "@/lib/cn";
 import { usePurchaseVerification } from "./PurchaseVerification";
+import { useCart } from "@/lib/CartContext";
 
 interface ProductViewProps {
   product: Product;
@@ -43,7 +44,10 @@ export default function ProductView({
   initialCount,
 }: ProductViewProps) {
   const router = useRouter();
+  const { addItem } = useCart();
   const { hasPurchased } = usePurchaseVerification(product.id);
+  const outOfStock = product.stock <= 0;
+  const primaryImage = getPrimaryProductImage(product);
 
   useEffect(() => {
     addRecentlyViewed(product.id);
@@ -53,9 +57,23 @@ export default function ProductView({
     router.push("/checkout");
   };
 
+  const handleMobileBuyNow = () => {
+    if (outOfStock) return;
+    addItem(product.id, 1, {
+      product: {
+        id: product.id,
+        slug: product.slug,
+        kind: product.kind,
+        name: product.name,
+        priceCents: product.priceCents,
+        imageUrl: primaryImage,
+        stock: product.stock,
+      },
+    });
+    handleBuyNow();
+  };
+
   const categoryLabel = getCategoryLabel(product.category);
-  const outOfStock = product.stock <= 0;
-  const primaryImage = getPrimaryProductImage(product);
   const galleryImages = primaryImage
     ? [primaryImage, ...product.images.filter((image) => image !== primaryImage)]
     : product.images;
@@ -230,7 +248,7 @@ export default function ProductView({
           </div>
           <button
             type="button"
-            onClick={handleBuyNow}
+            onClick={handleMobileBuyNow}
             disabled={outOfStock}
             className="flex-1 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold py-3 text-center text-sm font-bold text-white shadow-lg disabled:opacity-40"
           >

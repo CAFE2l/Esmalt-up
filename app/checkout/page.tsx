@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useCart } from "@/lib/CartContext";
@@ -19,6 +20,7 @@ interface OrderResult {
   orderId: string;
   totalCents: number;
   demo: boolean;
+  cartClearError: string | null;
   gateway: string;
   orderUrl: string;
   discounts: { subtotalCents: number; discountCents: number; shippingCents: number };
@@ -61,8 +63,9 @@ function StepBadge({ current, step, label }: { current: Step; step: Step; label:
 }
 
 export default function CheckoutPage() {
-  const { user } = useAuth();
-  const { items, itemCount, subtotalCents, couponState, sessionId, clearCart } = useCart();
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const { items, itemCount, subtotalCents, couponState, sessionId, isReady: cartReady, clearCart } = useCart();
 
   const [step, setStep] = useState<Step>(1);
   const [identity, setIdentity] = useState({ name: "", email: "", cpf: "" });
@@ -86,6 +89,15 @@ export default function CheckoutPage() {
   const [paid, setPaid] = useState(false);
   const [pollError, setPollError] = useState(false);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (authLoading || !cartReady) return;
+    if (!user) {
+      router.replace("/login?redirect=%2Fcheckout");
+      return;
+    }
+    if (!order && itemCount === 0) router.replace("/kits");
+  }, [authLoading, cartReady, itemCount, order, router, user]);
 
   const freight = useMemo(
     () => calculateFreight({ subtotalCents, itemCount }),
@@ -138,10 +150,10 @@ export default function CheckoutPage() {
     address.cidade.trim().length >= 2 &&
     address.uf.trim().length === 2;
 
-  const canSubmit = !submitting && (method !== "card" || cardValid);
+  const canSubmit = !!user && !submitting && (method !== "card" || cardValid);
 
   const finishCheckout = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !user) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -190,7 +202,7 @@ export default function CheckoutPage() {
       }
 
       setOrder(data);
-      clearCart();
+      if (data.instructions.status !== "rejected") clearCart();
       setPaid(data.instructions.status === "approved");
     } catch {
       setSubmitError("Erro de conexão. Tente novamente.");
@@ -227,20 +239,11 @@ export default function CheckoutPage() {
   }, [order?.orderId]);
 
   // ---------- carrinho vazio (sem pedido em andamento) ----------
-  if (!order && items.length === 0) {
+  if (authLoading || !cartReady || !user || (!order && itemCount === 0)) {
     return (
       <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-24 text-center">
-        <p className="text-5xl">🛒</p>
-        <h1 className="mt-4 text-2xl font-bold">Seu carrinho está vazio</h1>
-        <p className="mt-2 text-foreground/60">
-          Adicione kits e peças avulsas para montar seu carrinho.
-        </p>
-        <Link
-          href="/kits"
-          className="mt-6 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-8 py-3 text-sm font-bold text-white shadow-lg"
-        >
-          Ver kits
-        </Link>
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-rosa-blush border-t-transparent" />
+        <p className="mt-4 text-sm text-foreground/60">Redirecionando para continuar sua compra...</p>
       </div>
     );
   }
@@ -268,7 +271,20 @@ export default function CheckoutPage() {
             Pedido em modo demonstração — nenhuma cobrança real foi feita.
           </p>
         )}
+        {order.cartClearError && (
+          <p role="alert" className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
+            {order.cartClearError}
+          </p>
+        )}
         <div className="mt-8 flex justify-center">
+          <Link
+            href={order.orderUrl}
+            className="rounded-full border border-rose-gold/40 px-8 py-3 text-sm font-bold text-rose-gold hover:bg-rosa-claro/50"
+          >
+            Ver detalhes do pedido
+          </Link>
+        </div>
+        <div className="mt-3 flex justify-center">
           <Link
             href="/kits"
             className="rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-8 py-3 text-sm font-bold text-white shadow-lg"
@@ -289,7 +305,7 @@ export default function CheckoutPage() {
     const ins = order.instructions;
 
     // Cartão recusado — volta para o formulário.
-    if (order.demo && ins.status === "rejected") {
+    if (ins.status === "rejected") {
       return (
         <div className="mx-auto max-w-xl px-4 py-16 text-center">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-red-500/15 text-red-400">
@@ -321,6 +337,11 @@ export default function CheckoutPage() {
           {" · "}
           <strong>{formatPrice(order.totalCents)}</strong>
         </p>
+        {order.cartClearError && (
+          <p role="alert" className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
+            {order.cartClearError}
+          </p>
+        )}
 
         {pollError && (
           <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
@@ -332,9 +353,12 @@ export default function CheckoutPage() {
           <div className="mt-6 space-y-5 rounded-[2rem] border border-cinza-suave/40 bg-branco p-6 text-center shadow-card">
             <h2 className="text-lg font-semibold">Pagar com PIX</h2>
             {ins.qrBase64 ? (
-              <img
+              <Image
                 src={ins.qrBase64}
                 alt="QR Code PIX"
+                width={224}
+                height={224}
+                unoptimized
                 className="mx-auto h-56 w-56 rounded-2xl border border-cinza-suave/30"
               />
             ) : (

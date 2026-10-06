@@ -105,7 +105,7 @@ export default function WishlistPage() {
         <Heart className="mx-auto h-12 w-12 text-rose-gold" />
         <h1 className="mt-4 text-2xl font-bold">Minha Lista de Desejos</h1>
         <p className="mt-2 text-foreground/60">Entre para ver seus produtos favoritos.</p>
-        <Link href="/login" className={`${primaryButton} mt-6 px-6 py-3 text-sm`}>
+        <Link href="/login?redirect=%2Fdesejos" className={`${primaryButton} mt-6 px-6 py-3 text-sm`}>
           Entrar
         </Link>
       </div>

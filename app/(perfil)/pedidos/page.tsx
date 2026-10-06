@@ -100,7 +100,7 @@ export default function PedidosPage() {
           <Package className="mx-auto h-16 w-16 text-rose-gold" />
           <h1 className="mt-4 text-2xl font-bold text-foreground">Meus Pedidos</h1>
           <p className="mt-2 text-foreground/60">Faça login para ver seus pedidos.</p>
-          <Link href="/(auth)/login" className="mt-6 inline-block rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-6 py-3 text-sm font-semibold text-white shadow-card">Fazer login</Link>
+          <Link href="/login?redirect=%2Fpedidos" className="mt-6 inline-block rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-6 py-3 text-sm font-semibold text-white shadow-card">Fazer login</Link>
         </div>
       </div>
     );

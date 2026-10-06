@@ -13,14 +13,13 @@ interface OrderPageProps {
 async function getOrder(id: string, sessionId?: string) {
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: true, payment: true },
+    include: { items: true, address: true },
   });
 
   if (!order) return null;
 
   // Allow access if session matches (for anonymous orders)
-  if (!sessionId && order.sessionId) {
-    // For now, require auth for order details
+  if (order.sessionId && order.sessionId !== sessionId) {
     return null;
   }
 
@@ -114,13 +113,20 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
             Endereço de entrega
           </h2>
           <div className="mt-3 text-sm text-foreground/70">
-            <p>{order.shippingAddress}</p>
-            {order.shippingCity && <p>{order.shippingCity} - {order.shippingState}</p>}
-            {order.shippingCep && <p>CEP: {order.shippingCep}</p>}
+            {order.address ? (
+              <>
+                <p>
+                  {order.address.logradouro}, {order.address.numero}
+                  {order.address.complemento ? ` - ${order.address.complemento}` : ""}
+                </p>
+                <p>{order.address.bairro}</p>
+                <p>{order.address.cidade} - {order.address.uf}</p>
+                <p>CEP: {order.address.cep}</p>
+              </>
+            ) : (
+              <p>Endereço de entrega não informado.</p>
+            )}
           </div>
-          {order.shippingMethod && (
-            <p className="mt-2 text-xs text-foreground/50">Frete: {order.shippingMethod}</p>
-          )}
         </section>
 
         {/* Payment */}
@@ -185,7 +191,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
           Continuar comprando
         </Link>
         <Link
-          href="/(perfil)/perfil"
+          href="/pedidos"
           className="flex-1 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold py-3 text-center text-sm font-bold text-white shadow-lg"
         >
           Ver meus pedidos

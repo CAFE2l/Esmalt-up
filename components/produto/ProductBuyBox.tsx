@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useCart } from "@/lib/CartContext";
-import { useAuth } from "@/lib/AuthContext";
 import { 
   Truck, 
   Package, 
@@ -22,7 +21,6 @@ import {
 import { formatPrice, getInstallments, type Product } from "@/lib/products";
 import { calculateFreight, isCepComplete, lookupCep, type CepAddress } from "@/lib/shipping";
 import { cn } from "@/lib/cn";
-import { useAuthGate } from "@/components/AuthGateModal";
 import { getPrimaryProductImage } from "@/lib/products";
 import { FavoritesButton } from "@/lib/wishlist";
 
@@ -423,8 +421,6 @@ export default function ProductBuyBox({
   ratingAvg = null,
 }: ProductBuyBoxProps) {
   const { addItem } = useCart();
-  const { user } = useAuth();
-  const { guard: authGuard, modal: authModal } = useAuthGate(user);
   
   const [quantity, setQuantity] = useState(1);
   const [cep, setCep] = useState("");
@@ -542,48 +538,43 @@ export default function ProductBuyBox({
 
   // Handle add to cart
   const handleAddToCart = () => {
-    authGuard(() => {
-      if (outOfStock) return;
-      addItem(product.id, quantity, {
-        variantId: currentVariant?.id,
-        variantName: currentVariant?.name,
-        product: {
-          id: product.id,
-          slug: product.slug,
-          kind: product.kind,
-          name: product.name,
-          priceCents: effectivePrice,
-          imageUrl: getPrimaryProductImage(product),
-          stock: effectiveStock,
-        },
-      });
+    if (outOfStock) return;
+    addItem(product.id, quantity, {
+      variantId: currentVariant?.id,
+      variantName: currentVariant?.name,
+      product: {
+        id: product.id,
+        slug: product.slug,
+        kind: product.kind,
+        name: product.name,
+        priceCents: effectivePrice,
+        imageUrl: getPrimaryProductImage(product),
+        stock: effectiveStock,
+      },
     });
   };
 
   // Handle buy now
   const handleBuyNowClick = () => {
-    authGuard(() => {
-      if (outOfStock) return;
-      addItem(product.id, quantity, {
-        variantId: currentVariant?.id,
-        variantName: currentVariant?.name,
-        product: {
-          id: product.id,
-          slug: product.slug,
-          kind: product.kind,
-          name: product.name,
-          priceCents: effectivePrice,
-          imageUrl: getPrimaryProductImage(product),
-          stock: effectiveStock,
-        },
-      });
-      onBuyNow?.();
+    if (outOfStock) return;
+    addItem(product.id, quantity, {
+      variantId: currentVariant?.id,
+      variantName: currentVariant?.name,
+      product: {
+        id: product.id,
+        slug: product.slug,
+        kind: product.kind,
+        name: product.name,
+        priceCents: effectivePrice,
+        imageUrl: getPrimaryProductImage(product),
+        stock: effectiveStock,
+      },
     });
+    onBuyNow?.();
   };
 
   return (
     <div className="space-y-6">
-      {authModal}
       {/* PRICE BLOCK - Enhanced with better hierarchy */}
       <div className="rounded-2xl border border-rose-gold/25 bg-rosa-claro/30 p-4">
         <div className="space-y-3">

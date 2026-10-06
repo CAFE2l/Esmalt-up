@@ -28,13 +28,26 @@ const authErrors: Record<string, string> = {
     "O navegador bloqueou a janela do Google. Tente novamente.",
   "auth/unauthorized-domain":
     "Este domínio não está autorizado para login no Firebase.",
+  "auth/operation-not-allowed":
+    "O login com Google não está habilitado neste projeto Firebase.",
   "auth/operation-not-supported-in-this-environment":
     "Este navegador não permite login em janela. Tente novamente.",
   "auth/account-exists-with-different-credential":
     "Este e-mail já está vinculado a outra forma de login.",
   "auth/network-request-failed":
     "Falha de conexão. Verifique sua internet e tente novamente.",
+  "auth/configuration-not-found":
+    "O login com Google ainda não está configurado. Avise a equipe da loja.",
+  "auth/invalid-api-key":
+    "A configuração de login está inválida. Avise a equipe da loja.",
 };
+
+function getReturnTo(): string {
+  const requested = new URLSearchParams(window.location.search).get("redirect");
+  return requested?.startsWith("/") && !requested.startsWith("//")
+    ? requested
+    : "/";
+}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && "code" in error) {
@@ -79,14 +92,16 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const [returnTo, setReturnTo] = useState("/");
 
   useEffect(() => {
     let active = true;
+    setReturnTo(getReturnTo());
 
     getRedirectResult(auth)
       .then((result) => {
         if (!active || !result) return;
-        router.replace("/");
+        router.replace(getReturnTo());
         router.refresh();
       })
       .catch((redirectError: unknown) => {
@@ -98,6 +113,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
     };
   }, [router]);
 
+  const redirectSuffix =
+    returnTo === "/" ? "" : `?redirect=${encodeURIComponent(returnTo)}`;
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
@@ -108,7 +126,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       } else {
         await login(email.trim(), password);
       }
-      router.push("/");
+      router.replace(getReturnTo());
       router.refresh();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -121,8 +139,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
     setError("");
     setGoogleLoading(true);
     try {
-      await loginWithGoogle();
-      router.push("/");
+      const result = await loginWithGoogle();
+      if (result === "redirect") return;
+      router.replace(getReturnTo());
       router.refresh();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -249,14 +268,14 @@ export default function AuthForm({ mode }: AuthFormProps) {
         {isSignup ? (
           <>
             Já tem uma conta?{" "}
-            <Link href="/login" className="font-semibold text-rose-gold transition-colors hover:text-rosa-blush">
+            <Link href={`/login${redirectSuffix}`} className="font-semibold text-rose-gold transition-colors hover:text-rosa-blush">
               Entrar
             </Link>
           </>
         ) : (
           <>
             Ainda não tem conta?{" "}
-            <Link href="/signup" className="font-semibold text-rose-gold transition-colors hover:text-rosa-blush">
+            <Link href={`/signup${redirectSuffix}`} className="font-semibold text-rose-gold transition-colors hover:text-rosa-blush">
               Criar conta
             </Link>
           </>

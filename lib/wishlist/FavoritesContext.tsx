@@ -105,6 +105,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
+      setFavorites([]);
       try {
         const token = await user.getIdToken();
         const data = await requestFavorites(token, "GET");

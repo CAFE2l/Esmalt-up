@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
@@ -8,7 +9,9 @@ import {
   Check,
   CreditCard,
   Loader2,
+  LogOut,
   Lock,
+  Heart,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -144,6 +147,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: "perfil", label: "Perfil", icon: UserRound, href: "/perfil", active: true },
   { id: "pedidos", label: "Pedidos", icon: ShoppingBag, href: "/pedidos" },
+  { id: "favoritos", label: "Favoritos", icon: Heart, href: "/desejos" },
   { id: "configuracoes", label: "Configurações", icon: Settings, href: "/configuracoes" },
   { id: "assinatura", label: "Assinatura / Plano", icon: CreditCard, disabled: true, badge: "Em breve" },
   { id: "notificacoes", label: "Notificações", icon: Bell, href: "/notificacoes" },
@@ -521,7 +525,8 @@ function ProfileHeader({
 
 // Main Profile Page Component
 export default function PerfilPage() {
-  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { user, loading: authLoading, logout } = useAuth();
   const { 
     profile: globalProfile, 
     loading: profileLoading, 
@@ -537,11 +542,18 @@ export default function PerfilPage() {
 
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login?redirect=%2Fperfil");
+    }
+  }, [authLoading, router, user]);
 
   // Sync global profile → local state ONLY on initial load (when localProfile is still null)
   useEffect(() => {
@@ -633,6 +645,18 @@ export default function PerfilPage() {
   }, []);
 
   const saving = saveStatus === 'saving';
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      router.replace("/");
+    } catch {
+      setToast({ type: "error", message: "Não foi possível sair da conta. Tente novamente." });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user || !localProfile) return;
@@ -830,7 +854,7 @@ export default function PerfilPage() {
   const effectivePhotoUrl = localProfile?.profilePhotoUrl || user?.photoURL || null;
   const displayName = localProfile?.name || user?.displayName || "Usuária Esmalt'up";
 
-  if (authLoading || profileLoading || !localProfile && !user) {
+  if (authLoading || (user && profileLoading) || (!authLoading && !user)) {
     return (
       <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-bege">
         <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-rosa-medio/30 blur-3xl" />
@@ -937,6 +961,15 @@ export default function PerfilPage() {
               );
             })}
           </div>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            disabled={loggingOut}
+            className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-gold/30 px-3.5 py-1.5 text-xs font-medium text-rose-gold disabled:opacity-50 lg:hidden"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {loggingOut ? "Saindo..." : "Sair"}
+          </button>
 
           {/* Desktop Sidebar Card */}
           <div className="hidden lg:block rounded-3xl border border-cinza-suave/70 bg-branco p-4 shadow-card">
@@ -987,6 +1020,15 @@ export default function PerfilPage() {
                 );
               })}
             </nav>
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              disabled={loggingOut}
+              className="mt-2 flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium text-rose-gold transition-colors hover:bg-rosa-claro/50 disabled:opacity-50"
+            >
+              <LogOut className="h-4 w-4" />
+              {loggingOut ? "Saindo..." : "Sair"}
+            </button>
           </div>
         </aside>
 

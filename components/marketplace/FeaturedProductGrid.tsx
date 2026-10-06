@@ -8,6 +8,7 @@ import { CATEGORY_LABELS, LEVEL_LABELS, formatPrice, type Product } from "@/lib/
 import ProductArt from "./ProductArt";
 import { trackEvent } from "@/components/showcase/analytics";
 import { FavoritesButton } from "@/lib/wishlist";
+import { useCart } from "@/lib/CartContext";
 
 // Product Card Component
 function ProductCard({
@@ -25,6 +26,7 @@ function ProductCard({
   showRating?: boolean;
   showBadges?: boolean;
 }) {
+  const { addItem } = useCart();
   const handleQuickViewClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -35,8 +37,20 @@ function ProductCard({
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (product.stock <= 0) return;
+    addItem(product.id, 1, {
+      product: {
+        id: product.id,
+        slug: product.slug,
+        kind: product.kind,
+        name: product.name,
+        priceCents: product.priceCents,
+        imageUrl: product.images[0] ?? "",
+        stock: product.stock,
+      },
+    });
     trackEvent("add_to_cart", { item_id: product.id, item_name: product.name, price: product.priceCents });
-  }, [product.id, product.name, product.priceCents]);
+  }, [addItem, product]);
 
   const stockStatus = product.stock <= 0 ? "out_of_stock" : "in_stock";
   const discountPercentage = product.oldPriceCents 
@@ -397,6 +411,7 @@ function QuickViewModal({
   relatedProducts?: Product[];
   onQuickView?: (product: Product) => void;
 }) {
+  const { addItem } = useCart();
   if (!product) return null;
 
   const stockStatus = product.stock <= 0 ? "out_of_stock" : "in_stock";
@@ -514,13 +529,16 @@ function QuickViewModal({
                     </div>
 
                     <Link
-                      href={`/produtos/${product.slug}`}
-                      onClick={() => trackEvent("select_item", {
-                        item_id: product.id,
-                        item_name: product.name,
-                        item_list_name: "quick_view_detail",
-                        index: 0,
-                      })}
+                      href={`/produto/${product.slug}`}
+                      onClick={() => {
+                        onClose();
+                        trackEvent("select_item", {
+                          item_id: product.id,
+                          item_name: product.name,
+                          item_list_name: "quick_view_detail",
+                          index: 0,
+                        });
+                      }}
                       className="block w-full rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold py-3 text-center text-sm font-semibold text-white shadow-card hover:shadow-card-lg transition-shadow duration-200"
                     >
                       Ver detalhes
@@ -528,6 +546,17 @@ function QuickViewModal({
 
                     <button
                       onClick={() => {
+                        addItem(product.id, 1, {
+                          product: {
+                            id: product.id,
+                            slug: product.slug,
+                            kind: product.kind,
+                            name: product.name,
+                            priceCents: product.priceCents,
+                            imageUrl: product.images[0] ?? "",
+                            stock: product.stock,
+                          },
+                        });
                         trackEvent("add_to_cart", { item_id: product.id, item_name: product.name, price: product.priceCents });
                         onClose();
                       }}
