@@ -1,0 +1,9 @@
+nohup: ignorando entrada
+npm notice run esmaltup@0.1.0 npx
+npm notice run 'next' lint --file app/(perfil)/favoritos/page.tsx --file app/(perfil)/pedidos/page.tsx --file app/(perfil)/pedidos/[id]/page.tsx --file app/(perfil)/desejos/page.tsx --file components/ui/GlassBadge.tsx --file components/ui/GlassSkeleton.tsx --file components/ui/GlowToast.tsx --file components/ui/AmbientBackground.tsx --file components/orders/OrderTimeline.tsx --file lib/orders.ts --file lib/motion/variants.ts --file app/api/orders/[id]/route.ts --file app/api/orders/route.ts --file prisma/seed/orders.ts
+
+./prisma/seed/orders.ts
+2:10  Error: 'PRODUCTS' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+done

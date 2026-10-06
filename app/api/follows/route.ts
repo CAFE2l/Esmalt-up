@@ -97,8 +97,8 @@ async function updateFollow(request: Request, shouldFollow: boolean) {
                 userId: target.userId,
                 type: "follow",
                 title: "Novo seguidor",
-                body: `${actor.displayName} começou a seguir você`,
-                href: `/u/${actor.username}`,
+                body: `${actor.isPublic ? actor.displayName : "Alguém"} começou a seguir você`,
+                href: actor.isPublic ? `/u/${actor.username}` : null,
               },
             });
           } else if (!shouldFollow && existing) {

@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { PRODUCTS } from "@/lib/catalogData.static";
 
 const prisma = new PrismaClient();
 
@@ -115,7 +114,8 @@ async function seedOrders() {
     }
 
     const lines: { productId: string; productName: string; priceCents: number; quantity: number }[] = [];
-    for (const [index, slug] of demo.productSlugs.entries()) {
+    for (let index = 0; index < demo.productSlugs.length; index += 1) {
+      const slug = demo.productSlugs[index]!;
       const product = await prisma.product.findUnique({
         where: { slug },
         select: { id: true, name: true, priceCents: true },

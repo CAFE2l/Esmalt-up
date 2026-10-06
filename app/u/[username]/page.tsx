@@ -4,6 +4,8 @@ import PublicProfileClient from "@/components/profiles/PublicProfileClient";
 
 type Props = { params: { username: string } };
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const profile = await prisma.publicProfile.findUnique({
     where: { username: decodeURIComponent(params.username).toLowerCase() },

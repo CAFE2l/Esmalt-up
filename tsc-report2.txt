@@ -1,13 +1,6 @@
 nohup: ignorando entrada
 npm notice run esmaltup@0.1.0 npx
 npm notice run 'tsc' --noEmit
-app/api/certificates/issue/route.ts(205,9): error TS2322: Type '{ status: string; updatedAt: Date; createdAt: Date; id: string; userId: string; publicCode: string; courseId: string; recipientName: string; issuedAt: Date; curriculumVersion: number; showOnWall: boolean; rankPosition: number | null; isTestData: boolean; }' is not assignable to type 'null'.
-app/api/certificates/issue/route.ts(266,25): error TS2339: Property 'id' does not exist on type 'never'.
-app/api/certificates/issue/route.ts(267,33): error TS2339: Property 'publicCode' does not exist on type 'never'.
-app/api/certificates/issue/route.ts(268,36): error TS2339: Property 'recipientName' does not exist on type 'never'.
-app/api/certificates/issue/route.ts(269,31): error TS2339: Property 'issuedAt' does not exist on type 'never'.
-app/api/certificates/issue/route.ts(270,29): error TS2339: Property 'status' does not exist on type 'never'.
-app/api/certificates/issue/route.ts(271,35): error TS2339: Property 'rankPosition' does not exist on type 'never'.
 components/certificates/CertificateRenderer.tsx(368,28): error TS2304: Cannot find name 'html2canvas'.
 components/certificates/CertificateRenderer.tsx(396,50): error TS2339: Property 'html2canvas' does not exist on type 'Window & typeof globalThis'.
 components/certificates/CertificateRenderer.tsx(490,52): error TS2339: Property 'jsPDF' does not exist on type 'Window & typeof globalThis'.
@@ -23,4 +16,3 @@ components/curso/CursoVideoPlayer.tsx(32,5): error TS2717: Subsequent property d
 components/curso/CursoVideoPlayer.tsx(273,7): error TS2739: Type 'YTPlayer' is missing the following properties from type 'YTPlayer': mute, unMute, seekTo
 components/curso/CursoVideoPlayer.tsx(278,13): error TS2739: Type 'YTPlayer' is missing the following properties from type 'YTPlayer': mute, unMute, seekTo
 components/curso/CursoVideoPlayer.tsx(284,24): error TS2339: Property 'seekTo' does not exist on type 'YTPlayer'.
-prisma/seed/orders.ts(118,33): error TS2802: Type 'ArrayIterator<[number, string]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.

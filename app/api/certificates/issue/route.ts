@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, type Certificate } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyIdToken } from "@/lib/serverAuth";
 import { getMainTrackLessons } from "@/data/course";
@@ -199,7 +199,7 @@ export async function POST(req: Request) {
         { status: 404 },
       );
     }
-    let certificate: NonNullable<typeof existingCertificate> | null = null;
+    let certificate = null as Certificate | null;
     for (let attempt = 0; attempt < 3 && !certificate; attempt += 1) {
       try {
         certificate = await prisma.$transaction(async (tx) => {

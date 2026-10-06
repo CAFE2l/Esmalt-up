@@ -10,6 +10,14 @@ async function main() {
     where: { userId: { in: testUserIds }, isTestData: true },
   });
   await prisma.userProfile.deleteMany({ where: { uid: { in: testUserIds } } });
+  const highestRank = await prisma.certificate.aggregate({
+    _max: { rankPosition: true },
+  });
+  await prisma.certificateRankCounter.upsert({
+    where: { id: 1 },
+    update: { lastRank: highestRank._max.rankPosition ?? 0 },
+    create: { id: 1, lastRank: highestRank._max.rankPosition ?? 0 },
+  });
   console.log(`${removed.count} certificados de teste removidos.`);
 }
 

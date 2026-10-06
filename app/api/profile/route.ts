@@ -130,13 +130,23 @@ export async function PUT(req: Request) {
       );
     }
 
-    const profile = await prisma.userProfile.upsert({
-      where: { uid: auth.uid },
-      update: data,
-      create: {
-        uid: auth.uid,
-        ...(data as Record<string, unknown>),
-      } as Prisma.UserProfileCreateInput,
+    const profile = await prisma.$transaction(async (tx) => {
+      const savedProfile = await tx.userProfile.upsert({
+        where: { uid: auth.uid },
+        update: data,
+        create: {
+          uid: auth.uid,
+          ...(data as Record<string, unknown>),
+        } as Prisma.UserProfileCreateInput,
+      });
+      await tx.publicProfile.updateMany({
+        where: { userId: auth.uid },
+        data: {
+          displayName: savedProfile.name?.trim() || "Formada(o)",
+          avatarUrl: savedProfile.profilePhotoUrl ?? savedProfile.avatarUrl,
+        },
+      });
+      return savedProfile;
     });
 
     return NextResponse.json({ profile });
