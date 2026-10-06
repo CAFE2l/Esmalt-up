@@ -304,8 +304,10 @@ function PublicCertificateProfile({
   return (
     <div className="flex min-w-0 items-center gap-3">
       <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-rose-gold/70 bg-gradient-to-br from-rosa-blush to-rose-gold text-xs font-bold text-white">
-        {profile.avatarUrl
-          ? <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+        {profile.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+        )
           : profile.displayName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
       </span>
       <span className="min-w-0">

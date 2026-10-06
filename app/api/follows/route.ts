@@ -69,7 +69,14 @@ async function updateFollow(request: Request, shouldFollow: boolean) {
       return NextResponse.json({ error: "Este perfil não está aceitando novos seguidores." }, { status: 403 });
     }
 
-    let result: { followersCount: number; followingCount: number; isFollowing: boolean } | null = null;
+    let result: {
+      followersCount: number;
+      followingCount: number;
+      actorUsername: string;
+      actorFollowingCount: number;
+      isFollowing: boolean;
+      allowFollows: boolean;
+    } | null = null;
     for (let attempt = 0; attempt < 3 && !result; attempt += 1) {
       try {
         result = await prisma.$transaction(async (tx) => {
@@ -108,7 +115,7 @@ async function updateFollow(request: Request, shouldFollow: boolean) {
           const [targetCounts, actorCounts] = await Promise.all([
             tx.publicProfile.findUniqueOrThrow({
               where: { userId: target.userId },
-              select: { followersCount: true, allowFollows: true },
+              select: { followersCount: true, followingCount: true, allowFollows: true },
             }),
             tx.publicProfile.findUniqueOrThrow({
               where: { userId: auth.uid },
@@ -117,7 +124,9 @@ async function updateFollow(request: Request, shouldFollow: boolean) {
           ]);
           return {
             followersCount: targetCounts.followersCount,
-            followingCount: actorCounts.followingCount,
+            followingCount: targetCounts.followingCount,
+            actorUsername: actor.username,
+            actorFollowingCount: actorCounts.followingCount,
             isFollowing: shouldFollow,
             allowFollows: targetCounts.allowFollows,
           };

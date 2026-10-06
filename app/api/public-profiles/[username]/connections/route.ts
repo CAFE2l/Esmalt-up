@@ -58,6 +58,7 @@ export async function GET(
               allowFollows: true,
             },
           },
+        },
       }),
       prisma.follow.count({ where }),
     ]);

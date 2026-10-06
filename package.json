@@ -10,6 +10,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed:products": "npx tsx prisma/seed/products.ts",
+    "seed:orders": "npx tsx prisma/seed/orders.ts",
     "seed:demo-reviews": "SEED_DEMO_REVIEWS=1 npx tsx prisma/seed/products.ts",
     "seed:curriculum": "npx tsx prisma/seed/curriculum.ts",
     "seed:graduate-test-data": "npx tsx prisma/seed/graduate-test-data.ts",
@@ -23,6 +24,8 @@
     "firebase": "^12.19.0",
     "firebase-admin": "^14.4.0",
     "framer-motion": "^13.2.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.45.0",
     "mercadopago": "^3.6.1",
     "next": "14.2.35",
@@ -31,7 +34,7 @@
     "zod": "^4.6.4"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",

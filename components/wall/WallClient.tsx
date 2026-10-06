@@ -252,7 +252,20 @@ function GraduateMobileCard({
       animate={{ opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0 }}
       id={`graduate-mobile-${entry.rankPosition}`}
+      tabIndex={entry.profile ? 0 : undefined}
+      role={entry.profile ? "link" : undefined}
+      aria-label={entry.profile ? `Abrir perfil de ${entry.recipientName}, posição ${entry.rankPosition}` : undefined}
       className={`list-none border-b border-cinza-suave/20 p-3 ${entry.isOwn ? "bg-rose-gold/10" : ""} ${highlight ? "motion-safe:animate-pulse ring-2 ring-rose-gold" : ""}`}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("a,button")) return;
+        if (entry.profile) window.location.assign(`/u/${encodeURIComponent(entry.profile.username)}`);
+      }}
+      onKeyDown={(event) => {
+        if (entry.profile && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          window.location.assign(`/u/${encodeURIComponent(entry.profile.username)}`);
+        }
+      }}
     >
       <div className="flex items-center gap-3">
         <span className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-1 text-xs font-extrabold ${rankTone(entry.rankPosition)}`}>#{entry.rankPosition}</span>
@@ -283,6 +296,7 @@ export default function WallClient() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [own, setOwn] = useState<OwnCertificate | null>(null);
+  const [restoringWall, setRestoringWall] = useState(false);
   const [highlightRank, setHighlightRank] = useState<number | null>(null);
   const [jumpRank, setJumpRank] = useState<number | null>(null);
   const requestId = useRef(0);
@@ -401,6 +415,30 @@ export default function WallClient() {
     setJumpRank(own.rankPosition);
     if (canLoadDirectly) void load(pageNumber);
     else requestedPage.current = pageNumber;
+  };
+
+  const showOwnOnWall = async () => {
+    if (!user) return;
+    setRestoringWall(true);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/certificates/visibility", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ showOnWall: true }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Não foi possível mostrar seu certificado.");
+      setOwn((current) => current ? { ...current, showOnWall: true } : current);
+      await load(1);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível mostrar seu certificado.");
+    } finally {
+      setRestoringWall(false);
+    }
   };
 
   const filterControls = (
@@ -567,7 +605,13 @@ export default function WallClient() {
           ) : (
             <>
               <p className="text-xs font-semibold sm:text-sm">{own?.rankPosition ? "Seu certificado está oculto no mural" : "Conclua o curso e entre para o Hall da Fama"}</p>
-              <Link href={own?.rankPosition ? "/configuracoes" : "/curso"} className="shrink-0 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-2 text-xs font-bold text-white sm:text-sm">{own?.rankPosition ? "Configurar perfil" : "Ver curso"} <ChevronRight className="ml-1 inline" size={14} /></Link>
+              {own?.rankPosition ? (
+                <button disabled={restoringWall} onClick={() => void showOwnOnWall()} className="shrink-0 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-2 text-xs font-bold text-white disabled:opacity-60 sm:text-sm">
+                  {restoringWall ? "Salvando..." : "Mostrar no mural"}
+                </button>
+              ) : (
+                <Link href="/curso" className="shrink-0 rounded-full bg-gradient-to-r from-rosa-blush to-rose-gold px-4 py-2 text-xs font-bold text-white sm:text-sm">Ver curso <ChevronRight className="ml-1 inline" size={14} /></Link>
+              )}
             </>
           )}
         </div>

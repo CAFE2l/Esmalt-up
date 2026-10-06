@@ -11,6 +11,7 @@ import {
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export interface FollowState {
@@ -57,7 +58,7 @@ export function FollowProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(async (username: string, displayName: string) => {
     if (!user) return false;
     const current = states[username] ?? emptyState;
-    if (!current.allowFollows || loading[username]) return false;
+    if ((!current.allowFollows && !current.isFollowing) || loading[username]) return false;
     const nextFollowing = !current.isFollowing;
     const previous = current;
     setError(null);
@@ -89,6 +90,12 @@ export function FollowProvider({ children }: { children: ReactNode }) {
         allowFollows: data.allowFollows,
         loaded: true,
       });
+      if (data.actorUsername && typeof data.actorFollowingCount === "number") {
+        register(data.actorUsername, {
+          followingCount: data.actorFollowingCount,
+          loaded: true,
+        });
+      }
       setToast(nextFollowing
         ? `Agora você segue ${displayName}`
         : `Você deixou de seguir ${displayName}`);
@@ -187,7 +194,7 @@ export function FollowButton({
   const [loginPrompt, setLoginPrompt] = useState(false);
   const [redirectTo, setRedirectTo] = useState("/formados");
   const reduceMotion = useReducedMotion();
-  if (!allowFollows) return null;
+  if (!allowFollows && !isFollowing) return null;
 
   return (
     <>
@@ -212,7 +219,16 @@ export function FollowButton({
             : "border-rose-gold/40 bg-gradient-to-r from-rosa-blush to-rose-gold text-white hover:brightness-110"
         } ${compact ? "px-3 py-2" : ""}`}
       >
-        {pending ? "Salvando..." : isFollowing ? "Seguindo" : compact ? "Seguir" : "Seguir"}
+        <motion.span
+          key={isFollowing ? "following" : "not-following"}
+          initial={reduceMotion ? false : { scale: 0.65, opacity: 0.7 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 420, damping: 18 }}
+          aria-hidden="true"
+        >
+          <Heart size={15} fill={isFollowing ? "currentColor" : "none"} />
+        </motion.span>
+        {pending ? "Salvando..." : isFollowing ? "Seguindo" : "Seguir"}
       </motion.button>
       {error && <span role="status" className="sr-only">{error}</span>}
       {loginPrompt && (

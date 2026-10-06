@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyIdToken } from "@/lib/serverAuth";
 import { getMainTrackLessons } from "@/data/course";
@@ -158,6 +159,7 @@ export async function POST(req: Request) {
         recipientName: existingCertificate.recipientName,
         issuedAt: existingCertificate.issuedAt.toISOString(),
         status: existingCertificate.status,
+        rankPosition: existingCertificate.rankPosition,
         completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
       },
       publicProfile: publicProfile ? { username: publicProfile.username } : null,
@@ -197,26 +199,67 @@ export async function POST(req: Request) {
         { status: 404 },
       );
     }
-    const certificate = await prisma.$transaction(async (tx) => {
-      const counter = await tx.certificateRankCounter.update({
-        where: { id: 1 },
-        data: { lastRank: { increment: 1 } },
-        select: { lastRank: true },
-      });
-      return tx.certificate.create({
-        data: {
-          publicCode,
-          userId: uid,
-          courseId: "nail-designer-iniciante",
-          recipientName: recipientName.trim(),
-          issuedAt: new Date(),
-          curriculumVersion: 1,
-          status: "valid",
-          showOnWall: typeof showOnWall === "boolean" ? showOnWall : true,
-          rankPosition: counter.lastRank,
-        },
-      });
-    }, { isolationLevel: "Serializable" });
+    let certificate: NonNullable<typeof existingCertificate> | null = null;
+    for (let attempt = 0; attempt < 3 && !certificate; attempt += 1) {
+      try {
+        certificate = await prisma.$transaction(async (tx) => {
+          const counter = await tx.certificateRankCounter.update({
+            where: { id: 1 },
+            data: { lastRank: { increment: 1 } },
+            select: { lastRank: true },
+          });
+          return tx.certificate.create({
+            data: {
+              publicCode,
+              userId: uid,
+              courseId: "nail-designer-iniciante",
+              recipientName: recipientName.trim(),
+              issuedAt: new Date(),
+              curriculumVersion: 1,
+              status: "valid",
+              showOnWall: typeof showOnWall === "boolean" ? showOnWall : true,
+              rankPosition: counter.lastRank,
+            },
+          });
+        }, { isolationLevel: "Serializable" });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2034" &&
+          attempt < 2
+        ) continue;
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          const duplicate = await prisma.certificate.findUnique({
+            where: {
+              userId_courseId: {
+                userId: uid,
+                courseId: "nail-designer-iniciante",
+              },
+            },
+          });
+          if (duplicate) {
+            return NextResponse.json({
+              certificate: {
+                id: duplicate.id,
+                publicCode: duplicate.publicCode,
+                recipientName: duplicate.recipientName,
+                issuedAt: duplicate.issuedAt.toISOString(),
+                status: duplicate.status,
+                rankPosition: duplicate.rankPosition,
+                completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
+              },
+              publicProfile: { username: publicProfile.username },
+              message: "Certificado já emitido. Aqui está o seu certificado existente.",
+            });
+          }
+        }
+        throw error;
+      }
+    }
+    if (!certificate) throw new Error("Certificate issuance did not complete.");
 
     return NextResponse.json({
       certificate: {
@@ -225,6 +268,7 @@ export async function POST(req: Request) {
         recipientName: certificate.recipientName,
         issuedAt: certificate.issuedAt.toISOString(),
         status: certificate.status,
+        rankPosition: certificate.rankPosition,
         completedAt: lastCompleted?.completedAt?.toISOString() ?? null,
       },
       publicProfile: { username: publicProfile.username },

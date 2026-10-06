@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Download, QrCode, ArrowLeft } from "lucide-react";
 import { getQRCodeImageURL } from "@/lib/qrCode";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { CERTIFICATE_CURRICULUM } from "@/data/certificateCurriculum";
 import { getCertificateConfig } from "@/lib/certificateConfig";
 import { formatDatePtBR } from "@/lib/certificates";
@@ -363,6 +365,7 @@ export default function CertificateView({ certificate, siteUrl }: CertificateVie
   const [activeView, setActiveView] = useState<'front' | 'back'>('front');
   const [isLoading, setIsLoading] = useState(false);
   const frontRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
   const [wallVisible, setWallVisible] = useState(certificate.showOnWall !== false);
   const [wallBusy, setWallBusy] = useState(false);
   const [wallError, setWallError] = useState<string | null>(null);
@@ -396,30 +399,73 @@ export default function CertificateView({ certificate, siteUrl }: CertificateVie
     }
   }, [wallVisible]);
 
-  const handleDownload = useCallback((type: 'front' | 'back' | 'pdf') => {
-    setIsLoading(true);
+  const waitForTransition = () =>
+    new Promise<void>((resolve) => setTimeout(resolve, 350));
 
-    try {
-      if (type === 'front' && frontRef.current) {
-        // For now, just open the certificate page for full functionality
-        // In production, you could use html2canvas or similar libraries
-        alert('Para baixar a imagem da frente, use a função de impressão do navegador ou capturador de tela.');
-      } else if (type === 'back') {
-        alert('Para baixar o verso, use a função de impressão do navegador.');
-      } else if (type === 'pdf') {
-        // Use browser print
-        window.print();
+  const captureView = useCallback(
+    async (view: "front" | "back"): Promise<HTMLCanvasElement> => {
+      const el = view === "front" ? frontRef.current : backRef.current;
+      if (!el) throw new Error("Elemento não encontrado");
+
+      const previous = activeView;
+      if (previous !== view) {
+        setActiveView(view);
+        await waitForTransition();
       }
-    } catch (error) {
-      console.error('Error downloading:', error);
-      alert('Não foi possível baixar. Por favor, use a função de impressão do navegador.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
-  // Note: For screenshot functionality, we use browser print or external libraries
-  // html2canvas would need to be added as a dependency for client-side rendering
+      try {
+        return await html2canvas(el, {
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          scale: Math.min(2, (window.devicePixelRatio || 1) * 2),
+        });
+      } finally {
+        if (previous !== view) {
+          setActiveView(previous);
+        }
+      }
+    },
+    [activeView]
+  );
+
+  const safeName = certificate.recipientName.replace(/\s+/g, "-").toLowerCase();
+
+  const handleDownload = useCallback(
+    async (type: "front" | "back" | "pdf") => {
+      setIsLoading(true);
+
+      try {
+        if (type === "front" || type === "back") {
+          const canvas = await captureView(type);
+          const link = document.createElement("a");
+          link.download = `certificado-${type === "front" ? "frente" : "verso"}-${safeName}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        } else {
+          const frontCanvas = await captureView("front");
+          const backCanvas = await captureView("back");
+
+          const pdf = new jsPDF({
+            orientation: config.width >= config.height ? "landscape" : "portrait",
+            unit: "px",
+            format: [frontCanvas.width, frontCanvas.height],
+            hotfixes: ["px_scaling"],
+          });
+
+          pdf.addImage(frontCanvas.toDataURL("image/png"), "PNG", 0, 0, frontCanvas.width, frontCanvas.height);
+          pdf.addPage([backCanvas.width, backCanvas.height], config.width >= config.height ? "landscape" : "portrait");
+          pdf.addImage(backCanvas.toDataURL("image/png"), "PNG", 0, 0, backCanvas.width, backCanvas.height);
+          pdf.save(`certificado-${safeName}.pdf`);
+        }
+      } catch (error) {
+        console.error("Error downloading:", error);
+        alert("Não foi possível gerar o arquivo. Tente novamente.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [captureView, config.width, config.height, safeName]
+  );
 
   return (
     <div className="w-full">
@@ -451,6 +497,7 @@ export default function CertificateView({ certificate, siteUrl }: CertificateVie
         </div>
 
         <div
+          ref={backRef}
           className={`transition-opacity duration-300 ${activeView === 'back' ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
           style={{ aspectRatio: `${config.width}/${config.height}` }}
         >
